@@ -32,6 +32,8 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework_simplejwt',
     'account',
+    'contest',
+    'judge',
     
 ]
 
@@ -44,6 +46,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    
 ]
 
 ROOT_URLCONF = 'codify.urls'
@@ -161,4 +164,6 @@ PASSWORD_RESET_TIMEOUT=900  #900 sec = 15 min
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
+    "http://localhost:5173",
 ]
+CORS_ALLOW_ALL_ORIGINS = True
