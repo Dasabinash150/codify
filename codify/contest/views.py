@@ -168,3 +168,5 @@ def submit_contest(request):
         "message": "Contest submitted successfully",
         "score": score
     })
+
+

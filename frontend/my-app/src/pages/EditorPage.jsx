@@ -14,6 +14,7 @@ function EditorPage() {
     const [input, setInput] = useState("");
     const [output, setOutput] = useState("");
     const [loading, setLoading] = useState(false);
+    const [testResults, setTestResults] = useState([]);
 
     const { id: contestId } = useParams();
     const navigate = useNavigate();
@@ -49,8 +50,6 @@ function EditorPage() {
     useEffect(() => {
         axios.get(`http://127.0.0.1:8000/api/contests/${contestId}/`)
             .then((res) => {
-                console.log("Contest API:", res.data);
-
                 const contestProblems = res.data.contest_problems || [];
 
                 const flatQuestions = contestProblems.map((item) => ({
@@ -67,6 +66,7 @@ function EditorPage() {
             .catch((err) => {
                 console.log("Error loading contest problems", err);
             });
+
     }, [contestId]);
 
     useEffect(() => {
@@ -100,20 +100,22 @@ function EditorPage() {
 
         setLoading(true);
         setOutput("Running...");
+        setTestResults([]);
 
         try {
-            const response = await axios.post("http://127.0.0.1:8000/api/run/", {
-                source_code: codes[currentQ.id] || "",
-                language_id: 71,
-                stdin: input
-            });
-
-            setOutput(
-                response.data.stdout ||
-                response.data.stderr ||
-                response.data.compile_output ||
-                "No Output"
+            const response = await axios.post(
+                "http://127.0.0.1:8000/api/run-code/",
+                {
+                    problem_id: currentQ.id,
+                    source_code: codes[currentQ.id] || "",
+                    language_id: 71
+                }
             );
+
+            const data = response.data;
+
+            setOutput(`Passed ${data.passed_count}/${data.total_testcases} test cases`);
+            setTestResults(data.results || []);
         } catch (error) {
             console.error(error);
             setOutput("Server Error");
@@ -229,6 +231,40 @@ function EditorPage() {
                                 >
                                     {output}
                                 </pre>
+                            </div>
+                            <div className="mt-3">
+                                <h6>Test Case Results</h6>
+
+                                {testResults.length > 0 ? (
+                                    testResults.map((tc) => (
+                                        <Card
+                                            key={tc.testcase_number}
+                                            className={`mb-2 border ${tc.passed ? "border-success" : "border-danger"}`}
+                                        >
+                                            <Card.Body>
+                                                <div className="d-flex justify-content-between align-items-center">
+                                                    <strong>Test Case {tc.testcase_number}</strong>
+                                                    <span>{tc.passed ? "✅ Passed" : "❌ Failed"}</span>
+                                                </div>
+
+                                                <hr />
+
+                                                <p className="mb-1"><strong>Input:</strong></p>
+                                                <pre>{tc.input}</pre>
+
+                                                <p className="mb-1"><strong>Expected Output:</strong></p>
+                                                <pre>{tc.expected_output}</pre>
+
+                                                <p className="mb-1"><strong>Actual Output:</strong></p>
+                                                <pre>{tc.actual_output}</pre>
+
+                                                <p className="mb-0"><strong>Status:</strong> {tc.judge_status}</p>
+                                            </Card.Body>
+                                        </Card>
+                                    ))
+                                ) : (
+                                    <p className="text-muted">No test case results yet.</p>
+                                )}
                             </div>
                         </Card.Body>
                     </Card>
