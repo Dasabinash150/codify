@@ -1,0 +1,148 @@
+1️⃣ Create Project Folder
+mkdir codify
+cd codify
+2️⃣ Create Python Virtual Environment
+python -m venv codifyenv
+
+Activate environment
+
+Windows
+codifyenv\Scripts\activate
+Linux / Mac
+source codifyenv/bin/activate
+3️⃣ Install Django + Required Packages
+pip install django
+pip install djangorestframework
+pip install django-cors-headers
+pip install celery
+pip install redis
+pip install docker
+
+Save requirements
+
+pip freeze > requirements.txt
+4️⃣ Create Django Project
+django-admin startproject codify
+cd codify
+
+Run server
+
+python manage.py runserver
+5️⃣ Create Django Apps
+
+You will use multiple apps.
+
+python manage.py startapp users
+python manage.py startapp problems
+python manage.py startapp contests
+python manage.py startapp submissions
+python manage.py startapp judge
+6️⃣ Database Commands
+
+Create migrations
+
+python manage.py makemigrations
+
+Apply migrations
+
+python manage.py migrate
+7️⃣ Create Admin User
+python manage.py createsuperuser
+
+Login
+
+http://127.0.0.1:8000/admin
+8️⃣ Install React Frontend
+
+Move outside Django folder.
+
+cd ..
+npx create-react-app frontend
+cd frontend
+
+Install packages
+
+npm install axios
+npm install react-router-dom
+npm install react-bootstrap bootstrap
+npm install @monaco-editor/react
+
+Run React
+
+npm start
+
+or
+
+npm run dev
+9️⃣ Run Celery Worker (for code judging)
+
+Start Redis first.
+
+redis-server
+
+Then run worker.
+
+celery -A judge worker -l info
+🔟 Docker for Secure Code Execution
+
+Build container
+
+docker build -t code-runner .
+
+Run container
+
+docker run code-runner
+1️⃣1️⃣ Run Full Project
+Start backend
+python manage.py runserver
+Start frontend
+npm start
+Start celery worker
+celery -A judge worker -l info
+1️⃣2️⃣ Git Commands (Important)
+
+Initialize git
+
+git init
+git add .
+git commit -m "Initial commit"
+
+Push to GitHub
+
+git remote add origin repo_url
+git push -u origin main
+
+⭐ Main Commands Used Daily
+python manage.py runserver
+python manage.py makemigrations
+python manage.py migrate
+python manage.py createsuperuser
+
+npm start
+npm install package-name
+
+celery -A judge worker -l info
+redis-server
+
+
+
+
+n = int(input())
+
+if n % 2 == 0:
+    print("even")
+else:
+    print("odd")
+
+
+🚀 If you want, I can also show you
+How to make your platform 100x better like LeetCode
+
+Add:
+
+✔ Resizable editor panels
+✔ Live leaderboard
+✔ Secure Docker code execution
+✔ Auto test case judge
+✔ Code autosave
+✔ Contest timer sync

@@ -108,14 +108,20 @@ function EditorPage() {
                 {
                     problem_id: currentQ.id,
                     source_code: codes[currentQ.id] || "",
-                    language_id: 71
+                    language_id: 71,
+                    custom_input: input
                 }
             );
 
             const data = response.data;
 
-            setOutput(`Passed ${data.passed_count}/${data.total_testcases} test cases`);
-            setTestResults(data.results || []);
+            if (data.mode === "custom") {
+                setOutput(data.output || "No output");
+                setTestResults([]);
+            } else {
+                setOutput(`Passed ${data.passed_count}/${data.total_testcases} test cases`);
+                setTestResults(data.results || []);
+            }
         } catch (error) {
             console.error(error);
             setOutput("Server Error");
@@ -236,32 +242,38 @@ function EditorPage() {
                                 <h6>Test Case Results</h6>
 
                                 {testResults.length > 0 ? (
-                                    testResults.map((tc) => (
-                                        <Card
-                                            key={tc.testcase_number}
-                                            className={`mb-2 border ${tc.passed ? "border-success" : "border-danger"}`}
-                                        >
-                                            <Card.Body>
-                                                <div className="d-flex justify-content-between align-items-center">
-                                                    <strong>Test Case {tc.testcase_number}</strong>
-                                                    <span>{tc.passed ? "✅ Passed" : "❌ Failed"}</span>
-                                                </div>
+                                    <table className="table table-bordered table-sm">
+                                        <thead className="table-light">
+                                            <tr>
+                                                <th>Test Case</th>
+                                                <th>Input</th>
+                                                <th>Expected</th>
+                                                <th>Actual</th>
+                                                <th>Status</th>
+                                            </tr>
+                                        </thead>
 
-                                                <hr />
-
-                                                <p className="mb-1"><strong>Input:</strong></p>
-                                                <pre>{tc.input}</pre>
-
-                                                <p className="mb-1"><strong>Expected Output:</strong></p>
-                                                <pre>{tc.expected_output}</pre>
-
-                                                <p className="mb-1"><strong>Actual Output:</strong></p>
-                                                <pre>{tc.actual_output}</pre>
-
-                                                <p className="mb-0"><strong>Status:</strong> {tc.judge_status}</p>
-                                            </Card.Body>
-                                        </Card>
-                                    ))
+                                        <tbody>
+                                            {testResults.map((tc) => (
+                                                <tr
+                                                    key={tc.testcase_number}
+                                                    className={tc.passed ? "table-success" : "table-danger"}
+                                                >
+                                                    <td>{tc.testcase_number}</td>
+                                                    <td><pre className="mb-0">{tc.input}</pre></td>
+                                                    <td><pre className="mb-0">{tc.expected_output}</pre></td>
+                                                    <td><pre className="mb-0">{tc.actual_output}</pre></td>
+                                                    <td>
+                                                        {tc.passed ? (
+                                                            <span className="text-success">✅ Passed</span>
+                                                        ) : (
+                                                            <span className="text-danger">❌ Failed</span>
+                                                        )}
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
                                 ) : (
                                     <p className="text-muted">No test case results yet.</p>
                                 )}

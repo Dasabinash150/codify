@@ -6,6 +6,15 @@ from rest_framework import status
 from contest.models import Problem, TestCase
 
 
+from rest_framework.views import APIView
+
+
+
+from .models import Submission
+from .serializers import SubmissionSerializer
+from .services import judge_submission
+
+
 JUDGE0_URL = "https://judge0-ce.p.rapidapi.com/submissions?base64_encoded=false&wait=true"
 
 
@@ -93,6 +102,39 @@ def run_code_against_testcases(request):
         "results": results
     })
 
+
+
+
+
+class SubmitCodeView(APIView):
+    def post(self, request, problem_id):
+        code = request.data.get("code")
+        language = request.data.get("language")
+
+        if not code or not language:
+            return Response(
+                {"error": "code and language are required"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            problem = Problem.objects.get(id=problem_id)
+        except Problem.DoesNotExist:
+            return Response(
+                {"error": "Problem not found"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        submission = Submission.objects.create(
+            problem=problem,
+            code=code,
+            language=language
+        )
+
+        judged_submission = judge_submission(submission)
+        serializer = SubmissionSerializer(judged_submission)
+
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
 
