@@ -15,29 +15,53 @@ function EditorPage() {
     const [output, setOutput] = useState("");
     const [loading, setLoading] = useState(false);
     const [testResults, setTestResults] = useState([]);
+    const [summary, setSummary] = useState({});
+    const [testcaseResults, setTestcaseResults] = useState({});
+    const [runSummary, setRunSummary] = useState({});
 
     const { id: contestId } = useParams();
     const navigate = useNavigate();
 
+    // const handleSubmitContest = async () => {
+    //     try {
+    //         const submissions = questions.map((q) => ({
+    //             problem_id: q.id,
+    //             code: codes[q.id] || "",
+    //             language_id: 71,
+    //         }));
+
+    //         await axios.post("http://127.0.0.1:8000/api/submit-contest/", {
+    //             contest_id: contestId,
+    //             submissions,
+    //         });
+
+    //         alert("Submitted!");
+    //         navigate(`/contest/${contestId}/leaderboard`);
+
+    //     } catch (err) {
+    //         alert("Submit Failed");
+    //     }
+    // };
     const handleSubmitContest = async () => {
         try {
-            await axios.post("http://127.0.0.1:8000/api/submit-contest/", {
+            const answers = questions.map((q) => ({
+                problem_id: q.id,
+                source_code: codes[q.id] || "",
+                language_id: 71,
+            }));
+
+            const res = await axios.post("http://127.0.0.1:8000/api/submit-contest/", {
                 contest_id: contestId,
-                submissions: Object.keys(codes).map((pid) => ({
-                    problem_id: parseInt(pid),
-                    code: codes[pid],
-                    language_id: 71
-                }))
+                answers: answers,
             });
 
-            alert("Contest submitted successfully");
+            alert("Submitted successfully");
             navigate(`/contest/${contestId}/leaderboard`);
-        } catch (error) {
-            console.error(error);
-            alert("Contest submission failed");
+        } catch (err) {
+            console.error("Submit error:", err.response?.data || err.message);
+            alert(err.response?.data?.error || "Contest submit failed");
         }
     };
-
     useEffect(() => {
         const timer = setInterval(() => {
             setContestTime((prev) => (prev > 0 ? prev - 1 : 0));
@@ -80,6 +104,14 @@ function EditorPage() {
         };
     }, [currentQ, activeTime]);
 
+    // const handleCodeChange = (value) => {
+    //     if (!currentQ) return;
+
+    //     setCodes((prev) => ({
+    //         ...prev,
+    //         [currentQ.id]: value || "",
+    //     }));
+    // };
     const handleCodeChange = (value) => {
         if (!currentQ) return;
 
@@ -88,57 +120,66 @@ function EditorPage() {
             [currentQ.id]: value || "",
         }));
     };
+    const handleQuestionChange = (question) => {
+        setCurrentQ(question);
+    };
 
     const formatTime = (sec) => {
         const m = Math.floor(sec / 60);
         const s = sec % 60;
         return `${m}:${s < 10 ? "0" : ""}${s}`;
     };
-
     const handleRunCode = async () => {
         if (!currentQ) return;
 
-        setLoading(true);
-        setOutput("Running...");
-        setTestResults([]);
-
         try {
-            const response = await axios.post(
-                "http://127.0.0.1:8000/api/run-code/",
-                {
-                    problem_id: currentQ.id,
-                    source_code: codes[currentQ.id] || "",
-                    language_id: 71,
-                    custom_input: input
-                }
-            );
+            setLoading(true);
 
-            const data = response.data;
+            const res = await axios.post("http://127.0.0.1:8000/api/run-code/", {
+                problem_id: currentQ.id,
+                source_code: codes[currentQ.id] || "",
+                language_id: 71,
+            });
 
-            if (data.mode === "custom") {
-                setOutput(data.output || "No output");
-                setTestResults([]);
-            } else {
-                setOutput(`Passed ${data.passed_count}/${data.total_testcases} test cases`);
-                setTestResults(data.results || []);
-            }
-        } catch (error) {
-            console.error(error);
-            setOutput("Server Error");
+            setRunSummary((prev) => ({
+                ...prev,
+                [currentQ.id]: {
+                    passed: res.data.passed,
+                    total: res.data.total,
+                },
+            }));
+
+            setTestcaseResults((prev) => ({
+                ...prev,
+                [currentQ.id]: res.data.results || [],
+            }));
+
+        } catch (err) {
+            console.error(err);
+            alert(err.response?.data?.error || "Run code failed");
+        } finally {
+            setLoading(false);
         }
-
-        setLoading(false);
     };
+    // useEffect(() => {
+    //     const savedCodes = JSON.parse(localStorage.getItem("codes")) || {};
+    //     setCodes(savedCodes);
+    // }, []);
+
+    // useEffect(() => {
+    //     localStorage.setItem("codes", JSON.stringify(codes));
+    // }, [codes]);
 
     useEffect(() => {
-        const savedCodes = JSON.parse(localStorage.getItem("codes")) || {};
-        setCodes(savedCodes);
-    }, []);
+        const saved = localStorage.getItem(`contest_${contestId}_codes`);
+        if (saved) {
+            setCodes(JSON.parse(saved));
+        }
+    }, [contestId]);
 
     useEffect(() => {
-        localStorage.setItem("codes", JSON.stringify(codes));
-    }, [codes]);
-
+        localStorage.setItem(`contest_${contestId}_codes`, JSON.stringify(codes));
+    }, [codes, contestId]);
     return (
         <Container fluid className="py-3">
             <Row>
@@ -192,13 +233,37 @@ function EditorPage() {
                                 <span>🕒 Time on this problem: {formatTime(activeTime)}</span>
                             </div>
 
-                            <Editor
+                            {/* <Editor
                                 height="400px"
                                 language="python"
                                 theme="vs-dark"
                                 value={currentQ ? (codes[currentQ.id] || "") : ""}
                                 onChange={handleCodeChange}
+                            /> */}
+                            <Editor
+                                height="500px"
+                                language="python"
+                                theme="vs-dark"
+                                value={codes[currentQ?.id] || ""}
+                                onChange={(value) =>
+                                    setCodes((prev) => ({
+                                        ...prev,
+                                        [currentQ.id]: value || "",
+                                    }))
+                                }
                             />
+                            {/* <Editor
+                                height="400px"
+                                language="python"
+                                theme="vs-dark"
+                                value={codes[currentQ?.id] || ""}
+                                onChange={(value) =>
+                                    setCodes((prev) => ({
+                                        ...prev,
+                                        [currentQ.id]: value || "",
+                                    }))
+                                }
+                            /> */}
 
                             <div className="mt-3 d-flex gap-2">
                                 <Button
@@ -238,46 +303,53 @@ function EditorPage() {
                                     {output}
                                 </pre>
                             </div>
-                            <div className="mt-3">
-                                <h6>Test Case Results</h6>
+                            {summary[currentQ?.id] && (
+                                <p>Passed {summary[currentQ.id].passed}/{summary[currentQ.id].total}</p>
+                            )}
 
-                                {testResults.length > 0 ? (
-                                    <table className="table table-bordered table-sm">
-                                        <thead className="table-light">
-                                            <tr>
-                                                <th>Test Case</th>
-                                                <th>Input</th>
-                                                <th>Expected</th>
-                                                <th>Actual</th>
-                                                <th>Status</th>
-                                            </tr>
-                                        </thead>
+                            {(testResults[currentQ?.id] || []).map((tc, i) => (
+                                <div key={i}>
+                                    <p>Test {tc.testcase} → {tc.passed ? "✅" : "❌"}</p>
+                                    <p>Expected: {tc.expected_output}</p>
+                                    <p>Your: {tc.actual_output}</p>
+                                </div>
+                            ))}
+                            <Card className="mt-3">
+                                <Card.Body>
+                                    <h5>Test Case Results</h5>
 
-                                        <tbody>
-                                            {testResults.map((tc) => (
-                                                <tr
-                                                    key={tc.testcase_number}
-                                                    className={tc.passed ? "table-success" : "table-danger"}
-                                                >
-                                                    <td>{tc.testcase_number}</td>
-                                                    <td><pre className="mb-0">{tc.input}</pre></td>
-                                                    <td><pre className="mb-0">{tc.expected_output}</pre></td>
-                                                    <td><pre className="mb-0">{tc.actual_output}</pre></td>
-                                                    <td>
-                                                        {tc.passed ? (
-                                                            <span className="text-success">✅ Passed</span>
-                                                        ) : (
-                                                            <span className="text-danger">❌ Failed</span>
-                                                        )}
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                ) : (
-                                    <p className="text-muted">No test case results yet.</p>
-                                )}
-                            </div>
+                                    {runSummary[currentQ?.id] && (
+                                        <p>
+                                            Passed <strong>{runSummary[currentQ.id].passed}/{runSummary[currentQ.id].total}</strong>
+                                        </p>
+                                    )}
+
+                                    {(testcaseResults[currentQ?.id] || []).map((tc, index) => (
+                                        <Card key={index} className="mb-2">
+                                            <Card.Body>
+                                                <h6>
+                                                    Test Case {tc.testcase} -{" "}
+                                                    <span className={tc.passed ? "text-success" : "text-danger"}>
+                                                        {tc.passed ? "Passed" : "Failed"}
+                                                    </span>
+                                                </h6>
+
+                                                <p><strong>Input:</strong></p>
+                                                <pre>{tc.input}</pre>
+
+                                                <p><strong>Expected Output:</strong></p>
+                                                <pre>{tc.expected_output}</pre>
+
+                                                <p><strong>Your Output:</strong></p>
+                                                <pre>{tc.actual_output || "No output"}</pre>
+
+                                                {tc.stderr && <pre className="text-danger">{tc.stderr}</pre>}
+                                                {tc.compile_output && <pre className="text-danger">{tc.compile_output}</pre>}
+                                            </Card.Body>
+                                        </Card>
+                                    ))}
+                                </Card.Body>
+                            </Card>
                         </Card.Body>
                     </Card>
                 </Col>

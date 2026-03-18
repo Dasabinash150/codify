@@ -5,7 +5,8 @@ from .views import (
     SubmissionViewSet, ContestViewSet, ContestProblemViewSet,
     LeaderboardViewSet
 )
-from .views import submit_contest
+# from .views import submit_contest,run_code
+from .views import run_code, submit_contest, leaderboard
 
 router = DefaultRouter()
 router.register("users", UserViewSet)
@@ -18,5 +19,11 @@ router.register("leaderboard", LeaderboardViewSet, basename="leaderboard")
 
 urlpatterns = [
     path("", include(router.urls)),
+    # path("submit-contest/", submit_contest),
+    # path("run-code/", run_code),
+    path("run-code/", run_code),
     path("submit-contest/", submit_contest),
+    path("/<int:contest_id>/leaderboard", leaderboard),
 ]
+
+

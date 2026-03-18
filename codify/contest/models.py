@@ -25,9 +25,19 @@ class Problem(models.Model):
     difficulty = models.CharField(max_length=20, choices=DIFFICULTY_CHOICES)
     constraints = models.TextField()
     tags = models.TextField(blank=True, null=True)  # store as JSON or CSV
+    points = models.IntegerField(default=100)
 
     def __str__(self):
         return self.title
+
+# class Problem(models.Model):
+#     contest = models.ForeignKey(Contest, related_name="questions", on_delete=models.CASCADE)
+#     title = models.CharField(max_length=255)
+#     description = models.TextField()
+#     points = models.IntegerField(default=100)
+
+#     def __str__(self):
+#         return self.title
 
 
 # ----------------- TEST CASES -----------------
@@ -38,6 +48,11 @@ class TestCase(models.Model):
 
     def __str__(self):
         return f"TestCase for {self.problem.title}"
+    
+# class TestCase(models.Model):
+#     problem = models.ForeignKey(Problem, related_name="testcases", on_delete=models.CASCADE)
+#     input = models.TextField()
+#     expected_output = models.TextField()
 # ----------------- CONTESTS -----------------
 class Contest(models.Model):
     name = models.CharField(max_length=255)
@@ -47,7 +62,13 @@ class Contest(models.Model):
     def __str__(self):
         return self.name
 
+# class Contest(models.Model):
+    # name = models.CharField(max_length=255)
+    # start_time = models.DateTimeField()
+    # end_time = models.DateTimeField()
 
+    # def __str__(self):
+    #     return self.name
 # ----------------- SUBMISSIONS -----------------
 class Submission(models.Model):
 
@@ -122,3 +143,27 @@ class Leaderboard(models.Model):
 
     def __str__(self):
         return f"{self.contest.name} - {self.user.username} ({self.score})"
+    
+
+
+
+class ContestSubmission(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    contest = models.ForeignKey(Contest, on_delete=models.CASCADE)
+    total_score = models.IntegerField(default=0)
+    solved_count = models.IntegerField(default=0)
+    submitted_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('user', 'contest')
+
+
+class ProblemSubmission(models.Model):
+    contest_submission = models.ForeignKey(ContestSubmission, related_name="problem_submissions", on_delete=models.CASCADE)
+    problem = models.ForeignKey(Problem, on_delete=models.CASCADE)
+    source_code = models.TextField(blank=True)
+    language_id = models.IntegerField(default=71)
+    score = models.IntegerField(default=0)
+    passed = models.BooleanField(default=False)
+    passed_testcases = models.IntegerField(default=0)
+    total_testcases = models.IntegerField(default=0)

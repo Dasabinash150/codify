@@ -1,48 +1,45 @@
-import { Container, Table, Card } from "react-bootstrap";
+import { useEffect, useState } from "react";
+import axios from "axios";
 import { useParams } from "react-router-dom";
-import Navbar from "../components/Navbar";
+import { Container, Table } from "react-bootstrap";
 
-const leaderboard = [
-  { rank: 1, name: "Alice", score: 500, time: "00:43:21" },
-  { rank: 2, name: "Bob", score: 400, time: "00:50:10" },
-  { rank: 3, name: "Charlie", score: 300, time: "00:55:40" },
-];
+function LeaderboardPage() {
+    const { id } = useParams();
+    const [leaders, setLeaders] = useState([]);
 
-function Leaderboard() {
-  const { id } = useParams(); // ✅ hook now inside component
+    useEffect(() => {
+        axios.get(`http://127.0.0.1:8000/api/leaderboard/${id}/`)
+            .then((res) => setLeaders(res.data))
+            .catch((err) => console.error(err));
+    }, [id]);
 
-  return (
-    <>
-      <Navbar />
-      <Container className="py-4">
-        <Card className="shadow-sm">
-          <Card.Body>
-            <h2 className="mb-3">Leaderboard for Contest {id}</h2>
+    return (
+        <Container className="mt-4">
+            <h2>Leaderboard</h2>
             <Table striped bordered hover>
-              <thead>
-                <tr>
-                  <th>Rank</th>
-                  <th>User</th>
-                  <th>Score</th>
-                  <th>Time</th>
-                </tr>
-              </thead>
-              <tbody>
-                {leaderboard.map((row) => (
-                  <tr key={row.rank}>
-                    <td>{row.rank}</td>
-                    <td>{row.name}</td>
-                    <td>{row.score}</td>
-                    <td>{row.time}</td>
-                  </tr>
-                ))}
-              </tbody>
+                <thead>
+                    <tr>
+                        <th>Rank</th>
+                        <th>User</th>
+                        <th>Score</th>
+                        <th>Solved</th>
+                        <th>Submitted At</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {leaders.map((item, index) => (
+                        <tr key={index}>
+                            <td>{item.rank}</td>
+                            <td>{item.user}</td>
+                            <td>{item.score}</td>
+                            <td>{item.solved}</td>
+                            <td>{item.submitted_at}</td>
+                        </tr>
+                    ))}
+                </tbody>
             </Table>
-          </Card.Body>
-        </Card>
-      </Container>
-    </>
-  );
+        </Container>
+    );
 }
 
-export default Leaderboard;
+export default LeaderboardPage;

@@ -133,6 +133,16 @@ if n % 2 == 0:
     print("even")
 else:
     print("odd")
+================================
+n = input().strip()
+
+if n == n[::-1]:
+    print("true")
+else:
+    print("false")
+===================
+s = input().strip()
+print(s[::-1])
 
 
 🚀 If you want, I can also show you
