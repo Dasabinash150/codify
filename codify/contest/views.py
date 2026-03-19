@@ -262,13 +262,22 @@ def submit_contest(request):
 
         total_score += score
 
+        # Submission.objects.create(
+        #     user=user,
+        #     problem=problem,
+        #     contest=contest,
+        #     code=source_code,
+        #     language="python",
+        #     status="AC" if all_passed else "WA"
+        # )
         Submission.objects.create(
             user=user,
             problem=problem,
             contest=contest,
             code=source_code,
             language="python",
-            status="AC" if all_passed else "WA"
+            status="AC" if all_passed else "WA",
+            runtime=0.0
         )
 
         submission_results.append({
@@ -288,9 +297,20 @@ def submit_contest(request):
     leaderboard.solved = solved_count
     leaderboard.save()
 
+    leaders = Leaderboard.objects.filter(contest=contest).order_by("-score", "-solved", "submitted_at")
+    for index, lb in enumerate(leaders, start=1):
+        lb.rank = index
+        lb.save(update_fields=["rank"])
+
     print("TOTAL SCORE:", total_score)
     print("SOLVED COUNT:", solved_count)
-    print("LEADERBOARD SAVED FOR:", user.username)
+    print(
+        "LEADERBOARD SAVED FOR:",
+        getattr(user, "username", None)
+        or getattr(user, "email", None)
+        or getattr(user, "name", None)
+        or str(user)
+    )
     return Response({
         "message": "Contest submitted successfully",
         "total_score": total_score,
@@ -299,6 +319,25 @@ def submit_contest(request):
     }, status=200)
 
 
+
+# @api_view(["GET"])
+# def leaderboard(request, contest_id):
+#     rows = Leaderboard.objects.filter(contest_id=contest_id).order_by("-score", "-solved", "id")
+
+#     result = []
+#     rank = 1
+
+#     for row in rows:
+#         result.append({
+#             "rank": rank,
+#             "user_name": row.user.username,
+#             "score": row.score,
+#             "solved": row.solved,
+#             "submitted_at": row.submitted_at
+#         })
+#         rank += 1
+
+#     return Response(result)
 
 @api_view(["GET"])
 def leaderboard(request, contest_id):
@@ -310,9 +349,16 @@ def leaderboard(request, contest_id):
     for row in rows:
         result.append({
             "rank": rank,
-            "user": row.user.username,
+            "user_name": (
+                getattr(row.user, "username", None)
+                or getattr(row.user, "user_name", None)
+                or getattr(row.user, "email", None)
+                or getattr(row.user, "name", None)
+                or str(row.user)
+            ),
             "score": row.score,
             "solved": row.solved,
+            "submitted_at": row.submitted_at,
         })
         rank += 1
 

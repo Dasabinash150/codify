@@ -43,7 +43,7 @@ function Register() {
         localStorage.setItem("refresh", data.token.refresh);
 
         alert(data.msg || "Registration successful!");
-        navigate("/dashboard"); // redirect to dashboard after register
+        navigate("/login"); // redirect to dashboard after register
       } else {
         // show Django validation errors
         if (data.email) setError(data.email[0]);

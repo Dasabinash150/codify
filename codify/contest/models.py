@@ -102,7 +102,7 @@ class Submission(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"{self.user.username} - {self.problem.title} - {self.status}"
+        return f"{self.user.user_name} - {self.problem.title} - {self.status}"
 
 
 # ----------------- CONTEST PROBLEMS -----------------
@@ -118,31 +118,42 @@ class ContestProblem(models.Model):
 
 
 # ----------------- LEADERBOARD -----------------
+# class Leaderboard(models.Model):
+
+#     contest = models.ForeignKey(
+#         Contest,
+#         related_name="leaderboard",
+#         on_delete=models.CASCADE
+#     )
+
+#     user = models.ForeignKey(
+#         User,
+#         related_name="leaderboard",
+#         on_delete=models.CASCADE
+#     )
+
+#     score = models.IntegerField(default=0)
+#     solved = models.IntegerField(default=0)
+#     penalty = models.IntegerField(default=0)
+
+#     rank = models.IntegerField(default=0)
+
+#     class Meta:
+#         unique_together = ("contest", "user")
+
+#     def __str__(self):
+#         return f"{self.contest.name} - {self.user.username} ({self.score})"
+
 class Leaderboard(models.Model):
-
-    contest = models.ForeignKey(
-        Contest,
-        related_name="leaderboard",
-        on_delete=models.CASCADE
-    )
-
-    user = models.ForeignKey(
-        User,
-        related_name="leaderboard",
-        on_delete=models.CASCADE
-    )
-
+    contest = models.ForeignKey(Contest, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
     score = models.IntegerField(default=0)
     solved = models.IntegerField(default=0)
-    penalty = models.IntegerField(default=0)
-
     rank = models.IntegerField(default=0)
+    submitted_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         unique_together = ("contest", "user")
-
-    def __str__(self):
-        return f"{self.contest.name} - {self.user.username} ({self.score})"
     
 
 

@@ -46,7 +46,23 @@ class ContestSerializer(serializers.ModelSerializer):
         model = Contest
         fields = ['id', 'name', 'start_time', 'end_time', 'contest_problems']
 
+# class LeaderboardSerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model = Leaderboard
+#         fields = '__all__'
+
+
 class LeaderboardSerializer(serializers.ModelSerializer):
+    user_name = serializers.SerializerMethodField()
+
     class Meta:
         model = Leaderboard
-        fields = '__all__'
+        fields = ["id", "contest", "user", "user_name", "score", "solved", "rank", "submitted_at"]
+
+    def get_user_name(self, obj):
+        return (
+            getattr(obj.user, "username", None)
+            or getattr(obj.user, "email", None)
+            or getattr(obj.user, "name", None)
+            or str(obj.user)
+        )

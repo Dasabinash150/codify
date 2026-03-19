@@ -15,7 +15,7 @@ router.register("testcases", TestCaseViewSet)
 router.register("submissions", SubmissionViewSet)
 router.register("contests", ContestViewSet)
 router.register("contestproblems", ContestProblemViewSet)
-router.register("leaderboard", LeaderboardViewSet, basename="leaderboard")
+#outer.register("leaderboard", LeaderboardViewSet, basename="leaderboard")
 
 urlpatterns = [
     path("", include(router.urls)),
@@ -23,7 +23,7 @@ urlpatterns = [
     # path("run-code/", run_code),
     path("run-code/", run_code),
     path("submit-contest/", submit_contest),
-    path("/<int:contest_id>/leaderboard", leaderboard),
+    path("leaderboard/<int:contest_id>/", leaderboard),
 ]
 
 

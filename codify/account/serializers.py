@@ -108,3 +108,54 @@ class UserPasswordResetSerializer(serializers.Serializer):
     except DjangoUnicodeDecodeError as identifier:
       PasswordResetTokenGenerator().check_token(user, token)
       raise serializers.ValidationError('Token is not Valid or Expired')
+
+from rest_framework import serializers
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
+
+
+class SendOTPSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+
+    def validate_email(self, value):
+        if User.objects.filter(email=value).exists():
+            raise serializers.ValidationError("Email already registered.")
+        return value
+
+
+from .models import User
+
+class RegisterWithOTPSerializer(serializers.ModelSerializer):
+    password2 = serializers.CharField(write_only=True)
+    otp = serializers.CharField(write_only=True)
+
+    class Meta:
+        model = User
+        fields = ['email', 'name', 'password', 'password2', 'tc', 'otp']
+        extra_kwargs = {
+            'password': {'write_only': True}
+        }
+
+    def validate(self, attrs):
+        password = attrs.get('password')
+        password2 = attrs.get('password2')
+
+        if password != password2:
+            raise serializers.ValidationError({"password": "Password and Confirm Password do not match"})
+
+        return attrs
+
+    def create(self, validated_data):
+        print("CREATE DATA:", validated_data)
+
+        validated_data.pop("otp")
+        validated_data.pop("password2")
+
+        user = User.objects.create_user(
+            email=validated_data["email"],
+            name=validated_data["name"],
+            tc=validated_data["tc"],
+            password=validated_data["password"]
+        )
+        return user
