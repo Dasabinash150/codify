@@ -1,6 +1,6 @@
 // import { Routes, Route } from "react-router-dom";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import Homepage from "./pages/Homepage";
+import HomePage from "./pages/HomePage";
 import ContestList from "./pages/ContestList";
 import EditorPage from "./pages/EditorPage";
 import ContestDetails from "./pages/ContestDetails";
@@ -15,7 +15,7 @@ function App() {
   return (
     <Routes>
       {/* Public routes */}
-      <Route path="/" element={<Homepage />} />
+      <Route path="/" element={<HomePage />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
       <Route path="/contest/:id/leaderboard" element={<Leaderboard />} />
