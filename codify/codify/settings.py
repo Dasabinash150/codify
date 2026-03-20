@@ -23,7 +23,7 @@ DEBUG = False
 ALLOWED_HOSTS = [
     "127.0.0.1",
     "localhost",
-    "your-backend-name.onrender.com"
+    "https://codify-8y0f.onrender.com/"
 ]
 
 
