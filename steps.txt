@@ -159,3 +159,11 @@ Add:
 
 ======================================================================
 Google client ID:   474223658396-gp2hbk4jkv06hsje521bq2ds9vv2ga9k.apps.googleusercontent.com
+
+
+========Postgre Noen ==========
+npx neonctl@latest init
+
+# connection string
+----------
+postgresql://neondb_owner:npg_1US6wtJijuxz@ep-cool-heart-a4qdljke-pooler.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require
