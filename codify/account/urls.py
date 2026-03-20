@@ -1,6 +1,6 @@
 from django.urls import path, include
 from account.views import UserRegistrationView,UserLoginView,UserProfileView,UserChangePasswordView,SendPasswordResetEmailView,UserPasswordResetView
-from .views import SendOTPView, UserRegistrationOtpView
+from .views import SendOTPView, UserRegistrationOtpView,google_login
 
 urlpatterns = [
     path('register/', UserRegistrationView.as_view(),name='register'),
@@ -11,7 +11,8 @@ urlpatterns = [
     path('reset-password/<uid>/<token>/', UserPasswordResetView.as_view(), name='reset-password'),
     path("send-otp/", SendOTPView.as_view(), name="send-otp"),
     path("registerotp/", UserRegistrationOtpView.as_view(), name="register-with-otp"),
+    path("google-login/", google_login, name="google_login"),
+    # path("api/google-login/", google_login, name="google_login"),
 
 ]   
-
 

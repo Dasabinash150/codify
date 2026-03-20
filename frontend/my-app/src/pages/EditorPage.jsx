@@ -42,56 +42,63 @@ function EditorPage() {
     //         alert("Submit Failed");
     //     }
     // };
+    // 
     const handleSubmitContest = async () => {
         try {
+            const token = localStorage.getItem("access");
+
+            if (!token) {
+                alert("Session expired. Please login again.");
+                navigate("/login");
+                return;
+            }
+
             const answers = questions.map((q) => ({
                 problem_id: q.id,
                 source_code: codes[q.id] || "",
                 language_id: 71,
             }));
+            // ===================check code written or not =================
+            const hasEmptyCode = answers.some(a => !a.source_code.trim());
 
-            const res = await axios.post("http://127.0.0.1:8000/api/submit-contest/", {
-                contest_id: contestId,
-                answers: answers,
-            });
+            if (hasEmptyCode) {
+                alert("Please write code for all questions before submitting.");
+                return;
+            }
+            // ===================check code written or not =================
+            const res = await axios.post(
+                "http://127.0.0.1:8000/api/submit-contest/",
+                {
+                    contest_id: contestId,
+                    answers: answers,
+                },
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                }
+            );
 
             alert("Submitted successfully");
             navigate(`/contest/${contestId}/leaderboard`);
+
         } catch (err) {
             console.error("Submit error:", err.response?.data || err.message);
-            alert(err.response?.data?.error || "Contest submit failed");
+
+            if (err.response?.status === 401) {
+                alert("Session expired. Please login again.");
+                localStorage.clear();
+                navigate("/login");
+                return;
+            }
+
+            alert(
+                err.response?.data?.error ||
+                err.response?.data?.detail ||
+                "Contest submit failed"
+            );
         }
     };
-    useEffect(() => {
-        const timer = setInterval(() => {
-            setContestTime((prev) => (prev > 0 ? prev - 1 : 0));
-            setActiveTime((prev) => prev + 1);
-        }, 1000);
-
-        return () => clearInterval(timer);
-    }, []);
-
-    useEffect(() => {
-        axios.get(`http://127.0.0.1:8000/api/contests/${contestId}/`)
-            .then((res) => {
-                const contestProblems = res.data.contest_problems || [];
-
-                const flatQuestions = contestProblems.map((item) => ({
-                    contest_problem_id: item.id,
-                    ...item.problem
-                }));
-
-                setQuestions(flatQuestions);
-
-                if (flatQuestions.length > 0) {
-                    setCurrentQ(flatQuestions[0]);
-                }
-            })
-            .catch((err) => {
-                console.log("Error loading contest problems", err);
-            });
-
-    }, [contestId]);
 
     useEffect(() => {
         return () => {
@@ -171,15 +178,37 @@ function EditorPage() {
     // }, [codes]);
 
     useEffect(() => {
-        const saved = localStorage.getItem(`contest_${contestId}_codes`);
-        if (saved) {
-            setCodes(JSON.parse(saved));
-        }
-    }, [contestId]);
+        const timer = setInterval(() => {
+            setContestTime((prev) => (prev > 0 ? prev - 1 : 0));
+            setActiveTime((prev) => prev + 1);
+        }, 1000);
+
+        return () => clearInterval(timer);
+    }, []);
 
     useEffect(() => {
-        localStorage.setItem(`contest_${contestId}_codes`, JSON.stringify(codes));
-    }, [codes, contestId]);
+        axios
+            .get(`http://127.0.0.1:8000/api/contests/${contestId}/`)
+            .then((res) => {
+                console.log("Contest details:", res.data);
+
+                const contestProblems = res.data.contest_problems || [];
+
+                const flatQuestions = contestProblems.map((item) => ({
+                    contest_problem_id: item.id,
+                    ...item.problem,
+                }));
+
+                setQuestions(flatQuestions);
+
+                if (flatQuestions.length > 0) {
+                    setCurrentQ(flatQuestions[0]);
+                }
+            })
+            .catch((err) => {
+                console.log("Error loading contest problems", err.response?.data || err.message);
+            });
+    }, [contestId]);
     return (
         <Container fluid className="py-3">
             <Row>
@@ -274,10 +303,17 @@ function EditorPage() {
                                     {loading ? "Running..." : "Run Code"}
                                 </Button>
 
-                                <Button
+                                {/* <Button
                                     variant="danger"
                                     onClick={handleSubmitContest}
                                     disabled={!questions.length}
+                                >
+                                    Submit Contest
+                                </Button> */}
+                                <Button
+                                    variant="danger"
+                                    onClick={handleSubmitContest}
+                                    disabled={!questions.length || !Object.keys(codes).length}
                                 >
                                     Submit Contest
                                 </Button>

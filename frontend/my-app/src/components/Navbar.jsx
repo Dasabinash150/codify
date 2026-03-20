@@ -27,8 +27,8 @@ function Navbar() {
         })
         .then((res) => {
           setUser(res.data);
-          if (res.data?.username) {
-            localStorage.setItem("username", res.data.username);
+          if (res.data?.name) {
+            localStorage.setItem("name", res.data.name);
           }
         })
         .catch((err) => {
@@ -70,8 +70,8 @@ function Navbar() {
   };
 
   const getInitial = () => {
-    if (!user?.username) return "U";
-    return user.username.charAt(0).toUpperCase();
+    if (!user?.name) return "U";
+    return user.name.charAt(0).toUpperCase();
   };
 
   return (
@@ -131,7 +131,7 @@ function Navbar() {
                   >
                     {getInitial()}
                   </div>
-                  <span>{user.username}</span>
+                  <span>{user.name}</span>
                 </button>
 
                 {openDropdown && (
@@ -140,7 +140,7 @@ function Navbar() {
                     style={{ minWidth: "200px", zIndex: 1000 }}
                   >
                     <div className="px-3 py-2 border-bottom">
-                      <strong>{user.username}</strong>
+                      <strong>{user.name}</strong>
                     </div>
 
                     <Link

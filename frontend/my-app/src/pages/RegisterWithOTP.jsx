@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import axios from "axios";
+import "bootstrap/dist/css/bootstrap.min.css";
 
 function Register() {
   const [formData, setFormData] = useState({
@@ -32,20 +33,18 @@ function Register() {
 
     if (typeof data === "string") return data;
     if (data.message) return data.message;
-    if (data.error) return data.error;
     if (data.msg) return data.msg;
+    if (data.error) return data.error;
 
     if (data.errors) {
       const firstKey = Object.keys(data.errors)[0];
       const firstValue = data.errors[firstKey];
-
       if (Array.isArray(firstValue)) return firstValue[0];
       if (typeof firstValue === "string") return firstValue;
     }
 
     const firstKey = Object.keys(data)[0];
     const firstValue = data[firstKey];
-
     if (Array.isArray(firstValue)) return firstValue[0];
     if (typeof firstValue === "string") return firstValue;
 
@@ -126,216 +125,145 @@ function Register() {
   };
 
   return (
-    <div style={styles.wrapper}>
-      <div style={styles.card}>
-        <h2 style={styles.heading}>Register with OTP</h2>
-        <p style={styles.subheading}>Create your account securely</p>
-
-        {msg && <p style={styles.success}>{msg}</p>}
-        {error && <p style={styles.error}>{error}</p>}
-
-        <form onSubmit={handleSubmit}>
-          <div style={styles.inputGroup}>
-            <label style={styles.label}>Name</label>
-            <input
-              type="text"
-              name="name"
-              placeholder="Enter your name"
-              value={formData.name}
-              onChange={handleChange}
-              style={styles.input}
-              required
-            />
-          </div>
-
-          <div style={styles.inputGroup}>
-            <label style={styles.label}>Email</label>
-            <input
-              type="email"
-              name="email"
-              placeholder="Enter your email"
-              value={formData.email}
-              onChange={handleChange}
-              style={styles.input}
-              required
-            />
-          </div>
-
-          <div style={styles.inputGroup}>
-            <label style={styles.label}>Password</label>
-            <input
-              type="password"
-              name="password"
-              placeholder="Enter password"
-              value={formData.password}
-              onChange={handleChange}
-              style={styles.input}
-              required
-            />
-          </div>
-
-          <div style={styles.inputGroup}>
-            <label style={styles.label}>Confirm Password</label>
-            <input
-              type="password"
-              name="password2"
-              placeholder="Confirm password"
-              value={formData.password2}
-              onChange={handleChange}
-              style={styles.input}
-              required
-            />
-          </div>
-
-          <div style={styles.checkboxRow}>
-            <input
-              type="checkbox"
-              name="tc"
-              checked={formData.tc}
-              onChange={handleChange}
-              id="tc"
-            />
-            <label htmlFor="tc" style={styles.checkboxLabel}>
-              I accept the terms and conditions
-            </label>
-          </div>
-
-          <button
-            type="button"
-            onClick={sendOtp}
-            disabled={loadingOtp || !formData.email}
-            style={styles.otpButton}
-          >
-            {loadingOtp ? "Sending OTP..." : "Send OTP"}
-          </button>
-
-          {otpSent && (
-            <>
-              <div style={styles.inputGroup}>
-                <label style={styles.label}>OTP</label>
-                <input
-                  type="text"
-                  name="otp"
-                  placeholder="Enter OTP"
-                  value={formData.otp}
-                  onChange={handleChange}
-                  style={styles.input}
-                  required
-                />
+    <div className="container-fluid min-vh-100 d-flex align-items-center justify-content-center bg-light">
+      <div className="row w-100 justify-content-center">
+        <div className="col-12 col-sm-10 col-md-8 col-lg-5 col-xl-4">
+          <div className="card shadow-lg border-0 rounded-4">
+            <div className="card-body p-4 p-md-5">
+              <div className="text-center mb-4">
+                <h2 className="fw-bold mb-2">Register with OTP</h2>
+                <p className="text-muted mb-0">Create your account securely</p>
               </div>
 
-              <button
-                type="submit"
-                disabled={loadingRegister}
-                style={styles.registerButton}
-              >
-                {loadingRegister ? "Registering..." : "Register"}
-              </button>
-            </>
-          )}
-        </form>
+              {msg && (
+                <div className="alert alert-success" role="alert">
+                  {msg}
+                </div>
+              )}
+
+              {error && (
+                <div className="alert alert-danger" role="alert">
+                  {error}
+                </div>
+              )}
+
+              <form onSubmit={handleSubmit}>
+                <div className="mb-3">
+                  <label className="form-label fw-semibold">Name</label>
+                  <input
+                    type="text"
+                    name="name"
+                    className="form-control form-control-lg"
+                    placeholder="Enter your name"
+                    value={formData.name}
+                    onChange={handleChange}
+                    required
+                  />
+                </div>
+
+                <div className="mb-3">
+                  <label className="form-label fw-semibold">Email</label>
+                  <input
+                    type="email"
+                    name="email"
+                    className="form-control form-control-lg"
+                    placeholder="Enter your email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    required
+                  />
+                </div>
+
+                <div className="mb-3">
+                  <label className="form-label fw-semibold">Password</label>
+                  <input
+                    type="password"
+                    name="password"
+                    className="form-control form-control-lg"
+                    placeholder="Enter password"
+                    value={formData.password}
+                    onChange={handleChange}
+                    required
+                  />
+                </div>
+
+                <div className="mb-3">
+                  <label className="form-label fw-semibold">Confirm Password</label>
+                  <input
+                    type="password"
+                    name="password2"
+                    className="form-control form-control-lg"
+                    placeholder="Confirm password"
+                    value={formData.password2}
+                    onChange={handleChange}
+                    required
+                  />
+                </div>
+
+                <div className="form-check mb-3">
+                  <input
+                    className="form-check-input"
+                    type="checkbox"
+                    name="tc"
+                    id="tc"
+                    checked={formData.tc}
+                    onChange={handleChange}
+                  />
+                  <label className="form-check-label" htmlFor="tc">
+                    I accept the terms and conditions
+                  </label>
+                </div>
+
+                <div className="d-grid mb-3">
+                  <button
+                    type="button"
+                    className="btn btn-primary btn-lg"
+                    onClick={sendOtp}
+                    disabled={loadingOtp || !formData.email}
+                  >
+                    {loadingOtp ? "Sending OTP..." : "Send OTP"}
+                  </button>
+                </div>
+
+                {otpSent && (
+                  <>
+                    <div className="mb-3">
+                      <label className="form-label fw-semibold">OTP</label>
+                      <input
+                        type="text"
+                        name="otp"
+                        className="form-control form-control-lg"
+                        placeholder="Enter OTP"
+                        value={formData.otp}
+                        onChange={handleChange}
+                        required
+                      />
+                    </div>
+
+                    <div className="d-grid">
+                      <button
+                        type="submit"
+                        className="btn btn-success btn-lg"
+                        disabled={loadingRegister}
+                      >
+                        {loadingRegister ? "Registering..." : "Register"}
+                      </button>
+                    </div>
+                  </>
+                )}
+              </form>
+
+              <div className="text-center mt-4">
+                <small className="text-muted">
+                  Already have an account? <a href="/login">Login</a>
+                </small>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
 }
-
-const styles = {
-  wrapper: {
-    minHeight: "100vh",
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-    background: "linear-gradient(135deg, #e0ecff, #f4f7fb)",
-    padding: "20px",
-  },
-  card: {
-    width: "100%",
-    maxWidth: "420px",
-    background: "#fff",
-    borderRadius: "16px",
-    padding: "30px",
-    boxShadow: "0 8px 30px rgba(0,0,0,0.12)",
-  },
-  heading: {
-    margin: 0,
-    textAlign: "center",
-    fontSize: "28px",
-    fontWeight: "700",
-    color: "#222",
-  },
-  subheading: {
-    textAlign: "center",
-    color: "#666",
-    marginBottom: "24px",
-  },
-  inputGroup: {
-    marginBottom: "16px",
-  },
-  label: {
-    display: "block",
-    marginBottom: "6px",
-    fontWeight: "600",
-    color: "#333",
-  },
-  input: {
-    width: "100%",
-    padding: "12px 14px",
-    borderRadius: "10px",
-    border: "1px solid #ccc",
-    fontSize: "14px",
-    outline: "none",
-    boxSizing: "border-box",
-  },
-  checkboxRow: {
-    display: "flex",
-    alignItems: "center",
-    gap: "8px",
-    marginBottom: "16px",
-  },
-  checkboxLabel: {
-    fontSize: "14px",
-    color: "#444",
-  },
-  otpButton: {
-    width: "100%",
-    padding: "12px",
-    border: "none",
-    borderRadius: "10px",
-    background: "#2563eb",
-    color: "#fff",
-    fontSize: "15px",
-    fontWeight: "600",
-    cursor: "pointer",
-    marginBottom: "14px",
-  },
-  registerButton: {
-    width: "100%",
-    padding: "12px",
-    border: "none",
-    borderRadius: "10px",
-    background: "#16a34a",
-    color: "#fff",
-    fontSize: "15px",
-    fontWeight: "600",
-    cursor: "pointer",
-    marginTop: "8px",
-  },
-  success: {
-    background: "#eafaf1",
-    color: "#15803d",
-    padding: "10px 12px",
-    borderRadius: "8px",
-    marginBottom: "16px",
-    fontSize: "14px",
-  },
-  error: {
-    background: "#fef2f2",
-    color: "#dc2626",
-    padding: "10px 12px",
-    borderRadius: "8px",
-    marginBottom: "16px",
-    fontSize: "14px",
-  },
-};
 
 export default Register;

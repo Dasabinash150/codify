@@ -168,7 +168,9 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
     "http://localhost:5173",
+    "http://127.0.0.1:5173",
 ]
+
 
 CORS_ALLOW_ALL_ORIGINS = True
 
@@ -176,3 +178,7 @@ CORS_ALLOW_ALL_ORIGINS = True
 JUDGE0_BASE_URL = os.getenv("JUDGE0_BASE_URL", "http://127.0.0.1:2358")
 CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", "redis://127.0.0.1:6379/0")
 CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND", "redis://127.0.0.1:6379/0")
+
+
+# ---------------------------
+GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID")

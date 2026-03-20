@@ -156,3 +156,6 @@ Add:
 ✔ Auto test case judge
 ✔ Code autosave
 ✔ Contest timer sync
+
+======================================================================
+Google client ID:   474223658396-gp2hbk4jkv06hsje521bq2ds9vv2ga9k.apps.googleusercontent.com

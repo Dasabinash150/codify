@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import axios from "axios";
 import { Link, useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
+import GoogleLoginButton from "../components/GoogleLoginButton";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -34,9 +35,12 @@ const Login = () => {
 
       console.log("Login response:", res.data);
 
-      const access = res.data.access || res.data.token?.access;
-      const refresh = res.data.refresh || res.data.token?.refresh;
-      const username = res.data.user?.username || "";
+      // const access = res.data.access || res.data.token?.access;
+      // const refresh = res.data.refresh || res.data.token?.refresh;
+      // const username = res.data.user?.username || "";
+      const access = res.data.token?.access;
+      const refresh = res.data.token?.refresh;
+      localStorage.setItem("username", formData.email);
 
       if (!access || !refresh) {
         setError("Token not found in response");
@@ -54,8 +58,8 @@ const Login = () => {
       console.error("Login error:", err.response?.data || err.message);
       setError(
         err.response?.data?.errors ||
-          err.response?.data?.detail ||
-          "Invalid credentials"
+        err.response?.data?.detail ||
+        "Invalid credentials"
       );
     }
   };
@@ -102,6 +106,13 @@ const Login = () => {
                     Login
                   </button>
                 </form>
+                <div className="text-center my-3">
+                  <strong>OR</strong>
+                </div>
+
+                <div className="text-center">
+                  <GoogleLoginButton />
+                </div>
 
                 <p className="text-center mt-3">
                   Don’t have an account?{" "}

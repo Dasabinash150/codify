@@ -8,6 +8,16 @@ from account.renders import UserRenderer
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.permissions import IsAuthenticated
 
+# ========================google auth-============================
+from django.conf import settings
+from django.contrib.auth import get_user_model
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import AllowAny
+from google.oauth2 import id_token
+from google.auth.transport import requests as google_requests
+
+User = get_user_model()
+
 def get_tokens_for_user(user):
     refresh = RefreshToken.for_user(user)
 
@@ -192,3 +202,75 @@ class UserRegistrationOtpView(APIView):
                 {"errors": {"server": [str(e)]}},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+        
+
+
+
+# ======================Gooogle Login=====================
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def google_login(request):
+    token = request.data.get("token")
+    
+  # ✅ ADD HERE
+    print("SETTINGS GOOGLE CLIENT ID:", settings.GOOGLE_CLIENT_ID)
+    print("TOKEN PRESENT:", bool(token))
+    print("RAW TOKEN:", token)
+
+    if not token:
+        return Response({"error": "Token is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        idinfo = id_token.verify_oauth2_token(
+            token,
+            google_requests.Request(),
+            settings.GOOGLE_CLIENT_ID
+        )
+
+        print("GOOGLE IDINFO:", idinfo)
+
+        email = idinfo.get("email")
+        name = idinfo.get("name", "")
+        picture = idinfo.get("picture", "")
+        email_verified = idinfo.get("email_verified", False)
+
+        if not email:
+            return Response({"error": "Email not found in Google account"}, status=400)
+
+        if not email_verified:
+            return Response({"error": "Google email is not verified"}, status=400)
+
+        user, created = User.objects.get_or_create(
+            email=email,
+            defaults={
+                "name": name or email.split("@")[0],
+                "tc": True,
+            }
+        )
+
+        # optional: save profile image if your model has such field
+        if hasattr(user, "profile_image") and picture:
+            if user.profile_image != picture:
+                user.profile_image = picture
+                user.save()
+
+        refresh = RefreshToken.for_user(user)
+
+        return Response({
+            "access": str(refresh.access_token),
+            "refresh": str(refresh),
+            "user": {
+                "id": user.id,
+                "email": user.email,
+                "name": getattr(user, "name", ""),
+                "picture": picture,
+            }
+        }, status=status.HTTP_200_OK)
+
+    except ValueError as e:
+        print("GOOGLE TOKEN ERROR:", str(e))
+        return Response({"error": f"Invalid Google token: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
+
+    except Exception as e:
+        print("GOOGLE LOGIN SERVER ERROR:", str(e))
+        return Response({"error": f"Google login failed: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
