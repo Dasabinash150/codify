@@ -3,14 +3,15 @@ import axios from "axios";
 import { useParams } from "react-router-dom";
 import { Container, Table } from "react-bootstrap";
 import Navbar from "../components/Navbar";
+import API from "../api"; 
 
 function LeaderboardPage() {
     const { id } = useParams();
     const [leaders, setLeaders] = useState([]);
 
     useEffect(() => {
-        axios
-            .get(`http://127.0.0.1:8000/api/leaderboard/${id}/`)
+        API
+            .get(`/api/leaderboard/${id}/`)
             .then((res) => {
                 console.log("Leaderboard API Response:", res.data);
                 setLeaders(Array.isArray(res.data) ? res.data : []);

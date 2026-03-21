@@ -5,10 +5,13 @@ import os
 from dotenv import load_dotenv
 import dj_database_url
 
-load_dotenv()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+
+# load_dotenv()
+load_dotenv(BASE_DIR / ".env.local")
 
 
 # Quick-start development settings - unsuitable for production
@@ -23,7 +26,7 @@ DEBUG = os.getenv("DEBUG", "False") == "True"
 ALLOWED_HOSTS = [
     "127.0.0.1",
     "localhost",
-    "https://codify-8y0f.onrender.com/"
+    "codify-8y0f.onrender.com"
 ]
 
 

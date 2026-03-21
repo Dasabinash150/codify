@@ -1,6 +1,7 @@
 import { Link, useNavigate } from "react-router-dom";
 import React, { useEffect, useRef, useState } from "react";
 import axios from "axios";
+import API from "../api";
 
 function Navbar() {
   const [user, setUser] = useState(null);
@@ -19,8 +20,8 @@ function Navbar() {
     }
 
     if (token) {
-      axios
-        .get("http://127.0.0.1:8000/api/user/profile/", {
+      API
+        .get("/api/user/profile/", {
           headers: {
             Authorization: `Bearer ${token}`,
           },

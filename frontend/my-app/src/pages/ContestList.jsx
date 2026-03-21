@@ -3,13 +3,16 @@ import { Container, Row, Col, Card, Button } from "react-bootstrap";
 import axios from "axios";
 import Navbar from "../components/Navbar";
 
+
+const API = import.meta.env.VITE_API_BASE_URL
+
 function ContestList() {
 
     const [contests, setContests] = useState([]);
 
     useEffect(() => {
 
-        axios.get("http://127.0.0.1:8000/api/contests/")
+        axios.get(`${API}/api/contests/`)
             .then((res) => {
                 setContests(res.data);
             })

@@ -8,7 +8,8 @@ User = get_user_model()
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'role', 'rank', 'badges']
+        # fields = ['id', 'name', 'email', 'role', 'rank', 'badges']
+        fields = ['id', 'name', 'email']
 
 
 class ProblemSerializer(serializers.ModelSerializer):
@@ -60,9 +61,4 @@ class LeaderboardSerializer(serializers.ModelSerializer):
         fields = ["id", "contest", "user", "user_name", "score", "solved", "rank", "submitted_at"]
 
     def get_user_name(self, obj):
-        return (
-            getattr(obj.user, "username", None)
-            or getattr(obj.user, "email", None)
-            or getattr(obj.user, "name", None)
-            or str(obj.user)
-        )
+        return obj.user.name or obj.user.email

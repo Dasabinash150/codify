@@ -1,8 +1,7 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { Container, Card, Button, ListGroup, Badge, Spinner } from "react-bootstrap";
-import axios from "axios";
-
+import API from "../api";
 function ContestDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -11,7 +10,7 @@ function ContestDetails() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    axios.get(`http://127.0.0.1:8000/api/contests/${id}/`)
+    API.get(`/api/contests/${id}/`)
       .then((res) => {
         console.log("Contest API:", res.data);
         setContest(res.data);

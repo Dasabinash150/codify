@@ -1,8 +1,17 @@
 // src/pages/Homepage.jsx
+import { useEffect } from "react";
 import Navbar from "../components/Navbar";
 import { Link } from "react-router-dom";
+import API from "../api";
+
+
 
 function Homepage() {
+  useEffect(() => {
+    API.get("/api/users/")
+      .then((res) => console.log(res.data))
+      .catch((err) => console.error(err));
+  }, []);
   return (
     <>
       <Navbar />

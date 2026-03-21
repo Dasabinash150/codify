@@ -3,6 +3,7 @@ import axios from "axios";
 import { Link, useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import GoogleLoginButton from "../components/GoogleLoginButton";
+import API from "../api";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -28,8 +29,8 @@ const Login = () => {
     setSuccess("");
 
     try {
-      const res = await axios.post(
-        "http://127.0.0.1:8000/api/user/login/",
+      const res = await API.post(
+        "/api/user/login/",
         formData
       );
 
@@ -49,7 +50,7 @@ const Login = () => {
 
       localStorage.setItem("access", access);
       localStorage.setItem("refresh", refresh);
-      localStorage.setItem("username", username);
+      localStorage.setItem("name", name);
 
       setSuccess("Login successful! Redirecting...");
       navigate("/");

@@ -1,8 +1,9 @@
 from django.urls import path, include
 from account.views import UserRegistrationView,UserLoginView,UserProfileView,UserChangePasswordView,SendPasswordResetEmailView,UserPasswordResetView
 from .views import SendOTPView, UserRegistrationOtpView,google_login
-
 urlpatterns = [
+
+    # path('', home,name='home'),
     path('register/', UserRegistrationView.as_view(),name='register'),
     path('login/', UserLoginView.as_view(),name='login'),
     path('profile/', UserProfileView.as_view(),name='profile'),

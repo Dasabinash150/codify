@@ -16,6 +16,12 @@ from rest_framework.permissions import AllowAny
 from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
 
+
+# from django.http import JsonResponse
+
+# def home(request):
+#     return JsonResponse({"message": "Backend is running"})
+
 User = get_user_model()
 
 def get_tokens_for_user(user):

@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import Navbar from "../components/Navbar";
+import API from "../api";
 
 function Register() {
   const [name, setName] = useState("");  // Django expects "name"
@@ -21,7 +22,7 @@ function Register() {
     }
 
     try {
-      const response = await fetch("http://127.0.0.1:8000/api/user/register/", {
+      const response = await fetch("/api/user/register/", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
