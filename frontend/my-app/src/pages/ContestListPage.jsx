@@ -208,12 +208,12 @@ function ContestListPage() {
                         <div className="contest-meta-grid mb-4">
                           <div className="meta-item">
                             <span className="meta-label">Problems</span>
-                            <span className="meta-value">{contest.problems ?? 0}</span>
+                            <span className="meta-value">{contest.problems_count ?? 0}</span>
                           </div>
 
                           <div className="meta-item">
                             <span className="meta-label">Participants</span>
-                            <span className="meta-value">{contest.participants ?? 0}</span>
+                            <span className="meta-value">{contest.participants_count ?? 0}</span>
                           </div>
 
                           <div className="meta-item">

@@ -4,6 +4,7 @@ from rest_framework import viewsets, status
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
+from django.db.models import Count
 
 from .models import (
     Problem,
@@ -12,6 +13,7 @@ from .models import (
     Contest,
     ContestProblem,
     Leaderboard,
+    ContestRegistration
 )
 
 from .serializers import (
@@ -58,10 +60,15 @@ class SubmissionViewSet(viewsets.ModelViewSet):
     serializer_class = SubmissionSerializer
 
 
+# class ContestViewSet(viewsets.ModelViewSet):
+#     queryset = Contest.objects.prefetch_related("contest_problems__problem").all()
+#     serializer_class = ContestSerializer
 class ContestViewSet(viewsets.ModelViewSet):
-    queryset = Contest.objects.prefetch_related("contest_problems__problem").all()
+    queryset = Contest.objects.annotate(
+        problems_count_db=Count("contest_problems", distinct=True),
+        participants_count_db=Count("registrations", distinct=True),
+    ).prefetch_related("contest_problems__problem")
     serializer_class = ContestSerializer
-
 
 class ContestProblemViewSet(viewsets.ModelViewSet):
     queryset = ContestProblem.objects.select_related("problem", "contest").all()
@@ -281,3 +288,23 @@ def leaderboard(request, contest_id):
         })
 
     return Response(result)
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def join_contest(request, contest_id):
+    try:
+        contest = Contest.objects.get(id=contest_id)
+    except Contest.DoesNotExist:
+        return Response({"error": "Contest not found"}, status=404)
+
+    registration, created = ContestRegistration.objects.get_or_create(
+        contest=contest,
+        user=request.user,
+    )
+
+    return Response({
+        "joined": True,
+        "created": created,
+        "participants_count": contest.registrations.count(),
+    }, status=200)

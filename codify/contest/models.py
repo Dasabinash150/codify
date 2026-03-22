@@ -99,7 +99,20 @@ class ContestProblem(models.Model):
 
     def __str__(self):
         return f"{self.contest.name} - {self.problem.title}"
+class ContestRegistration(models.Model):
+    contest = models.ForeignKey(
+        Contest,
+        on_delete=models.CASCADE,
+        related_name="registrations"
+    )
+    user = models.ForeignKey(
+        "account.User",
+        on_delete=models.CASCADE
+    )
+    joined_at = models.DateTimeField(auto_now_add=True)
 
+    class Meta:
+        unique_together = ["contest", "user"]
 
 class Submission(models.Model):
     STATUS_CHOICES = [

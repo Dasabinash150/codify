@@ -30,20 +30,21 @@ class SubmissionSerializer(serializers.ModelSerializer):
 
 
 class ContestProblemSerializer(serializers.ModelSerializer):
-    problem = ProblemSerializer(read_only=True)
+    problem_id = serializers.IntegerField(source="problem.id", read_only=True)
+    title = serializers.CharField(source="problem.title", read_only=True)
+    difficulty = serializers.CharField(source="problem.difficulty", read_only=True)
 
     class Meta:
         model = ContestProblem
-        fields = ["id", "order", "problem"]
-
+        fields = ["id", "order", "problem_id", "title", "difficulty"]
 
 class ContestSerializer(serializers.ModelSerializer):
-    contest_problems = ContestProblemSerializer(many=True, read_only=True)
     status = serializers.ReadOnlyField()
     duration_minutes = serializers.ReadOnlyField()
 
+    problems_count = serializers.SerializerMethodField()
+    participants_count = serializers.SerializerMethodField()
     problems = serializers.SerializerMethodField()
-    participants = serializers.SerializerMethodField()
 
     class Meta:
         model = Contest
@@ -55,17 +56,20 @@ class ContestSerializer(serializers.ModelSerializer):
             "end_time",
             "status",
             "duration_minutes",
+            "problems_count",
+            "participants_count",
             "problems",
-            "participants",
-            "contest_problems",
         ]
-            
+
+    def get_problems_count(self, obj):
+        return getattr(obj, "problems_count_db", obj.contest_problems.count())
+
+    def get_participants_count(self, obj):
+        return getattr(obj, "participants_count_db", obj.registrations.count())
+
     def get_problems(self, obj):
-        return obj.contest_problems.count()
-
-    def get_participants(self, obj):
-        return obj.submissions.values("user").distinct().count()
-
+        contest_problems = obj.contest_problems.select_related("problem").all().order_by("order")
+        return ContestProblemSerializer(contest_problems, many=True).data
 
 class LeaderboardSerializer(serializers.ModelSerializer):
     user_name = serializers.SerializerMethodField()
