@@ -1,0 +1,93 @@
+
+.problems-page {
+  background-color: var(--bg);
+  min-height: 100vh;
+}
+
+.btn-primary-custom {
+  background-color: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+
+.btn-primary-custom:hover {
+  background-color: var(--primary-hover);
+  border-color: var(--primary-hover);
+  color: #fff;
+}
+
+.stat-card {
+  background: var(--surface);
+}
+
+.problems-table thead th {
+  background-color: #f8fafc;
+  color: var(--muted);
+  font-weight: 600;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.problems-table tbody tr {
+  border-bottom: 1px solid var(--border);
+}
+
+.problems-table tbody tr:hover {
+  background-color: #f8fbff;
+}
+
+.difficulty-badge,
+.status-badge,
+.tag-pill {
+  font-weight: 600;
+  font-size: 0.78rem;
+}
+
+.difficulty-easy {
+  background-color: var(--easy-bg);
+  color: var(--easy-text);
+}
+
+.difficulty-medium {
+  background-color: var(--medium-bg);
+  color: var(--medium-text);
+}
+
+.difficulty-hard {
+  background-color: var(--hard-bg);
+  color: var(--hard-text);
+}
+
+.status-solved {
+  background-color: var(--solved-bg);
+  color: var(--solved-text);
+}
+
+.status-attempted {
+  background-color: var(--attempted-bg);
+  color: var(--attempted-text);
+}
+
+.status-unsolved {
+  background-color: var(--unsolved-bg);
+  color: var(--unsolved-text);
+}
+
+.tag-pill {
+  display: inline-block;
+  padding: 0.38rem 0.7rem;
+  border-radius: 999px;
+  background-color: var(--tag-bg);
+  color: var(--tag-text);
+}
+
+.form-control,
+.form-select {
+  border-color: var(--border);
+}
+
+.form-control:focus,
+.form-select:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 0.15rem rgba(37, 99, 235, 0.15);
+}

@@ -1,0 +1,29 @@
+:root {
+  --bg-main: #f8fafc;
+  --bg-section: #ffffff;
+  --bg-card: #ffffff;
+  --bg-soft: #f1f5f9;
+
+  --text-main: #0f172a;
+  --text-muted: #292f37;
+
+  --border-color: #212122;
+
+  --primary: #2563eb;
+  --primary-rgb: 37, 99, 235;
+}
+
+[data-theme="dark"] {
+  --bg-main: #0f172a;
+  --bg-section: #111827;
+  --bg-card: #1e293b;
+  --bg-soft: #334155;
+
+  --text-main: #f8fafc;
+  --text-muted: #d8dce2;
+
+  --border-color: #334155;
+
+  --primary: #3b82f6;
+  --primary-rgb: 59, 130, 246;
+}

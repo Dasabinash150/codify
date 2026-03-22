@@ -11,7 +11,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 
 # load_dotenv()
-load_dotenv(BASE_DIR / ".env.local")
+load_dotenv(BASE_DIR / ".env.production")
 
 
 # Quick-start development settings - unsuitable for production
@@ -23,12 +23,28 @@ SECRET_KEY = os.getenv("SECRET_KEY")
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv("DEBUG", "False") == "True"
 
+
 ALLOWED_HOSTS = [
     "127.0.0.1",
     "localhost",
-    "codify-8y0f.onrender.com"
+    "codify-8y0f.onrender.com",
+    "api.jitcoder.in",
 ]
 
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "https://app.jitcoder.in",
+    "https://codify-das15122003-4746s-projects.vercel.app",
+]
+
+CSRF_TRUSTED_ORIGINS = [
+    "https://app.jitcoder.in",
+    "https://api.jitcoder.in",
+    "https://codify-das15122003-4746s-projects.vercel.app",
+]
 
 # Application definition
 
@@ -179,24 +195,11 @@ SIMPLE_JWT = {
 
 PASSWORD_RESET_TIMEOUT=900  #900 sec = 15 min
 
-# cors header
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-    "https://codify-das15122003-4746s-projects.vercel.app",
-    "https://api.jitcoder.in"
-]
+
 
 
 # CORS_ALLOW_ALL_ORIGINS = True
 
-
-CSRF_TRUSTED_ORIGINS = [
-    "https://codify-das15122003-4746s-projects.vercel.app",
-    "https://api.jitcoder.in"
-]
 
 
 JUDGE0_BASE_URL = os.getenv("JUDGE0_BASE_URL", "http://127.0.0.1:2358")

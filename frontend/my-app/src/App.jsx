@@ -1,13 +1,18 @@
 // import { Routes, Route } from "react-router-dom";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import HomePage from "./pages/HomePage";
+import ProblemsPage from "./pages/ProblemsPage";
+import ProblemDetailPage from "./pages/ProblemDetailPage";
 import ContestList from "./pages/ContestList";
+import ContestPage from "./pages/ContestPage";
 import EditorPage from "./pages/EditorPage";
 import ContestDetails from "./pages/ContestDetails";
 import Login from "./pages/LogIn";
 import Register from "./pages/Register";
 import Leaderboard from "./pages/LeaderBoard";
+import LeaderboardPage from "./pages/LeaderboardPage";
 import ProtectedRoute from "./components/ProtectedRoute";
+import DashboardPage from "./pages/DashboardPage";
 
 import RegisterWithOTP from "./pages/RegisterWithOTP";
 
@@ -18,15 +23,19 @@ function App() {
       <Route path="/" element={<HomePage />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
+      <Route path="/problems" element={<ProblemsPage />} />
+      <Route path="/problems/:id" element={<ProblemDetailPage />} />
       <Route path="/contest/:id/leaderboard" element={<Leaderboard />} />
+      <Route path="/contest/" element={<ContestPage />} />
+      <Route path="/leaderboard" element={<LeaderboardPage />} />
+      <Route path="/dashboard" element={<DashboardPage />} />
 
       {/* Protected routes */}
       <Route
         path="/contests"
         element={
-          <ProtectedRoute>
             <ContestList />
-          </ProtectedRoute>
+
         }
       />
 

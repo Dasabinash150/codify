@@ -1,0 +1,41 @@
+.app-navbar {
+  background: var(--bg-section) !important;
+  border-bottom: 1px solid var(--border-color) !important;
+}
+
+/* logo */
+.app-navbar .navbar-brand {
+  color: var(--text-main) !important;
+}
+
+.app-navbar .navbar-brand span {
+  color: var(--primary);
+}
+
+/* nav links */
+.app-navbar .nav-link {
+  color: var(--text-main) !important;
+}
+
+.app-navbar .nav-link:hover {
+  color: var(--primary) !important;
+}
+
+/* mobile menu background */
+.app-navbar .navbar-collapse {
+  background: var(--bg-section);
+}
+
+/* hamburger */
+.custom-toggler {
+  border: 1px solid var(--border-color) !important;
+  background: transparent;
+}
+
+.custom-toggler span {
+  display: block;
+  width: 22px;
+  height: 2px;
+  background: var(--text-main);
+  margin: 4px 0;
+}

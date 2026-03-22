@@ -1,0 +1,45 @@
+
+
+.back-link {
+  color: var(--primary);
+  font-weight: 500;
+}
+
+.btn-primary-custom {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+
+.btn-primary-custom:hover {
+  background: var(--primary-hover);
+  border-color: var(--primary-hover);
+  color: #fff;
+}
+
+.status-live,
+.difficulty-easy,
+.contest-status-solved {
+  background: var(--easy-bg);
+  color: var(--easy-text);
+}
+
+.difficulty-medium {
+  background: var(--medium-bg);
+  color: var(--medium-text);
+}
+
+.difficulty-hard {
+  background: var(--hard-bg);
+  color: var(--hard-text);
+}
+
+.contest-status-attempted {
+  background: var(--attempted-bg);
+  color: var(--attempted-text);
+}
+
+.contest-status-unsolved {
+  background: var(--unsolved-bg);
+  color: var(--unsolved-text);
+}

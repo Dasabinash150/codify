@@ -1,0 +1,13 @@
+body {
+  background: var(--bg-main);
+  color: var(--text-main);
+  /* transition: background 0.3s ease, color 0.3s ease; */
+}
+
+a {
+  text-decoration: none;
+}
+
+.text-muted-custom {
+  color: var(--text-muted) !important;
+}

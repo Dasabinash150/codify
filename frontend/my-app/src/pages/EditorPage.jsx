@@ -8,8 +8,8 @@ import axios from "axios";
 
 function EditorPage() {
 
+    
     const API = import.meta.env.VITE_API_BASE_URL
-
 
     const [questions, setQuestions] = useState([]);
     const [currentQ, setCurrentQ] = useState(null);
@@ -73,7 +73,7 @@ function EditorPage() {
             }
             // ===================check code written or not =================
             const res = await axios.post(
-                `{API}/api/submit-contest/`,
+                `${API}/api/submit-contest/`,
                 {
                     contest_id: contestId,
                     answers: answers,
@@ -148,7 +148,7 @@ function EditorPage() {
         try {
             setLoading(true);
 
-            const res = await axios.post(`{API}/api/run-code/`, {
+            const res = await axios.post(`${API}/api/run-code/`, {
                 problem_id: currentQ.id,
                 source_code: codes[currentQ.id] || "",
                 language_id: 71,
@@ -194,7 +194,7 @@ function EditorPage() {
 
     useEffect(() => {
         axios
-            .get(`{API}/api/contests/${contestId}/`)
+            .get(`${API}/api/contests/${contestId}/`)
             .then((res) => {
                 console.log("Contest details:", res.data);
 
