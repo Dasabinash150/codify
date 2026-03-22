@@ -1,8 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { Container, Row, Col, Card, Table, Badge, Form, InputGroup } from "react-bootstrap";
 import Navbar from "../components/Navbar";
-import Footer from "../components/Footer";import React, { useMemo, useState } from "react";
-import { Container, Row, Col, Card, Table, Badge, Form, InputGroup } from "react-bootstrap";
+import Footer from "../components/Footer";
 
 function LeaderboardPage() {
   const [search, setSearch] = useState("");
@@ -32,6 +31,8 @@ function LeaderboardPage() {
   const topThree = leaders.slice(0, 3);
 
   return (
+    <>
+    <Navbar />
     <div className="leaderboard-page py-4">
       <Container>
         <Row className="align-items-center g-3 mb-4">
@@ -118,6 +119,8 @@ function LeaderboardPage() {
         </Card>
       </Container>
     </div>
+    <Footer />
+    </>
   );
 }
 

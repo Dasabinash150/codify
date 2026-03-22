@@ -1,93 +1,195 @@
-
 .problems-page {
-  background-color: var(--bg);
   min-height: 100vh;
+  background: linear-gradient(180deg, var(--bg-main) 0%, var(--bg-soft) 100%);
+  color: var(--text-main);
+}
+
+.problems-hero {
+  background: linear-gradient(
+    135deg,
+    rgba(var(--primary-rgb), 0.12),
+    rgba(var(--primary-rgb), 0.04)
+  );
+  border: 1px solid rgba(var(--primary-rgb), 0.14);
+  border-radius: 20px;
+  padding: 1.5rem;
+  box-shadow: var(--shadow-soft);
+}
+
+.problems-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 18px;
+  box-shadow: var(--shadow-soft);
 }
 
 .btn-primary-custom {
-  background-color: var(--primary);
+  background: var(--primary);
   border-color: var(--primary);
   color: #fff;
+  font-weight: 600;
 }
 
-.btn-primary-custom:hover {
-  background-color: var(--primary-hover);
+.btn-primary-custom:hover,
+.btn-primary-custom:focus {
+  background: var(--primary-hover);
   border-color: var(--primary-hover);
   color: #fff;
 }
 
+.btn-outline-theme {
+  border: 1px solid var(--border-color);
+  background: var(--bg-card);
+  color: var(--text-main);
+  font-weight: 500;
+}
+
+.btn-outline-theme:hover {
+  background: var(--bg-soft);
+  color: var(--text-main);
+  border-color: var(--primary);
+}
+
 .stat-card {
-  background: var(--surface);
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
 }
 
-.problems-table thead th {
-  background-color: #f8fafc;
-  color: var(--muted);
-  font-weight: 600;
-  border-bottom: 1px solid var(--border);
-  white-space: nowrap;
+.stat-label {
+  color: var(--text-muted);
+  font-size: 0.9rem;
 }
 
-.problems-table tbody tr {
-  border-bottom: 1px solid var(--border);
-}
-
-.problems-table tbody tr:hover {
-  background-color: #f8fbff;
-}
-
-.difficulty-badge,
-.status-badge,
-.tag-pill {
-  font-weight: 600;
-  font-size: 0.78rem;
-}
-
-.difficulty-easy {
-  background-color: var(--easy-bg);
-  color: var(--easy-text);
-}
-
-.difficulty-medium {
-  background-color: var(--medium-bg);
-  color: var(--medium-text);
-}
-
-.difficulty-hard {
-  background-color: var(--hard-bg);
-  color: var(--hard-text);
-}
-
-.status-solved {
-  background-color: var(--solved-bg);
-  color: var(--solved-text);
-}
-
-.status-attempted {
-  background-color: var(--attempted-bg);
-  color: var(--attempted-text);
-}
-
-.status-unsolved {
-  background-color: var(--unsolved-bg);
-  color: var(--unsolved-text);
-}
-
-.tag-pill {
-  display: inline-block;
-  padding: 0.38rem 0.7rem;
-  border-radius: 999px;
-  background-color: var(--tag-bg);
-  color: var(--tag-text);
+.stat-value {
+  color: var(--text-main);
+  font-size: 1.6rem;
+  font-weight: 700;
 }
 
 .form-control,
 .form-select {
-  border-color: var(--border);
+  background: var(--bg-card);
+  color: var(--text-main);
+  border: 1px solid var(--border-color);
+  min-height: 46px;
+}
+
+.form-control::placeholder {
+  color: var(--text-muted);
 }
 
 .form-control:focus,
 .form-select:focus {
+  background: var(--bg-card);
+  color: var(--text-main);
   border-color: var(--primary);
-  box-shadow: 0 0 0 0.15rem rgba(37, 99, 235, 0.15);
+  box-shadow: 0 0 0 0.18rem rgba(var(--primary-rgb), 0.16);
+}
+
+.problems-table-wrap {
+  overflow: hidden;
+  border-radius: 18px;
+}
+
+.problems-table {
+  margin-bottom: 0;
+  color: var(--text-main);
+}
+
+.problems-table thead th {
+  background: var(--bg-soft);
+  color: var(--text-muted);
+  font-size: 0.84rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  border-bottom: 1px solid var(--border-color);
+  white-space: nowrap;
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+}
+
+.problems-table tbody td {
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border-color);
+  vertical-align: middle;
+}
+
+.problems-table tbody tr:hover td {
+  background: rgba(var(--primary-rgb), 0.04);
+}
+
+.problem-title {
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.problem-subtext {
+  color: var(--text-muted);
+  font-size: 0.88rem;
+}
+
+.difficulty-badge,
+.status-badge {
+  font-weight: 700;
+  font-size: 0.76rem;
+  padding: 0.5rem 0.8rem;
+  border-radius: 999px;
+}
+
+.difficulty-easy {
+  background: var(--easy-bg);
+  color: var(--easy-text);
+}
+
+.difficulty-medium {
+  background: var(--medium-bg);
+  color: var(--medium-text);
+}
+
+.difficulty-hard {
+  background: var(--hard-bg);
+  color: var(--hard-text);
+}
+
+.status-solved {
+  background: var(--solved-bg);
+  color: var(--solved-text);
+}
+
+.status-attempted {
+  background: var(--attempted-bg);
+  color: var(--attempted-text);
+}
+
+.status-unsolved {
+  background: var(--unsolved-bg);
+  color: var(--unsolved-text);
+}
+
+.tag-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.38rem 0.72rem;
+  border-radius: 999px;
+  background: var(--tag-bg);
+  color: var(--tag-text);
+  font-size: 0.76rem;
+  font-weight: 600;
+}
+
+.empty-state {
+  color: var(--text-muted);
+  padding: 3rem 1rem;
+}
+
+@media (max-width: 991px) {
+  .problems-hero {
+    padding: 1.2rem;
+  }
+
+  .stat-value {
+    font-size: 1.35rem;
+  }
 }
