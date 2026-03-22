@@ -1,8 +1,8 @@
 import React, { useMemo, useState } from "react";
 import { Container, Row, Col, Card, Table, Badge, Form, InputGroup } from "react-bootstrap";
 import Navbar from "../components/Navbar";
-import Footer from "../components/Footer";
-
+import Footer from "../components/Footer";import React, { useMemo, useState } from "react";
+import { Container, Row, Col, Card, Table, Badge, Form, InputGroup } from "react-bootstrap";
 
 function LeaderboardPage() {
   const [search, setSearch] = useState("");
@@ -32,97 +32,92 @@ function LeaderboardPage() {
   const topThree = leaders.slice(0, 3);
 
   return (
-    <>
-      <Navbar />
-      <div className="leaderboard-page py-4">
-        <Container>
-          <Row className="align-items-center g-3 mb-4">
-            <Col lg={6}>
-              <div>
-                <h2 className="leaderboard-title mb-1">Leaderboard</h2>
-                <p className="leaderboard-subtitle mb-0">
-                  Contest rankings based on score and completion time
-                </p>
-              </div>
+    <div className="leaderboard-page py-4">
+      <Container>
+        <Row className="align-items-center g-3 mb-4">
+          <Col lg={6}>
+            <div>
+              <h2 className="leaderboard-title mb-1">Leaderboard</h2>
+              <p className="leaderboard-subtitle mb-0">
+                Contest rankings based on score and completion time
+              </p>
+            </div>
+          </Col>
+
+          <Col lg={6}>
+            <InputGroup>
+              <Form.Control
+                type="text"
+                placeholder="Search user..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="leaderboard-search"
+              />
+            </InputGroup>
+          </Col>
+        </Row>
+
+        <Row className="g-3 mb-4">
+          {topThree.map((user, index) => (
+            <Col md={4} key={user.id}>
+              <Card className={`leaderboard-top-card h-100 top-card-${index + 1}`}>
+                <Card.Body>
+                  <div className="leaderboard-top-rank">
+                    {index === 0 ? "🥇 Rank 1" : index === 1 ? "🥈 Rank 2" : "🥉 Rank 3"}
+                  </div>
+                  <h5 className="leaderboard-top-name mb-3">{user.user_name}</h5>
+
+                  <div className="leaderboard-top-meta">
+                    <span>Score: {user.score}</span>
+                    <span>Submissions: {user.submissions}</span>
+                    <span>Time: {user.time}</span>
+                  </div>
+                </Card.Body>
+              </Card>
             </Col>
+          ))}
+        </Row>
 
-            <Col lg={6}>
-              <InputGroup>
-                <Form.Control
-                  type="text"
-                  placeholder="Search user..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="leaderboard-search"
-                />
-              </InputGroup>
-            </Col>
-          </Row>
-
-          <Row className="g-3 mb-4">
-            {topThree.map((user, index) => (
-              <Col md={4} key={user.id}>
-                <Card className={`leaderboard-top-card h-100 top-card-${index + 1}`}>
-                  <Card.Body>
-                    <div className="leaderboard-top-rank">
-                      {index === 0 ? "🥇 Rank 1" : index === 1 ? "🥈 Rank 2" : "🥉 Rank 3"}
-                    </div>
-                    <h5 className="leaderboard-top-name mb-3">{user.user_name}</h5>
-
-                    <div className="leaderboard-top-meta">
-                      <span>Score: {user.score}</span>
-                      <span>Submissions: {user.submissions}</span>
-                      <span>Time: {user.time}</span>
-                    </div>
-                  </Card.Body>
-                </Card>
-              </Col>
-            ))}
-          </Row>
-
-          <Card className="leaderboard-table-card">
-            <Card.Body className="p-0">
-              <Table responsive hover className="leaderboard-table mb-0 align-middle">
-                <thead>
-                  <tr>
-                    <th>Rank</th>
-                    <th>User</th>
-                    <th>Score</th>
-                    <th>Submissions</th>
-                    <th>Time</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredUsers.length > 0 ? (
-                    filteredUsers.map((user) => (
-                      <tr key={user.id}>
-                        <td>
-                          <span className={`rank-pill rank-${user.rank <= 3 ? user.rank : "other"}`}>
-                            #{user.rank}
-                          </span>
-                        </td>
-                        <td className="fw-semibold">{user.user_name}</td>
-                        <td>{user.score}</td>
-                        <td>{user.submissions}</td>
-                        <td className="text-muted-custom">{user.time}</td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan="5" className="text-center py-4 text-muted-custom">
-                        No user found
+        <Card className="leaderboard-table-card">
+          <Card.Body className="p-0">
+            <Table responsive hover className="leaderboard-table mb-0 align-middle">
+              <thead>
+                <tr>
+                  <th>Rank</th>
+                  <th>User</th>
+                  <th>Score</th>
+                  <th>Submissions</th>
+                  <th>Time</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredUsers.length > 0 ? (
+                  filteredUsers.map((user) => (
+                    <tr key={user.id}>
+                      <td>
+                        <span className={`rank-pill rank-${user.rank <= 3 ? user.rank : "other"}`}>
+                          #{user.rank}
+                        </span>
                       </td>
+                      <td className="fw-semibold">{user.user_name}</td>
+                      <td>{user.score}</td>
+                      <td>{user.submissions}</td>
+                      <td className="text-muted-custom">{user.time}</td>
                     </tr>
-                  )}
-                </tbody>
-              </Table>
-            </Card.Body>
-          </Card>
-        </Container>
-      </div>
-      <Footer />
-    </>
-
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="5" className="text-center py-4 text-muted-custom">
+                      No user found
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </Table>
+          </Card.Body>
+        </Card>
+      </Container>
+    </div>
   );
 }
 
