@@ -1,227 +1,145 @@
-
 .leaderboard-page {
   min-height: 100vh;
-  background: linear-gradient(180deg, #0f172a 0%, #111827 100%);
-  color: var(--text);
+  background: var(--bg-main);
+  color: var(--text-main);
 }
 
-.page-hero,
-.summary-card,
-.stat-card,
-.table-card {
-  background: rgba(17, 24, 39, 0.92);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-}
-
-.page-hero {
-  padding: 1.5rem;
-}
-
-.hero-badge {
-  background: var(--primary-soft);
-  color: #93c5fd;
-  border: 1px solid rgba(59, 130, 246, 0.25);
-  font-weight: 500;
-  padding: 0.5rem 0.8rem;
-  border-radius: 999px;
-}
-
-.page-title {
-  font-size: 2rem;
+.leaderboard-title {
+  color: var(--text-main);
   font-weight: 700;
-  color: #fff;
 }
 
-.page-subtitle,
-.summary-text,
-.stat-label {
-  color: var(--muted);
-}
-
-.summary-card .card-body,
-.stat-card .card-body,
-.table-card .card-body {
-  padding: 1.25rem;
-}
-
-.summary-label {
-  color: var(--muted);
+.leaderboard-subtitle {
+  color: var(--text-muted);
   font-size: 0.95rem;
 }
 
-.summary-value,
-.stat-value {
-  color: #fff;
+.leaderboard-search {
+  background: var(--bg-card) !important;
+  color: var(--text-main) !important;
+  border: 1px solid var(--border-color) !important;
+}
+
+.leaderboard-search::placeholder {
+  color: var(--text-muted);
+}
+
+.leaderboard-search:focus {
+  background: var(--bg-card) !important;
+  color: var(--text-main) !important;
+  border-color: var(--primary) !important;
+  box-shadow: 0 0 0 0.18rem rgba(var(--primary-rgb), 0.15) !important;
+}
+
+.leaderboard-top-card,
+.leaderboard-table-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  color: var(--text-main);
+}
+
+.leaderboard-top-card .card-body {
+  padding: 1.1rem;
+}
+
+.leaderboard-top-rank {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--primary);
+  margin-bottom: 0.75rem;
+}
+
+.leaderboard-top-name {
+  color: var(--text-main);
   font-weight: 700;
 }
 
-.filter-icon,
-.form-control,
-.form-select {
-  background: var(--panel-2) !important;
-  border: 1px solid var(--border) !important;
-  color: var(--text) !important;
+.leaderboard-top-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  color: var(--text-muted);
+  font-size: 0.92rem;
 }
 
-.form-control::placeholder {
-  color: var(--muted);
+.top-card-1 {
+  border-top: 3px solid var(--primary);
 }
 
-.form-control:focus,
-.form-select:focus {
-  box-shadow: none;
-  border-color: rgba(59, 130, 246, 0.4) !important;
+.top-card-2 {
+  border-top: 3px solid var(--text-muted);
 }
 
-.filter-btn {
-  background: var(--primary);
-  border: none;
-  border-radius: 12px;
-  font-weight: 600;
-  padding: 0.7rem 1rem;
+.top-card-3 {
+  border-top: 3px solid var(--border-color);
 }
 
-.filter-btn:hover {
-  opacity: 0.95;
+.leaderboard-table-card {
+  overflow: hidden;
 }
 
 .leaderboard-table {
-  color: var(--text);
+  color: var(--text-main);
+  background: transparent;
 }
 
 .leaderboard-table thead th {
-  color: var(--muted);
-  font-weight: 600;
-  border-bottom: 1px solid var(--border);
-  padding: 1rem;
-  background: transparent;
+  background: var(--bg-soft);
+  color: var(--text-main);
+  font-size: 0.92rem;
+  font-weight: 700;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border-color);
+  border-top: none;
 }
 
 .leaderboard-table tbody td {
-  border-color: var(--border);
-  padding: 1rem;
-  background: transparent;
+  background: var(--bg-card);
+  color: var(--text-main);
+  padding: 14px 16px;
+  border-color: var(--border-color);
 }
 
-.leaderboard-table tbody tr:hover {
-  background: rgba(255, 255, 255, 0.03);
+.leaderboard-table tbody tr:hover td {
+  background: rgba(var(--primary-rgb), 0.06);
 }
 
-.rank-badge {
+.rank-pill {
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
-  padding: 0.45rem 0.75rem;
+  justify-content: center;
+  min-width: 52px;
+  padding: 6px 10px;
   border-radius: 999px;
-  font-weight: 600;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  border: 1px solid var(--border-color);
+  background: var(--bg-soft);
+  color: var(--text-main);
 }
 
-/* .rank-1 {
-  background: var(--warning-soft);
-  color: #fbbf24;
-}
-
-.rank-2 {
-  background: rgba(148, 163, 184, 0.18);
-  color: #cbd5e1;
-}
-
+.rank-1,
+.rank-2,
 .rank-3 {
-  background: rgba(180, 83, 9, 0.16);
-  color: #fdba74;
-} */
-
-.rank-default {
-  background: rgba(255, 255, 255, 0.06);
-  color: var(--text);
+  background: rgba(var(--primary-rgb), 0.12);
+  color: var(--primary);
+  border-color: rgba(var(--primary-rgb), 0.28);
 }
 
-.score-badge {
-  background: var(--primary-soft);
-  color: #93c5fd;
-  border: 1px solid rgba(59, 130, 246, 0.2);
-  padding: 0.5rem 0.75rem;
-  border-radius: 999px;
-  font-weight: 600;
+.rank-other {
+  background: var(--bg-soft);
+  color: var(--text-main);
 }
 
+@media (max-width: 768px) {
+  .leaderboard-title {
+    font-size: 1.4rem;
+  }
 
-/* ==========================
-   LEADERBOARD PODIUM
-========================== */
-
-.podium-card{
-  background:#111827;
-  border:1px solid rgba(255,255,255,0.08);
-  border-radius:16px;
-  text-align:center;
-  padding:20px;
-  transition:0.3s;
-}
-
-.podium-card:hover{
-  transform:translateY(-4px);
-}
-
-/* Rank Heights */
-
-.rank-1{
-  height:220px;
-  background:linear-gradient(180deg,#f59e0b20,#111827);
-  border-color:#fbbf24;
-}
-
-.rank-2{
-  height:190px;
-}
-
-.rank-3{
-  height:170px;
-}
-
-/* Avatar */
-
-.podium-avatar{
-  width:60px;
-  height:60px;
-  border-radius:50%;
-  background:#3b82f6;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  margin:12px auto;
-  font-weight:700;
-  font-size:22px;
-  color:white;
-}
-
-/* Rank */
-
-.podium-rank{
-  font-size:18px;
-  font-weight:700;
-}
-
-.rank-1 .podium-rank{
-  color:#fbbf24;
-}
-
-.rank-2 .podium-rank{
-  color:#cbd5e1;
-}
-
-.rank-3 .podium-rank{
-  color:#fdba74;
-}
-
-.podium-name{
-  font-weight:600;
-  margin-top:6px;
-}
-
-.podium-score{
-  color:#94a3b8;
+  .leaderboard-table thead th,
+  .leaderboard-table tbody td {
+    padding: 12px;
+    font-size: 0.88rem;
+  }
 }

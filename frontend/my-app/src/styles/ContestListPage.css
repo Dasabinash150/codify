@@ -1,0 +1,224 @@
+.contest-list-page {
+  min-height: 100vh;
+  background: var(--bg-main);
+}
+
+.contest-list-hero {
+  background: linear-gradient(135deg,
+      rgba(var(--primary-rgb), 0.08),
+      rgba(var(--primary-rgb), 0.03));
+  border: 1px solid var(--border-color);
+  border-radius: 20px;
+  padding: 1.5rem;
+}
+
+.contest-list-label {
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--primary);
+}
+
+.contest-list-title {
+  font-size: 2.1rem;
+  font-weight: 800;
+  color: var(--text-main);
+}
+
+.contest-list-subtitle {
+  font-size: 1rem;
+  max-width: 720px;
+  color: var(--text-muted);
+}
+
+.contest-list-summary {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.summary-box {
+  min-width: 140px;
+  padding: 1rem 1.1rem;
+  border-radius: 16px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+}
+
+.summary-value {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--text-main);
+}
+
+.summary-label {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+.contest-filter-card,
+.contest-card,
+.contest-empty-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 18px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.05);
+}
+
+.contest-input,
+.contest-select,
+.contest-input-icon {
+  background: var(--bg-soft) !important;
+  border-color: var(--border-color) !important;
+  color: var(--text-main) !important;
+  min-height: 48px;
+}
+
+.contest-input::placeholder {
+  color: var(--text-muted);
+}
+
+.contest-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.contest-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 14px 32px rgba(15, 23, 42, 0.08);
+}
+
+.contest-status-badge {
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 0.5rem 0.8rem;
+  border-radius: 999px;
+}
+
+.contest-difficulty {
+  font-size: 0.82rem;
+  font-weight: 700;
+  padding: 0.45rem 0.8rem;
+  border-radius: 999px;
+  border: 1px solid var(--border-color);
+}
+
+.difficulty-easy {
+  color: #15803d;
+  background: rgba(34, 197, 94, 0.12);
+}
+
+.difficulty-medium {
+  color: #b45309;
+  background: rgba(245, 158, 11, 0.14);
+}
+
+.difficulty-hard {
+  color: #b91c1c;
+  background: rgba(239, 68, 68, 0.12);
+}
+
+.difficulty-mixed {
+  color: var(--primary);
+  background: rgba(var(--primary-rgb), 0.12);
+}
+
+.contest-card-title {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.contest-card-desc {
+  color: var(--text-muted);
+  line-height: 1.6;
+  min-height: 48px;
+}
+
+.contest-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.9rem;
+}
+
+.meta-item {
+  background: var(--bg-soft);
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  padding: 0.85rem 0.9rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.meta-label {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  margin-bottom: 0.2rem;
+}
+
+.meta-value {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.contest-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.contest-btn-primary {
+  flex: 1;
+  background: var(--primary);
+  border: none;
+  color: white;
+  font-weight: 600;
+  font-size: 0.85rem;
+  padding: 7px 12px;
+  border-radius: 8px;
+}
+
+.contest-btn-primary:hover {
+  background: rgba(var(--primary-rgb), 0.9);
+}
+
+.contest-btn-outline {
+  background: transparent;
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+  font-weight: 500;
+  font-size: 0.85rem;
+  padding: 7px 12px;
+  border-radius: 8px;
+}
+
+.contest-btn-outline:hover {
+  background: var(--bg-soft);
+}
+
+@media (max-width: 991px) {
+  .contest-list-title {
+    font-size: 1.75rem;
+  }
+}
+
+@media (max-width: 575px) {
+  .contest-list-hero {
+    padding: 1.2rem;
+  }
+
+  .contest-list-title {
+    font-size: 1.45rem;
+  }
+
+  .contest-meta-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .contest-outline-btn {
+    min-width: auto;
+    width: 100%;
+  }
+}

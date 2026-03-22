@@ -13,6 +13,8 @@ git commit -m "Add login"
 git push origin feature/login
 ```
 
+git log --oneline
+
 # 22. Quick Copy-Paste Commands
 
 ## First time

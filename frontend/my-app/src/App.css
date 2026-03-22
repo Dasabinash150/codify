@@ -1,0 +1,17 @@
+.leaderboard-table thead {
+  background: var(--bg-soft);
+}
+
+.leaderboard-table th {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.leaderboard-table td {
+  vertical-align: middle;
+  font-size: 0.9rem;
+}
+
+.leaderboard-table tr:hover {
+  background: rgba(var(--primary-rgb), 0.08);
+}

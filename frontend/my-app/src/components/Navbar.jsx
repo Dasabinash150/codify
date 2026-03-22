@@ -507,7 +507,7 @@ function Navbar() {
               </Link>
             </li>
             <li className="nav-item mt-2 mt-lg-0">
-              <Link className="btn btn-primary btn-sm px-3" to="/signup">
+              <Link className="btn btn-primary btn-sm px-3" to="/register">
                 Sign Up
               </Link>
             </li>

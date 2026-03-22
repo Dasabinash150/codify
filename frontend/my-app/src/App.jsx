@@ -14,6 +14,15 @@ import LeaderboardPage from "./pages/LeaderboardPage";
 import ProtectedRoute from "./components/ProtectedRoute";
 import DashboardPage from "./pages/DashboardPage";
 
+import ContestListPage from "./pages/ContestListPage";
+import ContestDetailsPage from "./pages/ContestDetailsPage";
+import ContestEditorPage from "./pages/ContestEditorPage";
+
+
+
+
+
+
 import RegisterWithOTP from "./pages/RegisterWithOTP";
 
 function App() {
@@ -25,19 +34,22 @@ function App() {
       <Route path="/register" element={<Register />} />
       <Route path="/problems" element={<ProblemsPage />} />
       <Route path="/problems/:id" element={<ProblemDetailPage />} />
-      <Route path="/contest/:id/leaderboard" element={<Leaderboard />} />
+      <Route path="/contest/:id/leaderboard" element={<LeaderboardPage />} />
       <Route path="/contest/" element={<ContestPage />} />
       <Route path="/leaderboard" element={<LeaderboardPage />} />
       <Route path="/dashboard" element={<DashboardPage />} />
+      <Route path="/contests" element={<ContestListPage />} />
+      <Route path="/contest/:id" element={<ContestDetailsPage />} />
+      <Route path="/contest/:id/problem/:problemId" element={<ContestEditorPage />} />
 
       {/* Protected routes */}
-      <Route
+      {/* <Route
         path="/contests"
         element={
             <ContestList />
 
         }
-      />
+      /> */}
 
       <Route
         path="/contest/:id"
@@ -51,9 +63,8 @@ function App() {
       <Route
         path="/contest/:id/editor"
         element={
-          <ProtectedRoute>
+
             <EditorPage />
-          </ProtectedRoute>
         }
       />
 
