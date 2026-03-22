@@ -1,15 +1,7 @@
 from django.contrib import admin
-from .models import User, Problem, TestCase, Submission, Contest, ContestProblem, Leaderboard
-
-# Show User model in Admin
-# @admin.register(User)
-# class UserAdmin(admin.ModelAdmin):
-#     list_display = ("id", "username", "email", "role", "rank", "badges")
-#     search_fields = ("username", "email")
-#     list_filter = ("role",)
+from .models import Problem, TestCase, Submission, Contest, ContestProblem, Leaderboard
 
 
-# Show Problem model in Admin
 @admin.register(Problem)
 class ProblemAdmin(admin.ModelAdmin):
     list_display = ("id", "title", "difficulty", "tags")
@@ -17,37 +9,32 @@ class ProblemAdmin(admin.ModelAdmin):
     list_filter = ("difficulty",)
 
 
-# Show TestCase model in Admin
 @admin.register(TestCase)
 class TestCaseAdmin(admin.ModelAdmin):
-    list_display = ("id", "problem", "input", "expected_output")
+    list_display = ("id", "problem", "is_sample")
     search_fields = ("problem__title",)
 
 
-# Show Submission model in Admin
 @admin.register(Submission)
 class SubmissionAdmin(admin.ModelAdmin):
-    list_display = ("id", "user", "problem", "status", "runtime", "created_at")
-    list_filter = ("status", "language")
-    search_fields = ("user__username", "problem__title")
+    list_display = ("id", "user", "problem", "contest", "status", "runtime", "submitted_at")
+    list_filter = ("status", "language", "contest")
+    search_fields = ("user__email", "problem__title")
 
 
-# Show Contest model in Admin
 @admin.register(Contest)
 class ContestAdmin(admin.ModelAdmin):
     list_display = ("id", "name", "start_time", "end_time")
     search_fields = ("name",)
 
 
-# Show ContestProblem model in Admin
 @admin.register(ContestProblem)
 class ContestProblemAdmin(admin.ModelAdmin):
-    list_display = ("contest", "problem")
+    list_display = ("contest", "problem", "order")
     search_fields = ("contest__name", "problem__title")
 
 
-# Show Leaderboard model in Admin
 @admin.register(Leaderboard)
 class LeaderboardAdmin(admin.ModelAdmin):
-    list_display = ("contest", "user", "score", "rank")
-    search_fields = ("contest__name", "user__username")
+    list_display = ("contest", "user", "score", "solved", "rank", "last_updated")
+    search_fields = ("contest__name", "user__email")

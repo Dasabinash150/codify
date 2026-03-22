@@ -1,260 +1,201 @@
-import React, { useMemo, useState } from "react";
-import {
-  Container,
-  Row,
-  Col,
-  Card,
-  Badge,
-  Button,
-  Form,
-  InputGroup,
-} from "react-bootstrap";
-import { Link } from "react-router-dom";
-import "../styles/ContestListPage.css";
+import React, { useEffect, useMemo, useState } from "react";
+import { Link, useParams } from "react-router-dom";
+import axios from "axios";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
+import "bootstrap/dist/css/bootstrap.min.css";
 
-function ContestListPage() {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("All");
+const API = import.meta.env.VITE_API_BASE_URL;
 
-  const contests = [
-    {
-      id: 1,
-      title: "Weekly Coding Challenge 12",
-      description: "Solve 4 carefully selected problems in 60 minutes.",
-      status: "Live",
-      difficulty: "Mixed",
-      participants: 1248,
-      problems: 4,
-      duration: "60 min",
-      startTime: "Today, 11:30 AM",
-    },
-    {
-      id: 2,
-      title: "Beginner Speed Run",
-      description: "Easy and beginner-friendly contest for fast problem solving.",
-      status: "Upcoming",
-      difficulty: "Easy",
-      participants: 860,
-      problems: 5,
-      duration: "90 min",
-      startTime: "Today, 5:00 PM",
-    },
-    {
-      id: 3,
-      title: "Algorithm Arena 8",
-      description: "Test your algorithmic thinking with medium and hard problems.",
-      status: "Live",
-      difficulty: "Hard",
-      participants: 2150,
-      problems: 6,
-      duration: "120 min",
-      startTime: "Today, 10:00 AM",
-    },
-    {
-      id: 4,
-      title: "Weekend Contest Special",
-      description: "Mixed-level contest focused on arrays, strings, and graphs.",
-      status: "Ended",
-      difficulty: "Medium",
-      participants: 3412,
-      problems: 5,
-      duration: "90 min",
-      startTime: "Yesterday, 7:00 PM",
-    },
-    {
-      id: 5,
-      title: "Data Structures Marathon",
-      description: "A contest focused on linked list, stack, queue, tree, and heap.",
-      status: "Upcoming",
-      difficulty: "Medium",
-      participants: 990,
-      problems: 7,
-      duration: "150 min",
-      startTime: "Tomorrow, 9:00 AM",
-    },
-    {
-      id: 6,
-      title: "Night Owl Coding Battle",
-      description: "Late-night challenge with strong competition and ranking.",
-      status: "Ended",
-      difficulty: "Mixed",
-      participants: 1780,
-      problems: 4,
-      duration: "75 min",
-      startTime: "Last Sunday, 10:00 PM",
-    },
-  ];
+function ContestPage() {
+  const { id } = useParams();
+  const [contest, setContest] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  const filteredContests = useMemo(() => {
-    return contests.filter((contest) => {
-      const matchesSearch =
-        contest.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        contest.description.toLowerCase().includes(searchTerm.toLowerCase());
+  const getStatus = (start, end) => {
+    const now = new Date();
+    const startTime = new Date(start);
+    const endTime = new Date(end);
 
-      const matchesStatus =
-        statusFilter === "All" || contest.status === statusFilter;
-
-      return matchesSearch && matchesStatus;
-    });
-  }, [searchTerm, statusFilter]);
-
-  const getStatusBadge = (status) => {
-    if (status === "Live") return "danger";
-    if (status === "Upcoming") return "warning";
-    return "secondary";
+    if (now < startTime) return "Upcoming";
+    if (now >= startTime && now <= endTime) return "Live";
+    return "Ended";
   };
 
-  const getDifficultyClass = (difficulty) => {
-    if (difficulty === "Easy") return "difficulty-easy";
-    if (difficulty === "Medium") return "difficulty-medium";
-    if (difficulty === "Hard") return "difficulty-hard";
-    return "difficulty-mixed";
-  };
+  useEffect(() => {
+    const fetchContest = async () => {
+      try {
+        setLoading(true);
+        const res = await axios.get(`${API}/api/contests/${id}/`);
+        setContest(res.data);
+      } catch (err) {
+        console.error("Contest fetch error:", err);
+        setError("Failed to load contest.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchContest();
+  }, [id]);
+
+  const status = useMemo(() => {
+    if (!contest) return "";
+    return contest.status || getStatus(contest.start_time, contest.end_time);
+  }, [contest]);
+
+  const statusClass = useMemo(() => {
+    if (status === "Live") return "bg-danger";
+    if (status === "Upcoming") return "bg-warning text-dark";
+    return "bg-secondary";
+  }, [status]);
+
+  if (loading) {
+    return (
+      <>
+        <Navbar />
+        <div className="container py-5">
+          <div className="text-center">Loading contest...</div>
+        </div>
+        <Footer />
+      </>
+    );
+  }
+
+  if (error || !contest) {
+    return (
+      <>
+        <Navbar />
+        <div className="container py-5">
+          <div className="alert alert-danger mb-0">{error || "Contest not found."}</div>
+        </div>
+        <Footer />
+      </>
+    );
+  }
 
   return (
     <>
       <Navbar />
+
       <div className="contest-list-page py-4 py-lg-5">
-        <Container>
+        <div className="container">
           <div className="contest-list-hero mb-4 mb-lg-5">
             <div className="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3">
               <div>
-                <p className="contest-list-label mb-2">Coding Contests</p>
-                <h1 className="contest-list-title mb-2">Explore all contests</h1>
+                <p className="contest-list-label mb-2">Coding Contest</p>
+                <h1 className="contest-list-title mb-2">{contest.name}</h1>
                 <p className="contest-list-subtitle mb-0">
-                  Join live contests, prepare for upcoming events, and review past challenges.
+                  {contest.description || "Solve the contest problems and track your ranking."}
                 </p>
               </div>
 
               <div className="contest-list-summary">
                 <div className="summary-box">
-                  <span className="summary-value">{contests.length}</span>
-                  <span className="summary-label">Total Contests</span>
+                  <span className="summary-value">{contest.contest_problems?.length || 0}</span>
+                  <span className="summary-label">Problems</span>
                 </div>
                 <div className="summary-box">
-                  <span className="summary-value">
-                    {contests.filter((c) => c.status === "Live").length}
-                  </span>
-                  <span className="summary-label">Live Now</span>
+                  <span className={`badge ${statusClass}`}>{status}</span>
+                  <span className="summary-label mt-2 d-block">Status</span>
                 </div>
               </div>
             </div>
           </div>
 
-          <Card className="contest-filter-card mb-4">
-            <Card.Body>
-              <Row className="g-3 align-items-center">
-                <Col lg={8}>
-                  <InputGroup>
-                    <InputGroup.Text className="contest-input-icon">
-                      Search
-                    </InputGroup.Text>
-                    <Form.Control
-                      type="text"
-                      placeholder="Search contest by title or description"
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="contest-input"
-                    />
-                  </InputGroup>
-                </Col>
+          <div className="card contest-filter-card mb-4">
+            <div className="card-body">
+              <div className="row g-3 align-items-center">
+                <div className="col-lg-8">
+                  <div>
+                    <strong>Start:</strong> {new Date(contest.start_time).toLocaleString()}
+                  </div>
+                </div>
 
-                <Col lg={4}>
-                  <Form.Select
-                    value={statusFilter}
-                    onChange={(e) => setStatusFilter(e.target.value)}
-                    className="contest-select"
-                  >
-                    <option value="All">All Status</option>
-                    <option value="Live">Live</option>
-                    <option value="Upcoming">Upcoming</option>
-                    <option value="Ended">Ended</option>
-                  </Form.Select>
-                </Col>
-              </Row>
-            </Card.Body>
-          </Card>
+                <div className="col-lg-4">
+                  <div>
+                    <strong>End:</strong> {new Date(contest.end_time).toLocaleString()}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
 
-          <Row className="g-4">
-            {filteredContests.map((contest) => (
-              <Col md={6} xl={4} key={contest.id}>
-                <Card className="contest-card h-100">
-                  <Card.Body className="d-flex flex-column">
+          <div className="row g-4">
+            {(contest.contest_problems || []).map((item, index) => (
+              <div className="col-md-6 col-xl-4" key={item.id}>
+                <div className="card contest-card h-100">
+                  <div className="card-body d-flex flex-column">
                     <div className="d-flex justify-content-between align-items-start gap-2 mb-3">
-                      <Badge bg={getStatusBadge(contest.status)} className="contest-status-badge">
-                        {contest.status}
-                      </Badge>
-
-                      <span className={`contest-difficulty ${getDifficultyClass(contest.difficulty)}`}>
-                        {contest.difficulty}
+                      <span className="badge bg-primary">Problem {index + 1}</span>
+                      <span
+                        className={`contest-difficulty ${
+                          item.problem.difficulty === "easy"
+                            ? "difficulty-easy"
+                            : item.problem.difficulty === "medium"
+                            ? "difficulty-medium"
+                            : "difficulty-hard"
+                        }`}
+                      >
+                        {item.problem.difficulty}
                       </span>
                     </div>
 
-                    <h4 className="contest-card-title mb-2">{contest.title}</h4>
-                    <p className="contest-card-desc mb-3">{contest.description}</p>
+                    <h4 className="contest-card-title mb-2">{item.problem.title}</h4>
+                    <p className="contest-card-desc mb-3">
+                      {item.problem.description?.slice(0, 110)}...
+                    </p>
 
                     <div className="contest-meta-grid mb-4">
                       <div className="meta-item">
-                        <span className="meta-label">Problems</span>
-                        <span className="meta-value">{contest.problems}</span>
+                        <span className="meta-label">Points</span>
+                        <span className="meta-value">{item.problem.points}</span>
                       </div>
 
                       <div className="meta-item">
-                        <span className="meta-label">Participants</span>
-                        <span className="meta-value">{contest.participants}</span>
-                      </div>
-
-                      <div className="meta-item">
-                        <span className="meta-label">Duration</span>
-                        <span className="meta-value">{contest.duration}</span>
-                      </div>
-
-                      <div className="meta-item">
-                        <span className="meta-label">Start</span>
-                        <span className="meta-value">{contest.startTime}</span>
+                        <span className="meta-label">Difficulty</span>
+                        <span className="meta-value">{item.problem.difficulty}</span>
                       </div>
                     </div>
 
                     <div className="contest-actions mt-auto">
-                      <Button
-                        as={Link}
-                        to={`/contest/${contest.id}`}
-                        className="contest-btn-primary"
+                      <Link
+                        to={`/contest/${contest.id}/problem/${item.problem.id}`}
+                        className="btn contest-btn-primary"
                       >
-                        View
-                      </Button>
+                        Solve
+                      </Link>
 
-                      <Button
-                        as={Link}
+                      <Link
                         to={`/contest/${contest.id}/leaderboard`}
-                        className="contest-btn-outline"
+                        className="btn contest-btn-outline"
                       >
                         Leaderboard
-                      </Button>
+                      </Link>
                     </div>
-                  </Card.Body>
-                </Card>
-              </Col>
+                  </div>
+                </div>
+              </div>
             ))}
-          </Row>
+          </div>
 
-          {filteredContests.length === 0 && (
-            <Card className="contest-empty-card mt-4">
-              <Card.Body className="text-center py-5">
-                <h5 className="mb-2">No contests found</h5>
+          {(contest.contest_problems || []).length === 0 && (
+            <div className="card contest-empty-card mt-4">
+              <div className="card-body text-center py-5">
+                <h5 className="mb-2">No problems found</h5>
                 <p className="text-muted-custom mb-0">
-                  Try changing the search text or filter option.
+                  This contest currently has no assigned problems.
                 </p>
-              </Card.Body>
-            </Card>
+              </div>
+            </div>
           )}
-        </Container>
+        </div>
       </div>
+
       <Footer />
     </>
   );
 }
 
-export default ContestListPage;
+export default ContestPage;

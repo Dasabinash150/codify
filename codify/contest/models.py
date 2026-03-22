@@ -1,89 +1,121 @@
 from django.db import models
-from django.contrib.auth.models import AbstractUser
+from django.utils import timezone
+from django.core.exceptions import ValidationError
 from account.models import User
 
-# ----------------- USERS -----------------
-# class User(AbstractUser):
-#     # username, password, email inherited from AbstractUser
-#     role = models.CharField(max_length=20, choices=[("student", "Student"), ("admin", "Admin")], default="student")
-#     rank = models.IntegerField(default=0)
-#     badges = models.TextField(blank=True, null=True)  # store as JSON or comma-separated string
 
-#     def __str__(self):
-#         return self.username
-
-
-# ----------------- PROBLEMS -----------------
 class Problem(models.Model):
     DIFFICULTY_CHOICES = [
         ("easy", "Easy"),
         ("medium", "Medium"),
         ("hard", "Hard"),
     ]
-    title = models.CharField(max_length=255)
+
+    title = models.CharField(max_length=255, unique=True)
     description = models.TextField()
     difficulty = models.CharField(max_length=20, choices=DIFFICULTY_CHOICES)
-    constraints = models.TextField()
-    tags = models.TextField(blank=True, null=True)  # store as JSON or CSV
-    points = models.IntegerField(default=100)
+    constraints = models.TextField(blank=True, null=True)
+    tags = models.CharField(max_length=255, blank=True, null=True)
+    points = models.PositiveIntegerField(default=100)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["title"]
 
     def __str__(self):
         return self.title
 
-# class Problem(models.Model):
-#     contest = models.ForeignKey(Contest, related_name="questions", on_delete=models.CASCADE)
-#     title = models.CharField(max_length=255)
-#     description = models.TextField()
-#     points = models.IntegerField(default=100)
 
-#     def __str__(self):
-#         return self.title
-
-
-# ----------------- TEST CASES -----------------
 class TestCase(models.Model):
-    problem = models.ForeignKey(Problem, related_name="testcases", on_delete=models.CASCADE)
+    problem = models.ForeignKey(
+        Problem,
+        related_name="testcases",
+        on_delete=models.CASCADE
+    )
     input = models.TextField()
     expected_output = models.TextField()
+    is_sample = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ["id"]
 
     def __str__(self):
-        return f"TestCase for {self.problem.title}"
-    
-# class TestCase(models.Model):
-#     problem = models.ForeignKey(Problem, related_name="testcases", on_delete=models.CASCADE)
-#     input = models.TextField()
-#     expected_output = models.TextField()
-# ----------------- CONTESTS -----------------
+        return f"TestCase - {self.problem.title}"
+
+
 class Contest(models.Model):
     name = models.CharField(max_length=255)
+    description = models.TextField(blank=True, null=True)
     start_time = models.DateTimeField()
     end_time = models.DateTimeField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-start_time"]
+
+    def clean(self):
+        if self.end_time <= self.start_time:
+            raise ValidationError("End time must be greater than start time.")
+
+    @property
+    def status(self):
+        now = timezone.now()
+        if now < self.start_time:
+            return "Upcoming"
+        elif self.start_time <= now <= self.end_time:
+            return "Live"
+        return "Ended"
+
+    @property
+    def duration_minutes(self):
+        return int((self.end_time - self.start_time).total_seconds() // 60)
 
     def __str__(self):
         return self.name
 
-# class Contest(models.Model):
-    # name = models.CharField(max_length=255)
-    # start_time = models.DateTimeField()
-    # end_time = models.DateTimeField()
 
-    # def __str__(self):
-    #     return self.name
-# ----------------- SUBMISSIONS -----------------
+class ContestProblem(models.Model):
+    contest = models.ForeignKey(
+        Contest,
+        related_name="contest_problems",
+        on_delete=models.CASCADE
+    )
+    problem = models.ForeignKey(
+        Problem,
+        related_name="contest_problems",
+        on_delete=models.CASCADE
+    )
+    order = models.PositiveIntegerField(default=1)
+
+    class Meta:
+        unique_together = ("contest", "problem")
+        ordering = ["order", "id"]
+
+    def __str__(self):
+        return f"{self.contest.name} - {self.problem.title}"
+
+
 class Submission(models.Model):
-
     STATUS_CHOICES = [
         ("AC", "Accepted"),
         ("WA", "Wrong Answer"),
         ("TLE", "Time Limit Exceeded"),
         ("RE", "Runtime Error"),
         ("CE", "Compilation Error"),
+        ("PENDING", "Pending"),
     ]
 
-    user = models.ForeignKey(User, related_name="submissions", on_delete=models.CASCADE)
-
-    problem = models.ForeignKey(Problem, related_name="submissions", on_delete=models.CASCADE)
-
+    user = models.ForeignKey(
+        User,
+        related_name="submissions",
+        on_delete=models.CASCADE
+    )
+    problem = models.ForeignKey(
+        Problem,
+        related_name="submissions",
+        on_delete=models.CASCADE
+    )
     contest = models.ForeignKey(
         Contest,
         related_name="submissions",
@@ -94,87 +126,44 @@ class Submission(models.Model):
 
     code = models.TextField()
     language = models.CharField(max_length=50)
-
-    status = models.CharField(max_length=10, choices=STATUS_CHOICES)
-
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default="PENDING")
     runtime = models.FloatField(default=0.0)
-
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return f"{self.user.user_name} - {self.problem.title} - {self.status}"
-
-
-# ----------------- CONTEST PROBLEMS -----------------
-class ContestProblem(models.Model):
-    contest = models.ForeignKey(Contest, related_name="contest_problems", on_delete=models.CASCADE)
-    problem = models.ForeignKey(Problem, related_name="contest_problems", on_delete=models.CASCADE)
-
-    class Meta:
-        unique_together = ("contest", "problem")
-
-    def __str__(self):
-        return f"{self.contest.name} - {self.problem.title}"
-
-
-# ----------------- LEADERBOARD -----------------
-# class Leaderboard(models.Model):
-
-#     contest = models.ForeignKey(
-#         Contest,
-#         related_name="leaderboard",
-#         on_delete=models.CASCADE
-#     )
-
-#     user = models.ForeignKey(
-#         User,
-#         related_name="leaderboard",
-#         on_delete=models.CASCADE
-#     )
-
-#     score = models.IntegerField(default=0)
-#     solved = models.IntegerField(default=0)
-#     penalty = models.IntegerField(default=0)
-
-#     rank = models.IntegerField(default=0)
-
-#     class Meta:
-#         unique_together = ("contest", "user")
-
-#     def __str__(self):
-#         return f"{self.contest.name} - {self.user.username} ({self.score})"
-
-class Leaderboard(models.Model):
-    contest = models.ForeignKey(Contest, on_delete=models.CASCADE)
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    score = models.IntegerField(default=0)
-    solved = models.IntegerField(default=0)
-    rank = models.IntegerField(default=0)
-    submitted_at = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        unique_together = ("contest", "user")
-    
-
-
-
-class ContestSubmission(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    contest = models.ForeignKey(Contest, on_delete=models.CASCADE)
-    total_score = models.IntegerField(default=0)
-    solved_count = models.IntegerField(default=0)
+    score = models.PositiveIntegerField(default=0)
     submitted_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        unique_together = ('user', 'contest')
+        ordering = ["-submitted_at"]
+        indexes = [
+            models.Index(fields=["contest"]),
+            models.Index(fields=["problem"]),
+            models.Index(fields=["user"]),
+            models.Index(fields=["status"]),
+        ]
+
+    def __str__(self):
+        return f"{self.user.email} - {self.problem.title} - {self.status}"
 
 
-class ProblemSubmission(models.Model):
-    contest_submission = models.ForeignKey(ContestSubmission, related_name="problem_submissions", on_delete=models.CASCADE)
-    problem = models.ForeignKey(Problem, on_delete=models.CASCADE)
-    source_code = models.TextField(blank=True)
-    language_id = models.IntegerField(default=71)
-    score = models.IntegerField(default=0)
-    passed = models.BooleanField(default=False)
-    passed_testcases = models.IntegerField(default=0)
-    total_testcases = models.IntegerField(default=0)
+class Leaderboard(models.Model):
+    contest = models.ForeignKey(
+        Contest,
+        related_name="leaderboard_entries",
+        on_delete=models.CASCADE
+    )
+    user = models.ForeignKey(
+        User,
+        related_name="leaderboard_entries",
+        on_delete=models.CASCADE
+    )
+    score = models.PositiveIntegerField(default=0)
+    solved = models.PositiveIntegerField(default=0)
+    penalty = models.PositiveIntegerField(default=0)
+    rank = models.PositiveIntegerField(default=0)
+    last_updated = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ("contest", "user")
+        ordering = ["rank", "-score", "penalty", "last_updated"]
+
+    def __str__(self):
+        return f"{self.contest.name} - {self.user.email} - Rank {self.rank}"
