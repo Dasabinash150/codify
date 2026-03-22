@@ -1,228 +1,314 @@
 import React, { useMemo, useState } from "react";
+import {
+    Container,
+    Row,
+    Col,
+    Card,
+    Table,
+    Form,
+    Badge,
+    InputGroup,
+    Button,
+    ProgressBar,
+} from "react-bootstrap";
 import { Link } from "react-router-dom";
-import Navbar from "../components/Navbar";
-import "bootstrap/dist/css/bootstrap.min.css";
 import "../styles/ProblemsPage.css";
-
+import "../styles/global.css";
+import "../styles/variables.css";
+import Navbar from "../components/Navbar";
+import Footer from "../components/Footer";
 
 const problemData = [
-    { id: 1, title: "Two Sum", difficulty: "Easy", status: "Solved", tags: ["Array", "HashMap"] },
-    { id: 2, title: "Longest Substring Without Repeating Characters", difficulty: "Medium", status: "Attempted", tags: ["String", "Sliding Window"] },
-    { id: 3, title: "Median of Two Sorted Arrays", difficulty: "Hard", status: "Unsolved", tags: ["Binary Search"] },
-    { id: 4, title: "Valid Parentheses", difficulty: "Easy", status: "Solved", tags: ["Stack"] },
-    { id: 5, title: "Merge Intervals", difficulty: "Medium", status: "Unsolved", tags: ["Sorting", "Array"] },
-    { id: 6, title: "Word Ladder", difficulty: "Hard", status: "Attempted", tags: ["Graph", "BFS"] },
-    { id: 7, title: "Best Time to Buy and Sell Stock", difficulty: "Easy", status: "Solved", tags: ["Array"] },
-    { id: 8, title: "Course Schedule", difficulty: "Medium", status: "Unsolved", tags: ["Graph", "Topological Sort"] },
+    {
+        id: 1,
+        title: "Two Sum",
+        difficulty: "Easy",
+        category: "Array",
+        acceptance: "49%",
+        status: "Solved",
+        tags: ["Array", "HashMap"],
+    },
+    {
+        id: 2,
+        title: "Longest Substring Without Repeating Characters",
+        difficulty: "Medium",
+        category: "String",
+        acceptance: "38%",
+        status: "Attempted",
+        tags: ["String", "Sliding Window"],
+    },
+    {
+        id: 3,
+        title: "Median of Two Sorted Arrays",
+        difficulty: "Hard",
+        category: "Binary Search",
+        acceptance: "31%",
+        status: "Unsolved",
+        tags: ["Binary Search"],
+    },
+    {
+        id: 4,
+        title: "Best Time to Buy and Sell Stock",
+        difficulty: "Easy",
+        category: "Greedy",
+        acceptance: "54%",
+        status: "Solved",
+        tags: ["Array", "Greedy"],
+    },
+    {
+        id: 5,
+        title: "Word Break",
+        difficulty: "Medium",
+        category: "DP",
+        acceptance: "42%",
+        status: "Unsolved",
+        tags: ["Dynamic Programming", "String"],
+    },
+    {
+        id: 6,
+        title: "Merge K Sorted Lists",
+        difficulty: "Hard",
+        category: "Heap",
+        acceptance: "36%",
+        status: "Attempted",
+        tags: ["Linked List", "Heap"],
+    },
 ];
 
-function ProblemsPage() {
-    const [searchTerm, setSearchTerm] = useState("");
-    const [difficultyFilter, setDifficultyFilter] = useState("All");
-    const [statusFilter, setStatusFilter] = useState("All");
+const ProblemsPage = () => {
+    const [search, setSearch] = useState("");
+    const [difficulty, setDifficulty] = useState("All");
+    const [status, setStatus] = useState("All");
 
     const filteredProblems = useMemo(() => {
         return problemData.filter((problem) => {
-            const matchSearch =
-                problem.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                problem.tags.join(" ").toLowerCase().includes(searchTerm.toLowerCase());
+            const matchesSearch =
+                problem.title.toLowerCase().includes(search.toLowerCase()) ||
+                problem.tags.join(" ").toLowerCase().includes(search.toLowerCase());
 
-            const matchDifficulty =
-                difficultyFilter === "All" || problem.difficulty === difficultyFilter;
+            const matchesDifficulty =
+                difficulty === "All" || problem.difficulty === difficulty;
 
-            const matchStatus =
-                statusFilter === "All" || problem.status === statusFilter;
+            const matchesStatus = status === "All" || problem.status === status;
 
-            return matchSearch && matchDifficulty && matchStatus;
+            return matchesSearch && matchesDifficulty && matchesStatus;
         });
-    }, [searchTerm, difficultyFilter, statusFilter]);
+    }, [search, difficulty, status]);
+
+    const solvedCount = problemData.filter((p) => p.status === "Solved").length;
+    const progress = Math.round((solvedCount / problemData.length) * 100);
 
     return (
         <>
             <Navbar />
-            <div className="problems-page py-4">
-                <div className="container">
-                    {/* Header */}
-                    <div className="page-header d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 mb-4">
-                        <div>
-                            <h2 className="fw-bold mb-1">Problem List</h2>
-                            <p className="text-muted mb-0">
-                                Practice coding problems by difficulty and topic.
-                            </p>
-                        </div>
+            <div className="problems-page">
+                <Container fluid="lg" className="py-4">
+                    <div className="problems-hero mb-4">
+                        <Row className="align-items-center g-3">
+                            <Col lg={8}>
+                                <p className="problems-eyebrow mb-2">Practice Arena</p>
+                                <h1 className="problems-title mb-2">Problems</h1>
+                                <p className="text-muted-custom mb-0">
+                                    Solve curated coding problems, track progress, and prepare for
+                                    contests and interviews.
+                                </p>
+                            </Col>
 
-                        <div className="d-flex gap-2 flex-wrap">
-                            <Link to="/dashboard" className="btn btn-outline-secondary">
-                                Dashboard
-                            </Link>
-                            <Link to="/contests" className="btn btn-primary-custom">
-                                View Contests
-                            </Link>
-                        </div>
+                            <Col lg={4}>
+                                <Card className="stat-card progress-card h-100">
+                                    <Card.Body>
+                                        <div className="d-flex justify-content-between align-items-center mb-2">
+                                            <span className="text-muted-custom">Solved Progress</span>
+                                            <span className="fw-semibold">{progress}%</span>
+                                        </div>
+
+                                        <ProgressBar now={progress} className="problems-progress mb-3" />
+
+                                        <div className="d-flex justify-content-between small">
+                                            <span className="text-muted-custom">
+                                                {solvedCount} / {problemData.length} solved
+                                            </span>
+                                            <span className="text-muted-custom">Keep going</span>
+                                        </div>
+                                    </Card.Body>
+                                </Card>
+                            </Col>
+                        </Row>
                     </div>
 
-                    {/* Filters */}
-                    <div className="card border-0 shadow-sm mb-4">
-                        <div className="card-body">
-                            <div className="row g-3">
-                                <div className="col-md-6 col-lg-5">
-                                    <input
-                                        type="text"
-                                        className="form-control"
-                                        placeholder="Search by problem name or tag..."
-                                        value={searchTerm}
-                                        onChange={(e) => setSearchTerm(e.target.value)}
-                                    />
-                                </div>
+                    <Row className="g-3 mb-4">
+                        <Col md={4}>
+                            <Card className="stat-card h-100">
+                                <Card.Body>
+                                    <p className="text-muted-custom mb-1">Total Problems</p>
+                                    <h3 className="mb-0 fw-bold">{problemData.length}</h3>
+                                </Card.Body>
+                            </Card>
+                        </Col>
 
-                                <div className="col-md-3 col-lg-3">
-                                    <select
-                                        className="form-select"
-                                        value={difficultyFilter}
-                                        onChange={(e) => setDifficultyFilter(e.target.value)}
+                        <Col md={4}>
+                            <Card className="stat-card h-100">
+                                <Card.Body>
+                                    <p className="text-muted-custom mb-1">Solved</p>
+                                    <h3 className="mb-0 fw-bold">{solvedCount}</h3>
+                                </Card.Body>
+                            </Card>
+                        </Col>
+
+                        <Col md={4}>
+                            <Card className="stat-card h-100">
+                                <Card.Body>
+                                    <p className="text-muted-custom mb-1">Showing</p>
+                                    <h3 className="mb-0 fw-bold">{filteredProblems.length}</h3>
+                                </Card.Body>
+                            </Card>
+                        </Col>
+                    </Row>
+
+                    <Card className="problems-filter-card mb-4">
+                        <Card.Body>
+                            <Row className="g-3 align-items-center">
+                                <Col lg={5}>
+                                    <InputGroup>
+                                        <Form.Control
+                                            type="text"
+                                            placeholder="Search by title or tag"
+                                            value={search}
+                                            onChange={(e) => setSearch(e.target.value)}
+                                        />
+                                    </InputGroup>
+                                </Col>
+
+                                <Col sm={6} lg={3}>
+                                    <Form.Select
+                                        value={difficulty}
+                                        onChange={(e) => setDifficulty(e.target.value)}
                                     >
                                         <option value="All">All Difficulty</option>
                                         <option value="Easy">Easy</option>
                                         <option value="Medium">Medium</option>
                                         <option value="Hard">Hard</option>
-                                    </select>
-                                </div>
+                                    </Form.Select>
+                                </Col>
 
-                                <div className="col-md-3 col-lg-3">
-                                    <select
-                                        className="form-select"
-                                        value={statusFilter}
-                                        onChange={(e) => setStatusFilter(e.target.value)}
+                                <Col sm={6} lg={3}>
+                                    <Form.Select
+                                        value={status}
+                                        onChange={(e) => setStatus(e.target.value)}
                                     >
                                         <option value="All">All Status</option>
                                         <option value="Solved">Solved</option>
                                         <option value="Attempted">Attempted</option>
                                         <option value="Unsolved">Unsolved</option>
-                                    </select>
-                                </div>
+                                    </Form.Select>
+                                </Col>
 
-                                <div className="col-lg-1 d-grid">
-                                    <button
-                                        className="btn btn-light border"
+                                <Col lg={1} className="d-grid">
+                                    <Button
+                                        variant="outline-secondary"
                                         onClick={() => {
-                                            setSearchTerm("");
-                                            setDifficultyFilter("All");
-                                            setStatusFilter("All");
+                                            setSearch("");
+                                            setDifficulty("All");
+                                            setStatus("All");
                                         }}
                                     >
                                         Reset
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                                    </Button>
+                                </Col>
+                            </Row>
+                        </Card.Body>
+                    </Card>
 
-                    {/* Stats */}
-                    <div className="row g-3 mb-4">
-                        <div className="col-md-4">
-                            <div className="card border-0 shadow-sm stat-card">
-                                <div className="card-body">
-                                    <p className="mb-1 text-muted">Total Problems</p>
-                                    <h4 className="fw-bold mb-0">{problemData.length}</h4>
-                                </div>
-                            </div>
-                        </div>
+                    <Card className="problems-table-card">
+                        <Card.Body className="p-0">
+                            <Table responsive hover className="problems-table mb-0 align-middle">
+                                <thead>
+                                    <tr>
+                                        <th style={{ width: "70px" }}>#</th>
+                                        <th>Problem</th>
+                                        <th>Difficulty</th>
+                                        <th>Category</th>
+                                        <th>Acceptance</th>
+                                        <th>Status</th>
+                                        <th style={{ width: "120px" }}>Action</th>
+                                    </tr>
+                                </thead>
 
-                        <div className="col-md-4">
-                            <div className="card border-0 shadow-sm stat-card">
-                                <div className="card-body">
-                                    <p className="mb-1 text-muted">Solved</p>
-                                    <h4 className="fw-bold mb-0">
-                                        {problemData.filter((p) => p.status === "Solved").length}
-                                    </h4>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="col-md-4">
-                            <div className="card border-0 shadow-sm stat-card">
-                                <div className="card-body">
-                                    <p className="mb-1 text-muted">Showing</p>
-                                    <h4 className="fw-bold mb-0">{filteredProblems.length}</h4>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Table */}
-                    <div className="card border-0 shadow-sm">
-                        <div className="card-body p-0">
-                            <div className="table-responsive">
-                                <table className="table align-middle mb-0 problems-table">
-                                    <thead>
+                                <tbody>
+                                    {filteredProblems.length === 0 ? (
                                         <tr>
-                                            <th className="ps-4">Problem</th>
-                                            <th>Difficulty</th>
-                                            <th>Status</th>
-                                            <th>Tags</th>
-                                            <th className="text-center pe-4">Action</th>
+                                            <td colSpan="7" className="text-center py-5 text-muted-custom">
+                                                No problems found
+                                            </td>
                                         </tr>
-                                    </thead>
-                                    <tbody>
-                                        {filteredProblems.length > 0 ? (
-                                            filteredProblems.map((problem) => (
-                                                <tr key={problem.id}>
-                                                    <td className="ps-4">
-                                                        <div className="fw-semibold">{problem.title}</div>
-                                                    </td>
+                                    ) : (
+                                        filteredProblems.map((problem, index) => (
+                                            <tr key={problem.id}>
+                                                <td className="fw-semibold">{index + 1}</td>
 
-                                                    <td>
-                                                        <span
-                                                            className={`badge rounded-pill px-3 py-2 difficulty-badge difficulty-${problem.difficulty.toLowerCase()}`}
+                                                <td>
+                                                    <div className="problem-title-wrap">
+                                                        <Link
+                                                            to={`/problems/${problem.id}`}
+                                                            className="problem-title-link"
                                                         >
-                                                            {problem.difficulty}
-                                                        </span>
-                                                    </td>
+                                                            {problem.title}
+                                                        </Link>
 
-                                                    <td>
-                                                        <span
-                                                            className={`badge rounded-pill px-3 py-2 status-badge status-${problem.status.toLowerCase()}`}
-                                                        >
-                                                            {problem.status}
-                                                        </span>
-                                                    </td>
-
-                                                    <td>
-                                                        <div className="d-flex flex-wrap gap-2">
-                                                            {problem.tags.map((tag, index) => (
-                                                                <span key={index} className="tag-pill">
+                                                        <div className="mt-2 d-flex flex-wrap gap-2">
+                                                            {problem.tags.map((tag) => (
+                                                                <span key={tag} className="tag-pill">
                                                                     {tag}
                                                                 </span>
                                                             ))}
                                                         </div>
-                                                    </td>
+                                                    </div>
+                                                </td>
 
-                                                    <td className="text-center pe-4">
-                                                        <Link
-                                                            to={`/problems/${problem.id}`}
-                                                            className="btn btn-sm btn-primary-custom"
-                                                        >
-                                                            Solve
-                                                        </Link>
-                                                    </td>
-                                                </tr>
-                                            ))
-                                        ) : (
-                                            <tr>
-                                                <td colSpan="5" className="text-center py-5 text-muted">
-                                                    No problems found.
+                                                <td>
+                                                    <Badge
+                                                        className={`difficulty-badge difficulty-${problem.difficulty.toLowerCase()}`}
+                                                    >
+                                                        {problem.difficulty}
+                                                    </Badge>
+                                                </td>
+
+                                                <td>
+                                                    <span className="category-pill">{problem.category}</span>
+                                                </td>
+
+                                                <td className="fw-medium">{problem.acceptance}</td>
+
+                                                <td>
+                                                    <Badge
+                                                        className={`status-badge status-${problem.status.toLowerCase()}`}
+                                                    >
+                                                        {problem.status}
+                                                    </Badge>
+                                                </td>
+
+                                                <td>
+                                                    <Button
+                                                        as={Link}
+                                                        to={`/problems/${problem.id}`}
+                                                        size="sm"
+                                                        className="btn-primary-custom"
+                                                    >
+                                                        Solve
+                                                    </Button>
                                                 </td>
                                             </tr>
-                                        )}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                                        ))
+                                    )}
+                                </tbody>
+                            </Table>
+                        </Card.Body>
+                    </Card>
+                </Container>
             </div>
+            <Footer />
         </>
     );
-}
+};
 
 export default ProblemsPage;
