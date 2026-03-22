@@ -42,6 +42,9 @@ class ContestSerializer(serializers.ModelSerializer):
     status = serializers.ReadOnlyField()
     duration_minutes = serializers.ReadOnlyField()
 
+    problems = serializers.SerializerMethodField()
+    participants = serializers.SerializerMethodField()
+
     class Meta:
         model = Contest
         fields = [
@@ -52,8 +55,16 @@ class ContestSerializer(serializers.ModelSerializer):
             "end_time",
             "status",
             "duration_minutes",
+            "problems",
+            "participants",
             "contest_problems",
         ]
+            
+    def get_problems(self, obj):
+        return obj.contest_problems.count()
+
+    def get_participants(self, obj):
+        return obj.submissions.values("user").distinct().count()
 
 
 class LeaderboardSerializer(serializers.ModelSerializer):

@@ -55,8 +55,13 @@ class Contest(models.Model):
         ordering = ["-start_time"]
 
     def clean(self):
+        if not self.start_time or not self.end_time:
+            return
+
         if self.end_time <= self.start_time:
-            raise ValidationError("End time must be greater than start time.")
+            raise ValidationError({
+                "end_time": "End time must be after start time."
+            })
 
     @property
     def status(self):

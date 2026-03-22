@@ -1,196 +1,278 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Link, useParams } from "react-router-dom";
 import axios from "axios";
+import {
+  Container,
+  Row,
+  Col,
+  Card,
+  Badge,
+  Button,
+  Form,
+  InputGroup,
+  Spinner,
+  Alert,
+} from "react-bootstrap";
+import { Link } from "react-router-dom";
+import "../styles/ContestListPage.css";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
-import "bootstrap/dist/css/bootstrap.min.css";
+import { getContests } from "../services/contestApi";
 
-const API = import.meta.env.VITE_API_BASE_URL;
 
-function ContestPage() {
-  const { id } = useParams();
-  const [contest, setContest] = useState(null);
+function ContestListPage() {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("All");
+  const [contests, setContests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const getStatus = (start, end) => {
-    const now = new Date();
-    const startTime = new Date(start);
-    const endTime = new Date(end);
-
-    if (now < startTime) return "Upcoming";
-    if (now >= startTime && now <= endTime) return "Live";
-    return "Ended";
-  };
-
   useEffect(() => {
-    const fetchContest = async () => {
+    let isMounted = true;
+
+    const fetchContests = async () => {
       try {
         setLoading(true);
-        const res = await axios.get(`${API}/api/contests/${id}/`);
-        setContest(res.data);
+        setError("");
+
+        const res = await getContests();
+        setContests(res.data);
+        console.log("Contest API:", res.data);
+        console.log("Is array:", Array.isArray(res.data));
+
+        if (isMounted) {
+          const data = Array.isArray(res.data) ? res.data : [];
+          setContests(data);
+        }
       } catch (err) {
         console.error("Contest fetch error:", err);
-        setError("Failed to load contest.");
+        if (isMounted) {
+          setError("Failed to load contests. Please try again.");
+        }
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
 
-    fetchContest();
-  }, [id]);
+    fetchContests();
 
-  const status = useMemo(() => {
-    if (!contest) return "";
-    return contest.status || getStatus(contest.start_time, contest.end_time);
-  }, [contest]);
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
-  const statusClass = useMemo(() => {
-    if (status === "Live") return "bg-danger";
-    if (status === "Upcoming") return "bg-warning text-dark";
-    return "bg-secondary";
-  }, [status]);
+  const filteredContests = useMemo(() => {
+    return contests.filter((contest) => {
+      const title = contest.title || "";
+      const description = contest.description || "";
+      const status = contest.status || "";
 
-  if (loading) {
-    return (
-      <>
-        <Navbar />
-        <div className="container py-5">
-          <div className="text-center">Loading contest...</div>
-        </div>
-        <Footer />
-      </>
-    );
-  }
+      const matchesSearch =
+        title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        description.toLowerCase().includes(searchTerm.toLowerCase());
 
-  if (error || !contest) {
-    return (
-      <>
-        <Navbar />
-        <div className="container py-5">
-          <div className="alert alert-danger mb-0">{error || "Contest not found."}</div>
-        </div>
-        <Footer />
-      </>
-    );
-  }
+      const matchesStatus =
+        statusFilter === "All" || status === statusFilter;
+
+      return matchesSearch && matchesStatus;
+    });
+  }, [contests, searchTerm, statusFilter]);
+
+  const liveCount = useMemo(() => {
+    return contests.filter((contest) => contest.status === "Live").length;
+  }, [contests]);
+
+  const getStatusBadge = (status) => {
+    if (status === "Live") return "danger";
+    if (status === "Upcoming") return "warning";
+    if (status === "Ended") return "secondary";
+    return "primary";
+  };
+
+  const getDifficultyClass = (difficulty) => {
+    if (difficulty === "Easy") return "difficulty-easy";
+    if (difficulty === "Medium") return "difficulty-medium";
+    if (difficulty === "Hard") return "difficulty-hard";
+    return "difficulty-mixed";
+  };
 
   return (
     <>
       <Navbar />
 
       <div className="contest-list-page py-4 py-lg-5">
-        <div className="container">
+        <Container>
           <div className="contest-list-hero mb-4 mb-lg-5">
             <div className="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3">
               <div>
-                <p className="contest-list-label mb-2">Coding Contest</p>
-                <h1 className="contest-list-title mb-2">{contest.name}</h1>
+                <p className="contest-list-label mb-2">Coding Contests</p>
+                <h1 className="contest-list-title mb-2">Explore all contests</h1>
                 <p className="contest-list-subtitle mb-0">
-                  {contest.description || "Solve the contest problems and track your ranking."}
+                  Join live contests, prepare for upcoming events, and review past challenges.
                 </p>
               </div>
 
               <div className="contest-list-summary">
                 <div className="summary-box">
-                  <span className="summary-value">{contest.contest_problems?.length || 0}</span>
-                  <span className="summary-label">Problems</span>
+                  <span className="summary-value">{contests.length}</span>
+                  <span className="summary-label">Total Contests</span>
                 </div>
                 <div className="summary-box">
-                  <span className={`badge ${statusClass}`}>{status}</span>
-                  <span className="summary-label mt-2 d-block">Status</span>
+                  <span className="summary-value">{liveCount}</span>
+                  <span className="summary-label">Live Now</span>
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="card contest-filter-card mb-4">
-            <div className="card-body">
-              <div className="row g-3 align-items-center">
-                <div className="col-lg-8">
-                  <div>
-                    <strong>Start:</strong> {new Date(contest.start_time).toLocaleString()}
-                  </div>
-                </div>
+          <Card className="contest-filter-card mb-4">
+            <Card.Body>
+              <Row className="g-3 align-items-center">
+                <Col lg={8}>
+                  <InputGroup>
+                    <InputGroup.Text className="contest-input-icon">
+                      Search
+                    </InputGroup.Text>
+                    <Form.Control
+                      type="text"
+                      placeholder="Search contest by title or description"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="contest-input"
+                    />
+                  </InputGroup>
+                </Col>
 
-                <div className="col-lg-4">
-                  <div>
-                    <strong>End:</strong> {new Date(contest.end_time).toLocaleString()}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+                <Col lg={4}>
+                  <Form.Select
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value)}
+                    className="contest-select"
+                  >
+                    <option value="All">All Status</option>
+                    <option value="Live">Live</option>
+                    <option value="Upcoming">Upcoming</option>
+                    <option value="Ended">Ended</option>
+                  </Form.Select>
+                </Col>
+              </Row>
+            </Card.Body>
+          </Card>
 
-          <div className="row g-4">
-            {(contest.contest_problems || []).map((item, index) => (
-              <div className="col-md-6 col-xl-4" key={item.id}>
-                <div className="card contest-card h-100">
-                  <div className="card-body d-flex flex-column">
-                    <div className="d-flex justify-content-between align-items-start gap-2 mb-3">
-                      <span className="badge bg-primary">Problem {index + 1}</span>
-                      <span
-                        className={`contest-difficulty ${
-                          item.problem.difficulty === "easy"
-                            ? "difficulty-easy"
-                            : item.problem.difficulty === "medium"
-                            ? "difficulty-medium"
-                            : "difficulty-hard"
-                        }`}
-                      >
-                        {item.problem.difficulty}
-                      </span>
-                    </div>
-
-                    <h4 className="contest-card-title mb-2">{item.problem.title}</h4>
-                    <p className="contest-card-desc mb-3">
-                      {item.problem.description?.slice(0, 110)}...
-                    </p>
-
-                    <div className="contest-meta-grid mb-4">
-                      <div className="meta-item">
-                        <span className="meta-label">Points</span>
-                        <span className="meta-value">{item.problem.points}</span>
-                      </div>
-
-                      <div className="meta-item">
-                        <span className="meta-label">Difficulty</span>
-                        <span className="meta-value">{item.problem.difficulty}</span>
-                      </div>
-                    </div>
-
-                    <div className="contest-actions mt-auto">
-                      <Link
-                        to={`/contest/${contest.id}/problem/${item.problem.id}`}
-                        className="btn contest-btn-primary"
-                      >
-                        Solve
-                      </Link>
-
-                      <Link
-                        to={`/contest/${contest.id}/leaderboard`}
-                        className="btn contest-btn-outline"
-                      >
-                        Leaderboard
-                      </Link>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {(contest.contest_problems || []).length === 0 && (
-            <div className="card contest-empty-card mt-4">
-              <div className="card-body text-center py-5">
-                <h5 className="mb-2">No problems found</h5>
-                <p className="text-muted-custom mb-0">
-                  This contest currently has no assigned problems.
-                </p>
-              </div>
+          {loading && (
+            <div className="text-center py-5">
+              <Spinner animation="border" />
+              <p className="mt-3 mb-0">Loading contests...</p>
             </div>
           )}
-        </div>
+
+          {!loading && error && (
+            <Alert variant="danger" className="mb-4">
+              {error}
+            </Alert>
+          )}
+
+          {!loading && !error && (
+            <>
+              <Row className="g-4">
+                {filteredContests.map((contest) => (
+                  <Col md={6} xl={4} key={contest.id}>
+                    <Card className="contest-card h-100">
+                      <Card.Body className="d-flex flex-column">
+                        <div className="d-flex justify-content-between align-items-start gap-2 mb-3">
+                          <Badge
+                            bg={getStatusBadge(contest.status)}
+                            className="contest-status-badge"
+                          >
+                            {contest.status || "Unknown"}
+                          </Badge>
+
+                          <span
+                            className={`contest-difficulty ${getDifficultyClass(
+                              contest.difficulty
+                            )}`}
+                          >
+                            {contest.difficulty || "Mixed"}
+                          </span>
+                        </div>
+
+                        <h4 className="contest-card-title mb-2">
+                          {contest.name || "Untitled Contest"}
+                        </h4>
+
+                        <p className="contest-card-desc mb-3">
+                          {contest.description || "No description available."}
+                        </p>
+
+                        <div className="contest-meta-grid mb-4">
+                          <div className="meta-item">
+                            <span className="meta-label">Problems</span>
+                            <span className="meta-value">{contest.problems ?? 0}</span>
+                          </div>
+
+                          <div className="meta-item">
+                            <span className="meta-label">Participants</span>
+                            <span className="meta-value">{contest.participants ?? 0}</span>
+                          </div>
+
+                          <div className="meta-item">
+                            <span className="meta-label">Duration</span>
+                            <span className="meta-value">
+                              {contest.start_time && contest.end_time
+                                ? `${Math.round(
+                                  (new Date(contest.end_time) - new Date(contest.start_time)) / 60000
+                                )} min`
+                                : "N/A"}
+                            </span>
+                          </div>
+
+                          <div className="meta-item">
+                            <span className="meta-label">Start</span>
+                            <span className="meta-value">
+                              {contest.start_time || contest.startTime || "N/A"}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="mt-auto d-flex gap-2">
+                          <Button
+                            as={Link}
+                            to={`/contest/${contest.id}`}
+                            variant="primary"
+                            className="contest-primary-btn w-100"
+                          >
+                            View Details
+                          </Button>
+
+                          <Button
+                            as={Link}
+                            to={`/contest/${contest.id}/leaderboard`}
+                            variant="outline-primary"
+                            className="contest-outline-btn"
+                          >
+                            Leaderboard
+                          </Button>
+                        </div>
+                      </Card.Body>
+                    </Card>
+                  </Col>
+                ))}
+              </Row>
+
+              {filteredContests.length === 0 && (
+                <Card className="contest-empty-card mt-4">
+                  <Card.Body className="text-center py-5">
+                    <h5 className="mb-2">No contests found</h5>
+                    <p className="text-muted-custom mb-0">
+                      Try changing the search text or filter option.
+                    </p>
+                  </Card.Body>
+                </Card>
+              )}
+            </>
+          )}
+        </Container>
       </div>
 
       <Footer />
@@ -198,4 +280,4 @@ function ContestPage() {
   );
 }
 
-export default ContestPage;
+export default ContestListPage;
