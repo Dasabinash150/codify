@@ -167,3 +167,13 @@ npx neonctl@latest init
 # connection string
 ----------
 postgresql://neondb_owner:npg_1US6wtJijuxz@ep-cool-heart-a4qdljke-pooler.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require
+
+
+JUDGE0_BASE_URL=    "https://judge0-ce.p.rapidapi.com/submissions?base64_encoded=false&wait=true"
+
+RAPIDAPI_KEY = "8307801589mshd6761039cd151eep1a493djsn25c419086fc4"
+RAPIDAPI_HOST = "judge0-ce.p.rapidapi.com"
+
+
+s = input()
+print(s[::-1])

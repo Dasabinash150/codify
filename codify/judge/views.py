@@ -26,7 +26,8 @@ JUDGE0_BASE_URL = os.getenv(
 RAPIDAPI_KEY = os.getenv("RAPIDAPI_KEY", "")
 RAPIDAPI_HOST = os.getenv("RAPIDAPI_HOST", "judge0-ce.p.rapidapi.com")
 
-
+print("JUDGE0:", JUDGE0_BASE_URL)
+print("KEY:", RAPIDAPI_KEY)
 def compare_output(actual, expected):
     actual = "\n".join(line.rstrip() for line in (actual or "").strip().splitlines())
     expected = "\n".join(line.rstrip() for line in (expected or "").strip().splitlines())
@@ -164,8 +165,10 @@ def run_code(request):
             "passed": passed,
             "total": len(results),
             "results": results,
+            "message": "Run code API working"
         },
         status=200,
+
     )
 
 

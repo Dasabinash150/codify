@@ -8,7 +8,7 @@ import "../styles/global.css";
 import "../styles/variables.css";
 
 const API = import.meta.env.VITE_API_BASE_URL;
-
+console.log(import.meta.env.VITE_API_BASE_URL);
 const editorLanguageMap = {
   javascript: "javascript",
   python: "python",
@@ -277,7 +277,19 @@ function ContestEditorPage() {
     problemStartRef.current = Date.now();
     setActiveTime(0);
   }, [selectedProblem?.id]);
+  useEffect(() => {
+    if (!selectedProblem) return;
 
+    setCodeStore((prev) => ({
+      ...prev,
+      [selectedProblem.id]: {
+        ...(prev[selectedProblem.id] || {}),
+        [language]:
+          prev[selectedProblem.id]?.[language] ||
+          starterTemplates[language],
+      },
+    }));
+  }, [language]);
   const handleProblemChange = (problem) => {
     if (!problem) return;
 
@@ -312,13 +324,14 @@ function ContestEditorPage() {
     try {
       setRunLoading(true);
       setBottomTab("testcase");
-
-      const res = await axios.post(`${API}/api/run-code/`, {
+      console.log(API)
+      const res = await axios.post(`${API}/api/judge/run-code/`, {
         problem_id: selectedProblem.id,
         source_code: currentCode,
         language_id: judge0LanguageMap[language],
+        stdin: customInputMap[selectedProblem.id] || ""
       });
-
+      console.log(res)
       setRunSummary((prev) => ({
         ...prev,
         [selectedProblem.id]: {
@@ -332,23 +345,7 @@ function ContestEditorPage() {
         [selectedProblem.id]: res.data.results || [],
       }));
     } catch (err) {
-      console.error("Run error:", err.response?.data || err.message);
-      setRunSummary((prev) => ({
-        ...prev,
-        [selectedProblem.id]: null,
-      }));
-      setRunResults((prev) => ({
-        ...prev,
-        [selectedProblem.id]: [
-          {
-            testcase: "Error",
-            expected_output: "",
-            actual_output:
-              err.response?.data?.error || err.response?.data?.detail || "Run failed",
-            passed: false,
-          },
-        ],
-      }));
+      console.error(err);
     } finally {
       setRunLoading(false);
     }

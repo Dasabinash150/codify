@@ -49,6 +49,7 @@ class SubmissionViewSet(viewsets.ModelViewSet):
 
 
 class ContestViewSet(viewsets.ModelViewSet):
+    queryset = Contest.objects.all()
     serializer_class = ContestSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
 
@@ -56,9 +57,10 @@ class ContestViewSet(viewsets.ModelViewSet):
         return (
             Contest.objects.all()
             .annotate(
-                problems_count=Count("contest_problems", distinct=True),
-                participants_count=Count("registrations", distinct=True),
+                problems_count_db=Count("contest_problems", distinct=True),
+                participants_count_db=Count("registrations", distinct=True),
             )
+            .prefetch_related("contest_problems__problem")
             .order_by("-start_time")
         )
 

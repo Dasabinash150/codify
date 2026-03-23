@@ -14,7 +14,7 @@ router.register(r"users", UserViewSet)
 router.register(r"problems", ProblemViewSet)
 router.register(r"testcases", TestCaseViewSet)
 router.register(r"submissions", SubmissionViewSet)
-router.register(r"contests", ContestViewSet)
+router.register(r"contests", ContestViewSet, basename="contest")
 router.register(r"contest-problems", ContestProblemViewSet)
 router.register(r"leaderboards", LeaderboardViewSet)
 
