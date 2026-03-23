@@ -62,7 +62,7 @@ function ContestEditorPage() {
     problemId ? Number(problemId) : null
   );
 
-  const [language, setLanguage] = useState("cpp");
+  const [language, setLanguage] = useState("python");
   const [leftTab, setLeftTab] = useState("description");
   const [bottomTab, setBottomTab] = useState("testcase");
 
@@ -324,14 +324,18 @@ function ContestEditorPage() {
     try {
       setRunLoading(true);
       setBottomTab("testcase");
-      console.log(API)
-      const res = await axios.post(`${API}/api/judge/run-code/`, {
+
+      const finalUrl = `${API}/api/run-code/`;
+      console.log("API =", API);
+      console.log("Final Run URL =", finalUrl);
+
+      const res = await axios.post(finalUrl, {
         problem_id: selectedProblem.id,
         source_code: currentCode,
         language_id: judge0LanguageMap[language],
-        stdin: customInputMap[selectedProblem.id] || ""
+        stdin: customInputMap[selectedProblem.id] || "",
       });
-      console.log(res)
+
       setRunSummary((prev) => ({
         ...prev,
         [selectedProblem.id]: {
@@ -345,7 +349,8 @@ function ContestEditorPage() {
         [selectedProblem.id]: res.data.results || [],
       }));
     } catch (err) {
-      console.error(err);
+      console.error("RUN ERROR:", err.response?.data || err.message);
+      alert(err.response?.data?.detail || err.response?.data?.error || "Run failed");
     } finally {
       setRunLoading(false);
     }
@@ -653,8 +658,8 @@ function ContestEditorPage() {
                 onChange={(e) => setLanguage(e.target.value)}
                 className="editor-language-select"
               >
-                <option value="cpp">C++</option>
                 <option value="python">Python</option>
+                <option value="cpp">C++</option>
                 <option value="javascript">JavaScript</option>
                 <option value="java">Java</option>
               </Form.Select>
