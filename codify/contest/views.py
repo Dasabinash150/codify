@@ -5,6 +5,7 @@ from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from django.db.models import Count
+import os
 
 from .models import (
     Problem,
@@ -28,9 +29,12 @@ from .serializers import (
 
 User = get_user_model()
 
-JUDGE0_BASE_URL = "https://judge0-ce.p.rapidapi.com/submissions?base64_encoded=false&wait=true"
-RAPIDAPI_KEY = "YOUR_RAPIDAPI_KEY"
-RAPIDAPI_HOST = "judge0-ce.p.rapidapi.com"
+JUDGE0_BASE_URL = os.getenv(
+    "JUDGE0_BASE_URL",
+    "https://judge0-ce.p.rapidapi.com/submissions?base64_encoded=false&wait=true"
+)
+RAPIDAPI_KEY = os.getenv("RAPIDAPI_KEY", "")
+RAPIDAPI_HOST = os.getenv("RAPIDAPI_HOST", "judge0-ce.p.rapidapi.com")
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -59,10 +63,6 @@ class SubmissionViewSet(viewsets.ModelViewSet):
     queryset = Submission.objects.all()
     serializer_class = SubmissionSerializer
 
-
-# class ContestViewSet(viewsets.ModelViewSet):
-#     queryset = Contest.objects.prefetch_related("contest_problems__problem").all()
-#     serializer_class = ContestSerializer
 class ContestViewSet(viewsets.ModelViewSet):
     queryset = Contest.objects.annotate(
         problems_count_db=Count("contest_problems", distinct=True),

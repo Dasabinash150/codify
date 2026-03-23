@@ -1,231 +1,141 @@
-import React, { useMemo, useState } from "react";
-import { Link, useParams } from "react-router-dom";
-import { Button, Form } from "react-bootstrap";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import { Button, Form, Spinner } from "react-bootstrap";
 import Editor from "@monaco-editor/react";
+import axios from "axios";
 import "../styles/ContestEditorPage.css";
 import "../styles/global.css";
 import "../styles/variables.css";
 
-const contestInfo = {
-  id: 12,
-  title: "Weekly Coding Challenge 12",
-  status: "Live",
-  timeLeft: "00:42:15",
+const API = import.meta.env.VITE_API_BASE_URL;
+
+const editorLanguageMap = {
+  javascript: "javascript",
+  python: "python",
+  cpp: "cpp",
+  java: "java",
 };
 
-const problemList = [
-  {
-    id: 1,
-    title: "Two Sum",
-    difficulty: "Easy",
-    tags: ["Array", "Hash Table"],
-    status: "Solved",
-    points: 100,
-    description: `Given an array of integers nums and an integer target, return indices of the two numbers such that they add up to target.
+const judge0LanguageMap = {
+  cpp: 54,
+  python: 71,
+  javascript: 63,
+  java: 62,
+};
 
-You may assume that each input would have exactly one solution, and you may not use the same element twice.
-
-You can return the answer in any order.`,
-    examples: [
-      {
-        input: "nums = [2,7,11,15], target = 9",
-        output: "[0,1]",
-        explanation: "Because nums[0] + nums[1] == 9, we return [0,1].",
-      },
-      {
-        input: "nums = [3,2,4], target = 6",
-        output: "[1,2]",
-        explanation: "Because nums[1] + nums[2] == 6, we return [1,2].",
-      },
-      {
-        input: "nums = [3,3], target = 6",
-        output: "[0,1]",
-        explanation: "Because nums[0] + nums[1] == 6, we return [0,1].",
-      },
-    ],
-    constraints: [
-      "2 <= nums.length <= 10^4",
-      "-10^9 <= nums[i] <= 10^9",
-      "-10^9 <= target <= 10^9",
-      "Only one valid answer exists.",
-    ],
-    testcases: "nums = [2,7,11,15]\ntarget = 9",
-    starterCode: {
-      javascript: `function twoSum(nums, target) {
+const starterTemplates = {
+  javascript: `function solve() {
   // Write your code here
   
-}`,
-      python: `def two_sum(nums, target):
-    # Write your code here
-    pass`,
-      cpp: `class Solution {
-public:
-    vector<int> twoSum(vector<int>& nums, int target) {
-        // Write your code here
-        
-    }
-};`,
-      java: `class Solution {
-    public int[] twoSum(int[] nums, int target) {
-        // Write your code here
-        
-    }
-}`,
-    },
-  },
-  {
-    id: 2,
-    title: "Valid Parentheses",
-    difficulty: "Easy",
-    tags: ["String", "Stack"],
-    status: "Unsolved",
-    points: 100,
-    description: `Given a string s containing just the characters '(', ')', '{', '}', '[' and ']', determine if the input string is valid.
+}
 
-An input string is valid if:
-1. Open brackets are closed by the same type of brackets.
-2. Open brackets are closed in the correct order.
-3. Every close bracket has a corresponding open bracket of the same type.`,
-    examples: [
-      {
-        input: `s = "()"`,
-        output: "true",
-        explanation: "The brackets are matched correctly.",
-      },
-      {
-        input: `s = "()[]{}"`,
-        output: "true",
-        explanation: "All brackets are valid and properly ordered.",
-      },
-      {
-        input: `s = "(]"`,
-        output: "false",
-        explanation: "The closing bracket does not match the last open bracket.",
-      },
-    ],
-    constraints: [
-      "1 <= s.length <= 10^4",
-      "s consists of parentheses only '()[]{}'.",
-    ],
-    testcases: `s = "()[]{}"`,
-    starterCode: {
-      javascript: `function isValid(s) {
-  // Write your code here
-  
-}`,
-      python: `def is_valid(s):
+solve();`,
+  python: `def solve():
     # Write your code here
-    pass`,
-      cpp: `class Solution {
-public:
-    bool isValid(string s) {
+    pass
+
+solve()`,
+  cpp: `#include <bits/stdc++.h>
+using namespace std;
+
+int main() {
+    // Write your code here
+    
+    return 0;
+}`,
+  java: `import java.util.*;
+
+public class Main {
+    public static void main(String[] args) {
         // Write your code here
-        
-    }
-};`,
-      java: `class Solution {
-    public boolean isValid(String s) {
-        // Write your code here
-        
     }
 }`,
-    },
-  },
-];
+};
 
 function ContestEditorPage() {
   const { id, problemId } = useParams();
+  const navigate = useNavigate();
 
-  const initialProblemId = Number(problemId) || 1;
+  const [contestInfo, setContestInfo] = useState(null);
+  const [problemList, setProblemList] = useState([]);
+  const [selectedProblemId, setSelectedProblemId] = useState(
+    problemId ? Number(problemId) : null
+  );
 
-  const [selectedProblemId, setSelectedProblemId] = useState(initialProblemId);
   const [language, setLanguage] = useState("cpp");
   const [leftTab, setLeftTab] = useState("description");
   const [bottomTab, setBottomTab] = useState("testcase");
-  const [customInput, setCustomInput] = useState("");
-  const [runOutput, setRunOutput] = useState("Run your code to see output here.");
-  const [resultOutput, setResultOutput] = useState("Submission result will appear here.");
+
+  const [customInputMap, setCustomInputMap] = useState({});
+  const [runSummary, setRunSummary] = useState({});
+  const [runResults, setRunResults] = useState({});
+  const [submitResults, setSubmitResults] = useState({});
+
+  const [codeStore, setCodeStore] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [runLoading, setRunLoading] = useState(false);
+  const [submitLoading, setSubmitLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const [contestTime, setContestTime] = useState(0);
+  const [activeTime, setActiveTime] = useState(0);
+  const problemStartRef = useRef(Date.now());
+  const [problemTimeMap, setProblemTimeMap] = useState({});
 
   const selectedProblem = useMemo(() => {
+    if (!problemList.length) return null;
     return (
-      problemList.find((problem) => problem.id === selectedProblemId) || problemList[0]
+      problemList.find((problem) => problem.id === Number(selectedProblemId)) ||
+      problemList[0]
     );
-  }, [selectedProblemId]);
+  }, [problemList, selectedProblemId]);
 
-  const [codeStore, setCodeStore] = useState(() => {
+  const currentCode = selectedProblem
+    ? codeStore?.[selectedProblem.id]?.[language] || starterTemplates[language]
+    : starterTemplates[language];
+
+  const formatTime = (sec) => {
+    const safe = Math.max(0, Number(sec) || 0);
+    const h = Math.floor(safe / 3600);
+    const m = Math.floor((safe % 3600) / 60);
+    const s = safe % 60;
+    return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(
+      s
+    ).padStart(2, "0")}`;
+  };
+
+  const buildCodeStore = (problems) => {
     const store = {};
-    problemList.forEach((problem) => {
+    problems.forEach((problem) => {
       store[problem.id] = {
-        javascript: problem.starterCode.javascript,
-        python: problem.starterCode.python,
-        cpp: problem.starterCode.cpp,
-        java: problem.starterCode.java,
+        javascript: starterTemplates.javascript,
+        python: starterTemplates.python,
+        cpp: starterTemplates.cpp,
+        java: starterTemplates.java,
       };
     });
     return store;
-  });
-
-  const editorLanguageMap = {
-    javascript: "javascript",
-    python: "python",
-    cpp: "cpp",
-    java: "java",
   };
 
-  const currentCode = codeStore[selectedProblem.id][language];
-
-  const handleProblemChange = (problem) => {
-    setSelectedProblemId(problem.id);
-    setLeftTab("description");
-    setBottomTab("testcase");
-    setCustomInput(problem.testcases || "");
-    setRunOutput("Run your code to see output here.");
-    setResultOutput("Submission result will appear here.");
+  const parseTags = (tagsValue) => {
+    if (!tagsValue) return [];
+    if (Array.isArray(tagsValue)) return tagsValue;
+    return String(tagsValue)
+      .split(",")
+      .map((tag) => tag.trim())
+      .filter(Boolean);
   };
 
-  const handleEditorChange = (value) => {
-    setCodeStore((prev) => ({
-      ...prev,
-      [selectedProblem.id]: {
-        ...prev[selectedProblem.id],
-        [language]: value || "",
-      },
-    }));
-  };
-
-  const handleRun = () => {
-    const inputToShow = customInput || selectedProblem.testcases;
-    setBottomTab("testcase");
-    setRunOutput(
-      `Input:
-${inputToShow}
-
-Status:
-Passed sample test
-
-Execution Time:
-0.12 sec
-
-Memory:
-14.3 MB`
-    );
-  };
-
-  const handleSubmit = () => {
-    setBottomTab("result");
-    setResultOutput(
-      `Verdict: Accepted
-
-Problem: ${selectedProblem.title}
-Language: ${language.toUpperCase()}
-Score: ${selectedProblem.points}/${selectedProblem.points}
-Runtime: 52 ms
-Memory: 14.8 MB`
-    );
+  const parseConstraints = (constraintsValue) => {
+    if (!constraintsValue) return [];
+    return String(constraintsValue)
+      .split("\n")
+      .map((item) => item.trim())
+      .filter(Boolean);
   };
 
   const getDifficultyClass = (difficulty) => {
-    const value = difficulty.toLowerCase();
+    const value = String(difficulty || "").toLowerCase();
     if (value === "easy") return "editor-badge-easy";
     if (value === "medium") return "editor-badge-medium";
     if (value === "hard") return "editor-badge-hard";
@@ -233,21 +143,328 @@ Memory: 14.8 MB`
   };
 
   const getStatusClass = (status) => {
-    const value = status.toLowerCase();
+    const value = String(status || "").toLowerCase();
     if (value === "solved") return "editor-status-solved";
     if (value === "attempted") return "editor-status-attempted";
     return "editor-status-unsolved";
   };
 
+  const normalizeProblemData = (problem, contestProblem, allTestcases, solvedMap) => {
+    const problemTestcases = allTestcases.filter(
+      (tc) => Number(tc.problem) === Number(problem.id)
+    );
+
+    const sampleTestcases = problemTestcases.filter((tc) => tc.is_sample);
+    const firstSample = sampleTestcases[0] || problemTestcases[0] || null;
+
+    const examples = sampleTestcases.map((tc, index) => ({
+      input: tc.input,
+      output: tc.expected_output,
+      explanation: `Sample testcase ${index + 1}`,
+    }));
+
+    return {
+      id: problem.id,
+      contest_problem_id: contestProblem.id,
+      order: contestProblem.order,
+      title: problem.title,
+      description: problem.description || "No description available.",
+      difficulty: problem.difficulty || "easy",
+      constraints: parseConstraints(problem.constraints),
+      tags: parseTags(problem.tags),
+      points: problem.points || 100,
+      status: solvedMap[problem.id] ? "Solved" : "Unsolved",
+      examples,
+      testcases: firstSample?.input || "",
+      testcaseObjects: problemTestcases,
+    };
+  };
+
+  const initializeContest = async () => {
+    try {
+      setLoading(true);
+      setError("");
+
+      const contestRes = await axios.get(`${API}/api/contests/${id}/`);
+      const contest = contestRes.data;
+
+      const contestProblems = contest.problems || [];
+      const problemIds = contestProblems.map((item) => item.problem_id);
+
+      const [problemResponses, testcaseResponse] = await Promise.all([
+        Promise.all(
+          problemIds.map((pid) => axios.get(`${API}/api/problems/${pid}/`))
+        ),
+        axios.get(`${API}/api/testcases/`),
+      ]);
+
+      const problemDetails = problemResponses.map((res) => res.data);
+      const allTestcases = Array.isArray(testcaseResponse.data)
+        ? testcaseResponse.data
+        : testcaseResponse.data.results || [];
+
+      const solvedMap = {};
+
+      const enrichedProblems = contestProblems
+        .map((contestProblem) => {
+          const matchingProblem = problemDetails.find(
+            (problem) => Number(problem.id) === Number(contestProblem.problem_id)
+          );
+          if (!matchingProblem) return null;
+          return normalizeProblemData(
+            matchingProblem,
+            contestProblem,
+            allTestcases,
+            solvedMap
+          );
+        })
+        .filter(Boolean)
+        .sort((a, b) => a.order - b.order);
+
+      setContestInfo(contest);
+      setProblemList(enrichedProblems);
+      setCodeStore(buildCodeStore(enrichedProblems));
+
+      const initialSelectedId =
+        problemId && enrichedProblems.some((p) => p.id === Number(problemId))
+          ? Number(problemId)
+          : enrichedProblems[0]?.id || null;
+
+      setSelectedProblemId(initialSelectedId);
+
+      const customInputs = {};
+      enrichedProblems.forEach((problem) => {
+        customInputs[problem.id] = problem.testcases || "";
+      });
+      setCustomInputMap(customInputs);
+
+      if (contest.end_time) {
+        const remainingSeconds = Math.max(
+          0,
+          Math.floor((new Date(contest.end_time).getTime() - Date.now()) / 1000)
+        );
+        setContestTime(remainingSeconds);
+      }
+    } catch (err) {
+      console.error("Contest editor load error:", err.response?.data || err.message);
+      setError(
+        err.response?.data?.detail ||
+        err.response?.data?.error ||
+        "Failed to load contest editor."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    initializeContest();
+  }, [id]);
+
+  useEffect(() => {
+    if (!contestInfo?.end_time) return;
+
+    const timer = setInterval(() => {
+      setContestTime((prev) => (prev > 0 ? prev - 1 : 0));
+      setActiveTime((prev) => prev + 1);
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [contestInfo?.end_time]);
+
+  useEffect(() => {
+    if (!selectedProblem?.id) return;
+    problemStartRef.current = Date.now();
+    setActiveTime(0);
+  }, [selectedProblem?.id]);
+
+  const handleProblemChange = (problem) => {
+    if (!problem) return;
+
+    if (selectedProblem?.id) {
+      setProblemTimeMap((prev) => ({
+        ...prev,
+        [selectedProblem.id]: (prev[selectedProblem.id] || 0) + activeTime,
+      }));
+    }
+
+    setSelectedProblemId(problem.id);
+    setLeftTab("description");
+    setBottomTab("testcase");
+    setActiveTime(0);
+  };
+
+  const handleEditorChange = (value) => {
+    if (!selectedProblem) return;
+
+    setCodeStore((prev) => ({
+      ...prev,
+      [selectedProblem.id]: {
+        ...(prev[selectedProblem.id] || {}),
+        [language]: value || "",
+      },
+    }));
+  };
+
+  const handleRun = async () => {
+    if (!selectedProblem) return;
+
+    try {
+      setRunLoading(true);
+      setBottomTab("testcase");
+
+      const res = await axios.post(`${API}/api/run-code/`, {
+        problem_id: selectedProblem.id,
+        source_code: currentCode,
+        language_id: judge0LanguageMap[language],
+      });
+
+      setRunSummary((prev) => ({
+        ...prev,
+        [selectedProblem.id]: {
+          passed: res.data.passed,
+          total: res.data.total,
+        },
+      }));
+
+      setRunResults((prev) => ({
+        ...prev,
+        [selectedProblem.id]: res.data.results || [],
+      }));
+    } catch (err) {
+      console.error("Run error:", err.response?.data || err.message);
+      setRunSummary((prev) => ({
+        ...prev,
+        [selectedProblem.id]: null,
+      }));
+      setRunResults((prev) => ({
+        ...prev,
+        [selectedProblem.id]: [
+          {
+            testcase: "Error",
+            expected_output: "",
+            actual_output:
+              err.response?.data?.error || err.response?.data?.detail || "Run failed",
+            passed: false,
+          },
+        ],
+      }));
+    } finally {
+      setRunLoading(false);
+    }
+  };
+
+  const handleSubmit = async () => {
+    try {
+      const token = localStorage.getItem("access");
+
+      if (!token) {
+        alert("Session expired. Please login again.");
+        navigate("/login");
+        return;
+      }
+
+      const answers = problemList.map((problem) => ({
+        problem_id: problem.id,
+        source_code: codeStore?.[problem.id]?.[language] || starterTemplates[language],
+        language_id: judge0LanguageMap[language],
+        language,
+      }));
+
+      const hasEmptyCode = answers.some((item) => !item.source_code.trim());
+      if (hasEmptyCode) {
+        alert("Please write code for all questions before submitting.");
+        return;
+      }
+
+      setSubmitLoading(true);
+
+      const res = await axios.post(
+        `${API}/api/submit-contest/`,
+        {
+          contest_id: id,
+          answers,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const resultMap = {};
+      (res.data.results || []).forEach((item) => {
+        resultMap[item.problem_id] = item;
+      });
+
+      setSubmitResults(resultMap);
+      setBottomTab("result");
+
+      alert("Contest submitted successfully.");
+      navigate(`/contest/${id}/leaderboard`);
+    } catch (err) {
+      console.error("Submit error:", err.response?.data || err.message);
+
+      if (err.response?.status === 401) {
+        alert("Session expired. Please login again.");
+        localStorage.clear();
+        navigate("/login");
+        return;
+      }
+
+      alert(
+        err.response?.data?.error ||
+        err.response?.data?.detail ||
+        "Contest submit failed"
+      );
+    } finally {
+      setSubmitLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="contest-editor-layout d-flex align-items-center justify-content-center">
+        <div className="text-center text-light">
+          <Spinner animation="border" className="mb-3" />
+          <div>Loading contest editor...</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="contest-editor-layout d-flex align-items-center justify-content-center">
+        <div className="text-center text-light">
+          <h5 className="mb-2">Failed to load editor</h5>
+          <p className="mb-3">{error}</p>
+          <Button onClick={initializeContest}>Retry</Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!selectedProblem) {
+    return (
+      <div className="contest-editor-layout d-flex align-items-center justify-content-center">
+        <div className="text-center text-light">No problem found for this contest.</div>
+      </div>
+    );
+  }
+
+  const selectedRunSummary = runSummary[selectedProblem.id];
+  const selectedRunResults = runResults[selectedProblem.id] || [];
+  const selectedSubmitResult = submitResults[selectedProblem.id];
+  const contestTitle = contestInfo?.name || "Contest";
+  const contestStatus = contestInfo?.status || "Live";
+
   return (
     <div className="contest-editor-layout">
       <div className="editor-topbar d-flex align-items-center justify-content-between px-3 border-bottom bg-dark text-light">
-
-        {/* LEFT */}
         <div className="d-flex align-items-center gap-3">
-
           <Link
-            to={`/contest/${id || contestInfo.id}`}
+            to={`/contest/${id}`}
             className="text-decoration-none text-light small"
           >
             ← Problem List
@@ -255,55 +472,52 @@ Memory: 14.8 MB`
 
           <div className="vr"></div>
 
-          <span className="fw-semibold small">
-            {contestInfo.title}
-          </span>
+          <span className="fw-semibold small">{contestTitle}</span>
 
-          <span className="badge bg-success">
-            {contestInfo.status}
-          </span>
+          <span className="badge bg-success">{contestStatus}</span>
 
           <span className="badge bg-warning text-dark">
-            {contestInfo.timeLeft}
+            {formatTime(contestTime)}
           </span>
 
+          <span className="badge bg-secondary">
+            This Problem: {formatTime(activeTime)}
+          </span>
         </div>
 
-        {/* RIGHT */}
         <div className="d-flex gap-2">
-
           <Button
             size="sm"
             variant="outline-light"
             onClick={handleRun}
+            disabled={runLoading}
           >
-            Run
+            {runLoading ? "Running..." : "Run"}
           </Button>
 
           <Button
             size="sm"
             variant="primary"
             onClick={handleSubmit}
+            disabled={submitLoading || !problemList.length}
           >
-            Submit
+            {submitLoading ? "Submitting..." : "Submit"}
           </Button>
-
         </div>
-
       </div>
 
       <div className="editor-main-grid">
         <aside className="editor-left-panel">
           <div className="editor-left-header">
             <div className="editor-problem-tabs-scroll">
-              {problemList.map((problem) => (
+              {problemList.map((problem, index) => (
                 <button
                   key={problem.id}
                   className={`editor-problem-tab ${selectedProblem.id === problem.id ? "active" : ""
                     }`}
                   onClick={() => handleProblemChange(problem)}
                 >
-                  {problem.id}. {problem.title}
+                  {index + 1}. {problem.title}
                 </button>
               ))}
             </div>
@@ -312,20 +526,29 @@ Memory: 14.8 MB`
           <div className="editor-problem-details">
             <div className="editor-problem-title-row">
               <h2 className="editor-problem-title">
-                {selectedProblem.id}. {selectedProblem.title}
+                {selectedProblem.order}. {selectedProblem.title}
               </h2>
             </div>
 
             <div className="editor-problem-badges">
-              <span className={`editor-pill ${getDifficultyClass(selectedProblem.difficulty)}`}>
+              <span
+                className={`editor-pill ${getDifficultyClass(
+                  selectedProblem.difficulty
+                )}`}
+              >
                 {selectedProblem.difficulty}
               </span>
-              <span className={`editor-pill ${getStatusClass(selectedProblem.status)}`}>
+
+              <span
+                className={`editor-pill ${getStatusClass(selectedProblem.status)}`}
+              >
                 {selectedProblem.status}
               </span>
+
               <span className="editor-pill editor-points-pill">
                 {selectedProblem.points} Points
               </span>
+
               {selectedProblem.tags.map((tag, index) => (
                 <span key={index} className="editor-pill editor-tag-pill">
                   {tag}
@@ -335,19 +558,24 @@ Memory: 14.8 MB`
 
             <div className="editor-left-tabs">
               <button
-                className={`editor-left-tab-btn ${leftTab === "description" ? "active" : ""}`}
+                className={`editor-left-tab-btn ${leftTab === "description" ? "active" : ""
+                  }`}
                 onClick={() => setLeftTab("description")}
               >
                 Description
               </button>
+
               <button
-                className={`editor-left-tab-btn ${leftTab === "examples" ? "active" : ""}`}
+                className={`editor-left-tab-btn ${leftTab === "examples" ? "active" : ""
+                  }`}
                 onClick={() => setLeftTab("examples")}
               >
                 Examples
               </button>
+
               <button
-                className={`editor-left-tab-btn ${leftTab === "constraints" ? "active" : ""}`}
+                className={`editor-left-tab-btn ${leftTab === "constraints" ? "active" : ""
+                  }`}
                 onClick={() => setLeftTab("constraints")}
               >
                 Constraints
@@ -357,44 +585,59 @@ Memory: 14.8 MB`
             <div className="editor-left-content">
               {leftTab === "description" && (
                 <div className="editor-content-section">
-                  {selectedProblem.description.split("\n\n").map((para, index) => (
-                    <p key={index} className="editor-text">
-                      {para}
-                    </p>
-                  ))}
+                  {String(selectedProblem.description || "")
+                    .split("\n\n")
+                    .map((para, index) => (
+                      <p key={index} className="editor-text">
+                        {para}
+                      </p>
+                    ))}
                 </div>
               )}
 
               {leftTab === "examples" && (
                 <div className="editor-content-section">
-                  {selectedProblem.examples.map((example, index) => (
-                    <div key={index} className="editor-example-card">
-                      <h6 className="editor-section-heading">Example {index + 1}</h6>
-                      <div className="editor-example-block">
-                        <strong>Input:</strong>
-                        <pre>{example.input}</pre>
+                  {selectedProblem.examples.length ? (
+                    selectedProblem.examples.map((example, index) => (
+                      <div key={index} className="editor-example-card">
+                        <h6 className="editor-section-heading">
+                          Example {index + 1}
+                        </h6>
+
+                        <div className="editor-example-block">
+                          <strong>Input:</strong>
+                          <pre>{example.input}</pre>
+                        </div>
+
+                        <div className="editor-example-block">
+                          <strong>Output:</strong>
+                          <pre>{example.output}</pre>
+                        </div>
+
+                        <div className="editor-example-block">
+                          <strong>Explanation:</strong>
+                          <pre>{example.explanation}</pre>
+                        </div>
                       </div>
-                      <div className="editor-example-block">
-                        <strong>Output:</strong>
-                        <pre>{example.output}</pre>
-                      </div>
-                      <div className="editor-example-block">
-                        <strong>Explanation:</strong>
-                        <pre>{example.explanation}</pre>
-                      </div>
-                    </div>
-                  ))}
+                    ))
+                  ) : (
+                    <p className="editor-text">No sample examples available.</p>
+                  )}
                 </div>
               )}
 
               {leftTab === "constraints" && (
                 <div className="editor-content-section">
                   <h6 className="editor-section-heading">Constraints</h6>
-                  <ul className="editor-constraints-list">
-                    {selectedProblem.constraints.map((item, index) => (
-                      <li key={index}>{item}</li>
-                    ))}
-                  </ul>
+                  {selectedProblem.constraints.length ? (
+                    <ul className="editor-constraints-list">
+                      {selectedProblem.constraints.map((item, index) => (
+                        <li key={index}>{item}</li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="editor-text">No constraints available.</p>
+                  )}
                 </div>
               )}
             </div>
@@ -444,13 +687,16 @@ Memory: 14.8 MB`
           <div className="editor-bottom-panel">
             <div className="editor-bottom-tabs">
               <button
-                className={`editor-bottom-tab ${bottomTab === "testcase" ? "active" : ""}`}
+                className={`editor-bottom-tab ${bottomTab === "testcase" ? "active" : ""
+                  }`}
                 onClick={() => setBottomTab("testcase")}
               >
                 Testcase
               </button>
+
               <button
-                className={`editor-bottom-tab ${bottomTab === "result" ? "active" : ""}`}
+                className={`editor-bottom-tab ${bottomTab === "result" ? "active" : ""
+                  }`}
                 onClick={() => setBottomTab("result")}
               >
                 Test Result
@@ -461,23 +707,64 @@ Memory: 14.8 MB`
               {bottomTab === "testcase" && (
                 <div className="editor-testcase-section">
                   <label className="editor-input-label">Custom Input</label>
+
                   <textarea
                     className="editor-custom-input"
-                    value={customInput}
-                    onChange={(e) => setCustomInput(e.target.value)}
-                    placeholder={selectedProblem.testcases}
+                    value={customInputMap[selectedProblem.id] || ""}
+                    onChange={(e) =>
+                      setCustomInputMap((prev) => ({
+                        ...prev,
+                        [selectedProblem.id]: e.target.value,
+                      }))
+                    }
+                    placeholder={selectedProblem.testcases || "Enter custom input"}
                   />
+
                   <div className="editor-output-card">
-                    <div className="editor-output-heading">Output</div>
-                    <pre className="editor-output-pre">{runOutput}</pre>
+                    <div className="editor-output-heading">Run Summary</div>
+
+                    <pre className="editor-output-pre">
+                      {selectedRunSummary
+                        ? `Passed ${selectedRunSummary.passed}/${selectedRunSummary.total} testcases`
+                        : "Run your code to see output here."}
+                    </pre>
                   </div>
+
+                  {!!selectedRunResults.length && (
+                    <div className="editor-output-card mt-3">
+                      <div className="editor-output-heading">Detailed Results</div>
+
+                      {selectedRunResults.map((item, index) => (
+                        <div key={index} className="mb-3">
+                          <div className={item.passed ? "text-success" : "text-danger"}>
+                            Test Case {item.testcase}: {item.passed ? "Passed" : "Failed"}
+                          </div>
+                          <pre className="editor-output-pre mb-2">
+                            {`Expected:
+${item.expected_output || "N/A"}
+
+Actual:
+${item.actual_output || "No output"}`}
+                          </pre>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
 
               {bottomTab === "result" && (
                 <div className="editor-output-card editor-output-card-full">
                   <div className="editor-output-heading">Submission Result</div>
-                  <pre className="editor-output-pre">{resultOutput}</pre>
+
+                  <pre className="editor-output-pre">
+                    {selectedSubmitResult
+                      ? `Problem: ${selectedSubmitResult.title}
+Verdict: ${selectedSubmitResult.passed ? "Accepted" : "Wrong Answer"}
+Passed Testcases: ${selectedSubmitResult.passed_testcases}/${selectedSubmitResult.total_testcases}
+Score: ${selectedSubmitResult.score}`
+                      : "Submission result will appear here."}
+                  </pre>
                 </div>
               )}
             </div>
