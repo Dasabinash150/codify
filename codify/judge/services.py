@@ -1,109 +1,45 @@
-from contest.models import TestCase
-from .models import SubmissionResult
-from .executor import submit_to_judge0, get_result_from_judge0
-from .utils import compare_output
+import time
+import requests
+from django.conf import settings
+
+def submit_code_to_judge0(source_code, language_id, stdin=""):
+    url = f"{settings.JUDGE0_BASE_URL}/submissions/?base64_encoded=false&wait=false"
+
+    headers = {}
+    if getattr(settings, "JUDGE0_API_KEY", None):
+        headers["X-RapidAPI-Key"] = settings.JUDGE0_API_KEY
+    if getattr(settings, "JUDGE0_API_HOST", None):
+        headers["X-RapidAPI-Host"] = settings.JUDGE0_API_HOST
+
+    payload = {
+        "source_code": source_code,
+        "language_id": language_id,
+        "stdin": stdin,
+    }
+
+    response = requests.post(url, json=payload, headers=headers, timeout=30)
+    response.raise_for_status()
+    return response.json()["token"]
 
 
-def map_judge0_status(result_data):
-    status_id = result_data["status"]["id"]
+def get_submission_result(token):
+    url = f"{settings.JUDGE0_BASE_URL}/submissions/{token}?base64_encoded=false"
+    headers = {}
 
-    if status_id == 3:
-        return "SUCCESS"   # Accepted by executor, compare manually
-    elif status_id in [4]:
-        return "WA"
-    elif status_id in [5]:
-        return "TLE"
-    elif status_id in [6, 7, 8, 9, 10, 11, 12]:
-        return "RTE"
-    elif status_id == 13:
-        return "ERROR"
-    else:
-        return "ERROR"
+    if getattr(settings, "JUDGE0_API_KEY", None):
+        headers["X-RapidAPI-Key"] = settings.JUDGE0_API_KEY
+    if getattr(settings, "JUDGE0_API_HOST", None):
+        headers["X-RapidAPI-Host"] = settings.JUDGE0_API_HOST
 
+    for _ in range(20):
+        response = requests.get(url, headers=headers, timeout=30)
+        response.raise_for_status()
+        data = response.json()
 
-def judge_submission(submission):
-    testcases = TestCase.objects.filter(problem=submission.problem)
-    submission.total_testcases = testcases.count()
-    submission.passed_testcases = 0
-    submission.verdict = "PENDING"
-    submission.save()
+        status_id = data.get("status", {}).get("id")
+        if status_id not in [1, 2]:  # in queue / processing
+            return data
 
-    final_verdict = "AC"
+        time.sleep(1)
 
-    for index, tc in enumerate(testcases, start=1):
-        try:
-            token = submit_to_judge0(
-                code=submission.code,
-                language=submission.language,
-                stdin=tc.input_data
-            )
-
-            result_data = get_result_from_judge0(token)
-
-            executor_status = map_judge0_status(result_data)
-            stdout = result_data.get("stdout") or ""
-            stderr = result_data.get("stderr") or ""
-            compile_output = result_data.get("compile_output") or ""
-            execution_time = float(result_data.get("time") or 0)
-
-            if compile_output:
-                status = "CE"
-                actual_output = compile_output
-                final_verdict = "CE"
-
-            elif executor_status == "TLE":
-                status = "TLE"
-                actual_output = stderr or "Time limit exceeded"
-                if final_verdict == "AC":
-                    final_verdict = "TLE"
-
-            elif executor_status == "RTE":
-                status = "RTE"
-                actual_output = stderr or "Runtime error"
-                if final_verdict == "AC":
-                    final_verdict = "RTE"
-
-            elif executor_status == "ERROR":
-                status = "ERROR"
-                actual_output = stderr or "System error"
-                if final_verdict == "AC":
-                    final_verdict = "ERROR"
-
-            else:
-                if compare_output(stdout, tc.expected_output):
-                    status = "AC"
-                    actual_output = stdout
-                    submission.passed_testcases += 1
-                else:
-                    status = "WA"
-                    actual_output = stdout
-                    if final_verdict == "AC":
-                        final_verdict = "WA"
-
-            SubmissionResult.objects.create(
-                submission=submission,
-                testcase_number=index,
-                status=status,
-                input_data=tc.input_data if tc.is_sample else None,
-                expected_output=tc.expected_output if tc.is_sample else None,
-                actual_output=actual_output if tc.is_sample else None,
-                execution_time=execution_time
-            )
-
-        except Exception as e:
-            SubmissionResult.objects.create(
-                submission=submission,
-                testcase_number=index,
-                status="ERROR",
-                input_data=tc.input_data if tc.is_sample else None,
-                expected_output=tc.expected_output if tc.is_sample else None,
-                actual_output=str(e),
-                execution_time=0
-            )
-            if final_verdict == "AC":
-                final_verdict = "ERROR"
-
-    submission.verdict = final_verdict
-    submission.save()
-
-    return submission
+    return {"error": "Timeout while waiting for Judge0 result"}

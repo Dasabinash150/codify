@@ -438,3 +438,51 @@ def join_contest(request, contest_id):
         },
         status=200,
     )
+
+
+from rest_framework.generics import RetrieveAPIView
+from rest_framework.permissions import IsAuthenticated
+from .models import Submission
+from .serializers import SubmissionSerializer
+
+class SubmissionResultView(RetrieveAPIView):
+    queryset = Submission.objects.all()
+    serializer_class = SubmissionSerializer
+    permission_classes = [IsAuthenticated]
+
+
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
+from rest_framework import status
+from .models import Submission, Problem
+from .tasks import judge_submission
+
+class SubmitCodeView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        problem_id = request.data.get("problem_id")
+        code = request.data.get("source_code")
+        language_id = request.data.get("language_id")
+
+        try:
+            problem = Problem.objects.get(id=problem_id)
+        except Problem.DoesNotExist:
+            return Response({"error": "Problem not found"}, status=404)
+
+        submission = Submission.objects.create(
+            user=request.user,
+            problem=problem,
+            code=code,
+            language_id=language_id,
+            status="PENDING",
+        )
+
+        judge_submission.delay(submission.id)
+
+        return Response({
+            "message": "Submission queued",
+            "submission_id": submission.id,
+            "status": "PENDING",
+        }, status=status.HTTP_202_ACCEPTED)
