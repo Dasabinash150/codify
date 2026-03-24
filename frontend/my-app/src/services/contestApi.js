@@ -4,4 +4,4 @@ const API = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL,
 });
 
-export const getContests = () => API.get("/contests/");
+export const getContests = () => API.get("/api/contests/");
