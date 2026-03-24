@@ -8,7 +8,7 @@ import "../styles/global.css";
 import "../styles/variables.css";
 
 const API = import.meta.env.VITE_API_BASE_URL;
-console.log(import.meta.env.VITE_API_BASE_URL);
+
 const editorLanguageMap = {
   javascript: "javascript",
   python: "python",
@@ -70,6 +70,8 @@ function ContestEditorPage() {
   const [runSummary, setRunSummary] = useState({});
   const [runResults, setRunResults] = useState({});
   const [submitResults, setSubmitResults] = useState({});
+  const [submissionMeta, setSubmissionMeta] = useState({});
+  const [pollingProblemId, setPollingProblemId] = useState(null);
 
   const [codeStore, setCodeStore] = useState({});
   const [loading, setLoading] = useState(true);
@@ -147,6 +149,19 @@ function ContestEditorPage() {
     if (value === "solved") return "editor-status-solved";
     if (value === "attempted") return "editor-status-attempted";
     return "editor-status-unsolved";
+  };
+
+  const getVerdictLabel = (status) => {
+    const value = String(status || "").toUpperCase();
+
+    if (value === "AC") return "Accepted";
+    if (value === "WA") return "Wrong Answer";
+    if (value === "TLE") return "Time Limit Exceeded";
+    if (value === "RE") return "Runtime Error";
+    if (value === "CE") return "Compilation Error";
+    if (value === "PENDING") return "Pending";
+
+    return value || "Unknown";
   };
 
   const normalizeProblemData = (problem, contestProblem, allTestcases, solvedMap) => {
@@ -249,8 +264,8 @@ function ContestEditorPage() {
       console.error("Contest editor load error:", err.response?.data || err.message);
       setError(
         err.response?.data?.detail ||
-        err.response?.data?.error ||
-        "Failed to load contest editor."
+          err.response?.data?.error ||
+          "Failed to load contest editor."
       );
     } finally {
       setLoading(false);
@@ -277,6 +292,7 @@ function ContestEditorPage() {
     problemStartRef.current = Date.now();
     setActiveTime(0);
   }, [selectedProblem?.id]);
+
   useEffect(() => {
     if (!selectedProblem) return;
 
@@ -285,11 +301,11 @@ function ContestEditorPage() {
       [selectedProblem.id]: {
         ...(prev[selectedProblem.id] || {}),
         [language]:
-          prev[selectedProblem.id]?.[language] ||
-          starterTemplates[language],
+          prev[selectedProblem.id]?.[language] || starterTemplates[language],
       },
     }));
-  }, [language]);
+  }, [language, selectedProblem]);
+
   const handleProblemChange = (problem) => {
     if (!problem) return;
 
@@ -326,9 +342,7 @@ function ContestEditorPage() {
       setBottomTab("testcase");
 
       const finalUrl = `${API}/api/run-code/`;
-      console.log("API =", API);
-      console.log("Final Run URL =", finalUrl);
-
+      console.log(finalUrl)
       const res = await axios.post(finalUrl, {
         problem_id: selectedProblem.id,
         source_code: currentCode,
@@ -356,7 +370,155 @@ function ContestEditorPage() {
     }
   };
 
+  const pollSubmissionStatus = async (submissionId, problemIdValue, token, retry = 0) => {
+    try {
+      const res = await axios.get(
+        `${API}/api/submission-status/${submissionId}/`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const data = res.data;
+      const statusValue = String(data.status || "").toUpperCase();
+
+      setSubmissionMeta((prev) => ({
+        ...prev,
+        [problemIdValue]: {
+          submission_id: submissionId,
+          status: statusValue,
+          runtime: data.runtime ?? 0,
+          score: data.score ?? 0,
+          submitted_at: data.submitted_at,
+        },
+      }));
+
+      setSubmitResults((prev) => ({
+        ...prev,
+        [problemIdValue]: {
+          problem_id: problemIdValue,
+          title:
+            problemList.find((item) => item.id === problemIdValue)?.title ||
+            `Problem ${problemIdValue}`,
+          status: statusValue,
+          passed: statusValue === "AC",
+          score: data.score ?? 0,
+          runtime: data.runtime ?? 0,
+        },
+      }));
+
+      if (statusValue === "PENDING" && retry < 30) {
+        setTimeout(() => {
+          pollSubmissionStatus(submissionId, problemIdValue, token, retry + 1);
+        }, 2000);
+        return;
+      }
+
+      setPollingProblemId(null);
+      setSubmitLoading(false);
+      setBottomTab("result");
+    } catch (err) {
+      console.error("Polling error:", err.response?.data || err.message);
+      setPollingProblemId(null);
+      setSubmitLoading(false);
+      alert(
+        err.response?.data?.error ||
+          err.response?.data?.detail ||
+          "Failed to fetch submission status"
+      );
+    }
+  };
+
   const handleSubmit = async () => {
+    if (!selectedProblem) return;
+
+    try {
+      const token = localStorage.getItem("access");
+
+      if (!token) {
+        alert("Session expired. Please login again.");
+        navigate("/login");
+        return;
+      }
+
+      const sourceCode =
+        codeStore?.[selectedProblem.id]?.[language] || starterTemplates[language];
+
+      if (!sourceCode.trim()) {
+        alert("Please write code before submitting.");
+        return;
+      }
+
+      setSubmitLoading(true);
+      setPollingProblemId(selectedProblem.id);
+      setBottomTab("result");
+
+      const res = await axios.post(
+        `${API}/api/submit-code/`,
+        {
+          problem_id: selectedProblem.id,
+          contest_id: Number(id),
+          source_code: sourceCode,
+          language,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const submissionId = res.data.submission_id;
+      const taskId = res.data.task_id;
+
+      setSubmissionMeta((prev) => ({
+        ...prev,
+        [selectedProblem.id]: {
+          submission_id: submissionId,
+          task_id: taskId,
+          status: "PENDING",
+          runtime: 0,
+          score: 0,
+        },
+      }));
+
+      setSubmitResults((prev) => ({
+        ...prev,
+        [selectedProblem.id]: {
+          problem_id: selectedProblem.id,
+          title: selectedProblem.title,
+          status: "PENDING",
+          passed: false,
+          score: 0,
+          runtime: 0,
+        },
+      }));
+
+      pollSubmissionStatus(submissionId, selectedProblem.id, token);
+    } catch (err) {
+      console.error("Submit error:", err.response?.data || err.message);
+
+      setPollingProblemId(null);
+      setSubmitLoading(false);
+
+      if (err.response?.status === 401) {
+        alert("Session expired. Please login again.");
+        localStorage.clear();
+        navigate("/login");
+        return;
+      }
+
+      alert(
+        err.response?.data?.error ||
+          err.response?.data?.detail ||
+          "Code submit failed"
+      );
+    }
+  };
+
+  const handleFinishContest = async () => {
     try {
       const token = localStorage.getItem("access");
 
@@ -368,14 +530,15 @@ function ContestEditorPage() {
 
       const answers = problemList.map((problem) => ({
         problem_id: problem.id,
-        source_code: codeStore?.[problem.id]?.[language] || starterTemplates[language],
+        source_code:
+          codeStore?.[problem.id]?.[language] || starterTemplates[language],
         language_id: judge0LanguageMap[language],
         language,
       }));
 
       const hasEmptyCode = answers.some((item) => !item.source_code.trim());
       if (hasEmptyCode) {
-        alert("Please write code for all questions before submitting.");
+        alert("Please write code for all questions before finishing contest.");
         return;
       }
 
@@ -405,7 +568,7 @@ function ContestEditorPage() {
       alert("Contest submitted successfully.");
       navigate(`/contest/${id}/leaderboard`);
     } catch (err) {
-      console.error("Submit error:", err.response?.data || err.message);
+      console.error("Finish contest error:", err.response?.data || err.message);
 
       if (err.response?.status === 401) {
         alert("Session expired. Please login again.");
@@ -416,8 +579,8 @@ function ContestEditorPage() {
 
       alert(
         err.response?.data?.error ||
-        err.response?.data?.detail ||
-        "Contest submit failed"
+          err.response?.data?.detail ||
+          "Contest submit failed"
       );
     } finally {
       setSubmitLoading(false);
@@ -458,6 +621,7 @@ function ContestEditorPage() {
   const selectedRunSummary = runSummary[selectedProblem.id];
   const selectedRunResults = runResults[selectedProblem.id] || [];
   const selectedSubmitResult = submitResults[selectedProblem.id];
+  const selectedSubmissionMeta = submissionMeta[selectedProblem.id];
   const contestTitle = contestInfo?.name || "Contest";
   const contestStatus = contestInfo?.status || "Live";
 
@@ -503,7 +667,18 @@ function ContestEditorPage() {
             onClick={handleSubmit}
             disabled={submitLoading || !problemList.length}
           >
-            {submitLoading ? "Submitting..." : "Submit"}
+            {submitLoading && pollingProblemId === selectedProblem.id
+              ? "Submitting..."
+              : "Submit Problem"}
+          </Button>
+
+          <Button
+            size="sm"
+            variant="success"
+            onClick={handleFinishContest}
+            disabled={submitLoading || !problemList.length}
+          >
+            Finish Contest
           </Button>
         </div>
       </div>
@@ -515,8 +690,9 @@ function ContestEditorPage() {
               {problemList.map((problem, index) => (
                 <button
                   key={problem.id}
-                  className={`editor-problem-tab ${selectedProblem.id === problem.id ? "active" : ""
-                    }`}
+                  className={`editor-problem-tab ${
+                    selectedProblem.id === problem.id ? "active" : ""
+                  }`}
                   onClick={() => handleProblemChange(problem)}
                 >
                   {index + 1}. {problem.title}
@@ -560,24 +736,27 @@ function ContestEditorPage() {
 
             <div className="editor-left-tabs">
               <button
-                className={`editor-left-tab-btn ${leftTab === "description" ? "active" : ""
-                  }`}
+                className={`editor-left-tab-btn ${
+                  leftTab === "description" ? "active" : ""
+                }`}
                 onClick={() => setLeftTab("description")}
               >
                 Description
               </button>
 
               <button
-                className={`editor-left-tab-btn ${leftTab === "examples" ? "active" : ""
-                  }`}
+                className={`editor-left-tab-btn ${
+                  leftTab === "examples" ? "active" : ""
+                }`}
                 onClick={() => setLeftTab("examples")}
               >
                 Examples
               </button>
 
               <button
-                className={`editor-left-tab-btn ${leftTab === "constraints" ? "active" : ""
-                  }`}
+                className={`editor-left-tab-btn ${
+                  leftTab === "constraints" ? "active" : ""
+                }`}
                 onClick={() => setLeftTab("constraints")}
               >
                 Constraints
@@ -689,16 +868,18 @@ function ContestEditorPage() {
           <div className="editor-bottom-panel">
             <div className="editor-bottom-tabs">
               <button
-                className={`editor-bottom-tab ${bottomTab === "testcase" ? "active" : ""
-                  }`}
+                className={`editor-bottom-tab ${
+                  bottomTab === "testcase" ? "active" : ""
+                }`}
                 onClick={() => setBottomTab("testcase")}
               >
                 Testcase
               </button>
 
               <button
-                className={`editor-bottom-tab ${bottomTab === "result" ? "active" : ""
-                  }`}
+                className={`editor-bottom-tab ${
+                  bottomTab === "result" ? "active" : ""
+                }`}
                 onClick={() => setBottomTab("result")}
               >
                 Test Result
@@ -759,12 +940,24 @@ ${item.actual_output || "No output"}`}
                 <div className="editor-output-card editor-output-card-full">
                   <div className="editor-output-heading">Submission Result</div>
 
+                  {selectedSubmissionMeta?.status === "PENDING" && (
+                    <div className="text-warning mb-2">
+                      Submission is in queue. Checking result...
+                    </div>
+                  )}
+
                   <pre className="editor-output-pre">
                     {selectedSubmitResult
-                      ? `Problem: ${selectedSubmitResult.title}
-Verdict: ${selectedSubmitResult.passed ? "Accepted" : "Wrong Answer"}
-Passed Testcases: ${selectedSubmitResult.passed_testcases}/${selectedSubmitResult.total_testcases}
-Score: ${selectedSubmitResult.score}`
+                      ? `Problem: ${selectedSubmitResult.title || selectedProblem.title}
+Verdict: ${getVerdictLabel(
+                          selectedSubmitResult.status ||
+                            (selectedSubmitResult.passed ? "AC" : "WA")
+                        )}
+Score: ${selectedSubmitResult.score ?? 0}
+Runtime: ${selectedSubmitResult.runtime ?? 0}
+
+Submission ID: ${selectedSubmissionMeta?.submission_id || "N/A"}
+Task Status: ${selectedSubmissionMeta?.status || "N/A"}`
                       : "Submission result will appear here."}
                   </pre>
                 </div>

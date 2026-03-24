@@ -7,6 +7,10 @@ from django.utils import timezone
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework import status
+from rest_framework.views import APIView
+
+from celery.result import AsyncResult
 
 from contest.models import (
     Problem,
@@ -18,16 +22,12 @@ from contest.models import (
     ContestRegistration,
 )
 
+from django.conf import settings
 
-JUDGE0_BASE_URL = os.getenv(
-    "JUDGE0_BASE_URL",
-    "https://judge0-ce.p.rapidapi.com/submissions?base64_encoded=false&wait=true",
-)
-RAPIDAPI_KEY = os.getenv("RAPIDAPI_KEY", "")
-RAPIDAPI_HOST = os.getenv("RAPIDAPI_HOST", "judge0-ce.p.rapidapi.com")
+JUDGE0_BASE_URL = settings.JUDGE0_BASE_URL
+JUDGE0_API_KEY = settings.JUDGE0_API_KEY
+JUDGE0_API_HOST = settings.JUDGE0_API_HOST
 
-print("JUDGE0:", JUDGE0_BASE_URL)
-print("KEY:", RAPIDAPI_KEY)
 def compare_output(actual, expected):
     actual = "\n".join(line.rstrip() for line in (actual or "").strip().splitlines())
     expected = "\n".join(line.rstrip() for line in (expected or "").strip().splitlines())
@@ -53,7 +53,7 @@ def get_submission_status(result):
             "status": status_desc,
         }
 
-    if status_desc.lower() in {"time limit exceeded"}:
+    if status_desc.lower() == "time limit exceeded":
         return "TLE", {
             "stderr": stderr,
             "compile_output": compile_output,
@@ -68,13 +68,13 @@ def get_submission_status(result):
 
 
 def run_single_testcase(source_code, language_id, stdin):
-    if not RAPIDAPI_KEY:
+    if not JUDGE0_API_KEY:
         raise Exception("Judge0 API key is missing. Set RAPIDAPI_KEY in environment variables.")
 
     headers = {
-        "content-type": "application/json",
-        "X-RapidAPI-Key": RAPIDAPI_KEY,
-        "X-RapidAPI-Host": RAPIDAPI_HOST,
+        "Content-Type": "application/json",
+        "X-RapidAPI-Key": JUDGE0_API_KEY,
+        "X-RapidAPI-Host": JUDGE0_API_HOST,
     }
 
     payload = {
@@ -83,8 +83,10 @@ def run_single_testcase(source_code, language_id, stdin):
         "stdin": stdin,
     }
 
+    url = f"{JUDGE0_BASE_URL}/submissions?base64_encoded=false&wait=true"
+
     response = requests.post(
-        JUDGE0_BASE_URL,
+        url,
         json=payload,
         headers=headers,
         timeout=30,
@@ -146,7 +148,7 @@ def run_code(request):
             )
 
         expected = (tc.expected_output or "").strip()
-        is_passed = compare_output(output, tc.expected_output)
+        is_passed = compare_output(output, expected)
 
         if is_passed:
             passed += 1
@@ -165,10 +167,9 @@ def run_code(request):
             "passed": passed,
             "total": len(results),
             "results": results,
-            "message": "Run code API working"
+            "message": "Run code API working",
         },
         status=200,
-
     )
 
 
@@ -440,49 +441,88 @@ def join_contest(request, contest_id):
     )
 
 
-from rest_framework.generics import RetrieveAPIView
-from rest_framework.permissions import IsAuthenticated
-from .models import Submission
-from .serializers import SubmissionSerializer
-
-class SubmissionResultView(RetrieveAPIView):
-    queryset = Submission.objects.all()
-    serializer_class = SubmissionSerializer
-    permission_classes = [IsAuthenticated]
-
-
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
-from rest_framework import status
-from .models import Submission, Problem
-from .tasks import judge_submission
-
 class SubmitCodeView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
         problem_id = request.data.get("problem_id")
+        contest_id = request.data.get("contest_id")
         code = request.data.get("source_code")
-        language_id = request.data.get("language_id")
+        language = (request.data.get("language") or "python").lower()
+
+        if not problem_id or not code:
+            return Response(
+                {"error": "problem_id and source_code are required"},
+                status=400,
+            )
 
         try:
             problem = Problem.objects.get(id=problem_id)
         except Problem.DoesNotExist:
             return Response({"error": "Problem not found"}, status=404)
 
+        contest = None
+        if contest_id:
+            try:
+                contest = Contest.objects.get(id=contest_id)
+            except Contest.DoesNotExist:
+                return Response({"error": "Contest not found"}, status=404)
+
         submission = Submission.objects.create(
             user=request.user,
             problem=problem,
+            contest=contest,
             code=code,
-            language_id=language_id,
+            language=language,
             status="PENDING",
+            runtime=0.0,
+            score=0,
         )
 
-        judge_submission.delay(submission.id)
+        from .tasks import judge_submission
+        task = judge_submission.delay(submission.id)
 
-        return Response({
-            "message": "Submission queued",
+        return Response(
+            {
+                "message": "Submission queued",
+                "submission_id": submission.id,
+                "task_id": task.id,
+                "status": "PENDING",
+            },
+            status=status.HTTP_202_ACCEPTED,
+        )
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def submission_status(request, submission_id):
+    try:
+        submission = Submission.objects.get(id=submission_id, user=request.user)
+    except Submission.DoesNotExist:
+        return Response({"error": "Submission not found"}, status=404)
+
+    return Response(
+        {
             "submission_id": submission.id,
-            "status": "PENDING",
-        }, status=status.HTTP_202_ACCEPTED)
+            "status": submission.status,
+            "runtime": submission.runtime,
+            "score": submission.score,
+            "submitted_at": submission.submitted_at,
+        },
+        status=200,
+    )
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def task_status(request, task_id):
+    result = AsyncResult(task_id)
+
+    return Response(
+        {
+            "task_id": task_id,
+            "state": result.state,
+            "result": result.result if result.ready() else None,
+        },
+        status=200,
+    )

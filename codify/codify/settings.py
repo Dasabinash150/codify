@@ -6,17 +6,25 @@ from dotenv import load_dotenv
 import dj_database_url
 
 
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
+# # Build paths inside the project like this: BASE_DIR / 'subdir'.
+# BASE_DIR = Path(__file__).resolve().parent.parent
+
+
+# # load_dotenv()
+# ENVIRONMENT = os.getenv("ENVIRONMENT", "local")
+
+# if ENVIRONMENT == "production":
+#     load_dotenv(BASE_DIR / ".env.production")
+# else:
+#     load_dotenv(BASE_DIR / ".env.local")
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-
-# load_dotenv()
 ENVIRONMENT = os.getenv("ENVIRONMENT", "local")
 
-if ENVIRONMENT == "production":
-    load_dotenv(BASE_DIR / ".env.production")
-else:
-    load_dotenv(BASE_DIR / ".env.local")
+env_file = BASE_DIR / ".env.production" if ENVIRONMENT == "production" else BASE_DIR / ".env.local"
+load_dotenv(env_file)
+print("Loaded env file:", env_file)
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
@@ -212,25 +220,22 @@ PASSWORD_RESET_TIMEOUT=900  #900 sec = 15 min
 # CORS_ALLOW_ALL_ORIGINS = True
 
 
+# Judge0 Configuration
 
-JUDGE0_BASE_URL = os.getenv("JUDGE0_BASE_URL", "http://127.0.0.1:2358")
-# CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", "redis://127.0.0.1:6379/0")
-# CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND", "redis://127.0.0.1:6379/0")
-
-
-JUDGE0_BASE_URL = os.getenv("JUDGE0_BASE_URL")
-JUDGE0_API_KEY = os.getenv("JUDGE0_API_KEY")
-JUDGE0_API_HOST = os.getenv("JUDGE0_API_HOST")
+JUDGE0_BASE_URL = os.getenv("JUDGE0_BASE_URL", "https://judge0-ce.p.rapidapi.com")
+JUDGE0_API_KEY = os.getenv("RAPIDAPI_KEY")
+JUDGE0_API_HOST = os.getenv("JUDGE0_API_HOST", "judge0-ce.p.rapidapi.com")
 
 
 CELERY_BROKER_URL = "redis://127.0.0.1:6379/0"
-CELERY_RESULT_BACKEND = "redis://127.0.0.1:6379/0"
-# CELERY_BROKER_URL = "redis://localhost:6379/0"
-# CELERY_RESULT_BACKEND = "redis://localhost:6379/1"
+CELERY_RESULT_BACKEND = "redis://127.0.0.1:6379/1"
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
 CELERY_TIMEZONE = "Asia/Kolkata"
+CELERY_TASK_TRACK_STARTED = True
+CELERY_TASK_TIME_LIMIT = 120
+CELERY_TASK_SOFT_TIME_LIMIT = 90
 
 # ---------------------------
 GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID")
