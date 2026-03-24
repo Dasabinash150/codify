@@ -5,6 +5,7 @@ from django.http import HttpResponse
 def home(request):
     return HttpResponse("Welcome to Codify API 🚀")
 
+
 urlpatterns = [
     path('', home, name='home'),
     path('admin/', admin.site.urls),
