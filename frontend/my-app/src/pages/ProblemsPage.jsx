@@ -189,12 +189,20 @@ function ProblemsPage() {
                         </td>
 
                         <td className="text-center pe-4">
-                          <Link
-                            to={`/problems/${problem.id}`}
-                            className="btn btn-sm btn-primary-custom px-3"
-                          >
-                            Solve
-                          </Link>
+                          <div className="d-flex justify-content-center gap-2 flex-wrap">
+                            <Link
+                              to={`/problems/${problem.id}`}
+                              className="btn btn-sm btn-outline-secondary px-3"
+                            >
+                              View
+                            </Link>
+                            <Link
+                              to={`/problems/${problem.id}/editor`}
+                              className="btn btn-sm btn-primary-custom px-3"
+                            >
+                              Solve
+                            </Link>
+                          </div>
                         </td>
                       </tr>
                     ))
@@ -211,6 +219,7 @@ function ProblemsPage() {
           </div>
         </div>
       </div>
+
       <Footer />
     </>
   );
