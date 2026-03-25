@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
-from .models import Problem, TestCase, Submission, Contest, ContestProblem, Leaderboard
+from .models import Problem, TestCase, Submission, Contest, ContestProblem, Leaderboard, ContestRegistration
 
 User = get_user_model()
 
@@ -45,6 +45,7 @@ class ContestSerializer(serializers.ModelSerializer):
     problems_count = serializers.SerializerMethodField()
     participants_count = serializers.SerializerMethodField()
     problems = serializers.SerializerMethodField()
+    joined = serializers.SerializerMethodField()
 
     class Meta:
         model = Contest
@@ -59,6 +60,7 @@ class ContestSerializer(serializers.ModelSerializer):
             "problems_count",
             "participants_count",
             "problems",
+            "joined",
         ]
 
     def get_problems_count(self, obj):
@@ -70,6 +72,15 @@ class ContestSerializer(serializers.ModelSerializer):
     def get_problems(self, obj):
         contest_problems = obj.contest_problems.select_related("problem").all().order_by("order")
         return ContestProblemSerializer(contest_problems, many=True).data
+    def get_joined(self, obj):
+        request = self.context.get("request")
+        if not request or not request.user or not request.user.is_authenticated:
+            return False
+
+        return ContestRegistration.objects.filter(
+            contest=obj,
+            user=request.user
+        ).exists()
 
 class LeaderboardSerializer(serializers.ModelSerializer):
     user_name = serializers.SerializerMethodField()

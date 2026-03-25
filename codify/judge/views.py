@@ -15,6 +15,7 @@ from celery.result import AsyncResult
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 
+
 from contest.models import (
     Problem,
     TestCase,
@@ -408,18 +409,7 @@ def submit_contest(request):
         },
         status=200,
     )
-channel_layer = get_channel_layer()
 
-async_to_sync(channel_layer.group_send)(
-    f"contest_{contest.id}",
-    {
-        "type": "leaderboard_event",
-        "data": {
-            "contest_id": contest.id,
-            "message": "Leaderboard updated"
-        }
-    }
-)
 
 @api_view(["GET"])
 def leaderboard(request, contest_id):
@@ -526,7 +516,8 @@ class SubmitCodeView(APIView):
             },
             status=status.HTTP_202_ACCEPTED,
         )
-
+    
+    
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def submission_status(request, submission_id):

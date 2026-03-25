@@ -63,6 +63,11 @@ class ContestViewSet(viewsets.ModelViewSet):
             .prefetch_related("contest_problems__problem")
             .order_by("-start_time")
         )
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context["request"] = self.request
+        return context
+    
 
 
 class ContestProblemViewSet(viewsets.ModelViewSet):

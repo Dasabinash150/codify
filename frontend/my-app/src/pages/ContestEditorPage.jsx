@@ -3,10 +3,10 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { Button, Form, Spinner } from "react-bootstrap";
 import Editor from "@monaco-editor/react";
 import axios from "axios";
+import useContestSocket from "../hooks/useContestSocket";
 import "../styles/ContestEditorPage.css";
 import "../styles/global.css";
 import "../styles/variables.css";
-import useContestSocket from "../hooks/useContestSocket";
 
 const API = import.meta.env.VITE_API_BASE_URL;
 
@@ -72,7 +72,6 @@ function ContestEditorPage() {
   const [runResults, setRunResults] = useState({});
   const [submitResults, setSubmitResults] = useState({});
   const [submissionMeta, setSubmissionMeta] = useState({});
-  const [pollingProblemId, setPollingProblemId] = useState(null);
 
   const [codeStore, setCodeStore] = useState({});
   const [loading, setLoading] = useState(true);
@@ -85,60 +84,6 @@ function ContestEditorPage() {
   const problemStartRef = useRef(Date.now());
   const [problemTimeMap, setProblemTimeMap] = useState({});
 
-  useContestSocket(id, (msg) => {
-    if (msg.event === "submission_update") {
-      const data = msg.data || {};
-
-      if (data.problem_id) {
-        setSubmissionMeta((prev) => ({
-          ...prev,
-          [data.problem_id]: {
-            ...(prev[data.problem_id] || {}),
-            submission_id: data.submission_id || prev[data.problem_id]?.submission_id,
-            status: data.status || prev[data.problem_id]?.status,
-            runtime: data.runtime ?? prev[data.problem_id]?.runtime ?? 0,
-            score: data.score ?? prev[data.problem_id]?.score ?? 0,
-            submitted_at: data.submitted_at || prev[data.problem_id]?.submitted_at,
-          },
-        }));
-
-        setSubmitResults((prev) => ({
-          ...prev,
-          [data.problem_id]: {
-            ...(prev[data.problem_id] || {}),
-            problem_id: data.problem_id,
-            title:
-              problemList.find((item) => item.id === data.problem_id)?.title ||
-              prev[data.problem_id]?.title ||
-              `Problem ${data.problem_id}`,
-            status: data.status || prev[data.problem_id]?.status || "PENDING",
-            passed: data.status === "AC",
-            score: data.score ?? prev[data.problem_id]?.score ?? 0,
-            runtime: data.runtime ?? prev[data.problem_id]?.runtime ?? 0,
-          },
-        }));
-
-        if (Number(selectedProblemId) === Number(data.problem_id)) {
-          setBottomTab("result");
-          if (data.status && data.status !== "PENDING") {
-            setSubmitLoading(false);
-            setPollingProblemId(null);
-          }
-        }
-      }
-    }
-
-    if (msg.event === "contest_time") {
-      const endTime = msg.data?.end_time;
-      if (endTime) {
-        const remainingSeconds = Math.max(
-          0,
-          Math.floor((new Date(endTime).getTime() - Date.now()) / 1000)
-        );
-        setContestTime(remainingSeconds);
-      }
-    }
-  });
   const selectedProblem = useMemo(() => {
     if (!problemList.length) return null;
     return (
@@ -156,9 +101,10 @@ function ContestEditorPage() {
     const h = Math.floor(safe / 3600);
     const m = Math.floor((safe % 3600) / 60);
     const s = safe % 60;
-    return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(
-      s
-    ).padStart(2, "0")}`;
+    return `${String(h).padStart(2, "0")}:${String(m).padStart(
+      2,
+      "0"
+    )}:${String(s).padStart(2, "0")}`;
   };
 
   const buildCodeStore = (problems) => {
@@ -219,7 +165,12 @@ function ContestEditorPage() {
     return value || "Unknown";
   };
 
-  const normalizeProblemData = (problem, contestProblem, allTestcases, solvedMap) => {
+  const normalizeProblemData = (
+    problem,
+    contestProblem,
+    allTestcases,
+    solvedMap
+  ) => {
     const problemTestcases = allTestcases.filter(
       (tc) => Number(tc.problem) === Number(problem.id)
     );
@@ -361,6 +312,7 @@ function ContestEditorPage() {
     }));
   }, [language, selectedProblem]);
 
+
   const handleProblemChange = (problem) => {
     if (!problem) return;
 
@@ -397,7 +349,7 @@ function ContestEditorPage() {
       setBottomTab("testcase");
 
       const finalUrl = `${API}/api/run-code/`;
-      console.log(finalUrl)
+
       const res = await axios.post(finalUrl, {
         problem_id: selectedProblem.id,
         source_code: currentCode,
@@ -425,67 +377,6 @@ function ContestEditorPage() {
     }
   };
 
-  const pollSubmissionStatus = async (submissionId, problemIdValue, token, retry = 0) => {
-    try {
-      const res = await axios.get(
-        `${API}/api/submission-status/${submissionId}/`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      const data = res.data;
-      const statusValue = String(data.status || "").toUpperCase();
-
-      setSubmissionMeta((prev) => ({
-        ...prev,
-        [problemIdValue]: {
-          submission_id: submissionId,
-          status: statusValue,
-          runtime: data.runtime ?? 0,
-          score: data.score ?? 0,
-          submitted_at: data.submitted_at,
-        },
-      }));
-
-      setSubmitResults((prev) => ({
-        ...prev,
-        [problemIdValue]: {
-          problem_id: problemIdValue,
-          title:
-            problemList.find((item) => item.id === problemIdValue)?.title ||
-            `Problem ${problemIdValue}`,
-          status: statusValue,
-          passed: statusValue === "AC",
-          score: data.score ?? 0,
-          runtime: data.runtime ?? 0,
-        },
-      }));
-
-      if (statusValue === "PENDING" && retry < 30) {
-        setTimeout(() => {
-          pollSubmissionStatus(submissionId, problemIdValue, token, retry + 1);
-        }, 2000);
-        return;
-      }
-
-      setPollingProblemId(null);
-      setSubmitLoading(false);
-      setBottomTab("result");
-    } catch (err) {
-      console.error("Polling error:", err.response?.data || err.message);
-      setPollingProblemId(null);
-      setSubmitLoading(false);
-      alert(
-        err.response?.data?.error ||
-        err.response?.data?.detail ||
-        "Failed to fetch submission status"
-      );
-    }
-  };
-
   const handleSubmit = async () => {
     if (!selectedProblem) return;
 
@@ -507,7 +398,6 @@ function ContestEditorPage() {
       }
 
       setSubmitLoading(true);
-      setPollingProblemId(selectedProblem.id);
       setBottomTab("result");
 
       const res = await axios.post(
@@ -548,14 +438,13 @@ function ContestEditorPage() {
           passed: false,
           score: 0,
           runtime: 0,
+          passed_testcases: 0,
+          total_testcases: selectedProblem.testcaseObjects?.length || 0,
         },
       }));
-
-      pollSubmissionStatus(submissionId, selectedProblem.id, token);
     } catch (err) {
       console.error("Submit error:", err.response?.data || err.message);
 
-      setPollingProblemId(null);
       setSubmitLoading(false);
 
       if (err.response?.status === 401) {
@@ -722,9 +611,7 @@ function ContestEditorPage() {
             onClick={handleSubmit}
             disabled={submitLoading || !problemList.length}
           >
-            {submitLoading && pollingProblemId === selectedProblem.id
-              ? "Submitting..."
-              : "Submit Problem"}
+            {submitLoading ? "Submitting..." : "Submit Problem"}
           </Button>
 
           <Button
@@ -991,19 +878,17 @@ ${item.actual_output || "No output"}`}
 
                   {selectedSubmissionMeta?.status === "PENDING" && (
                     <div className="text-warning mb-2">
-                      Submission is in queue. Checking result...
+                      Submission is in queue. Waiting for judge result...
                     </div>
                   )}
 
                   <pre className="editor-output-pre">
                     {selectedSubmitResult
                       ? `Problem: ${selectedSubmitResult.title || selectedProblem.title}
-Verdict: ${getVerdictLabel(
-                        selectedSubmitResult.status ||
-                        (selectedSubmitResult.passed ? "AC" : "WA")
-                      )}
+Verdict: ${getVerdictLabel(selectedSubmitResult.status)}
 Score: ${selectedSubmitResult.score ?? 0}
 Runtime: ${selectedSubmitResult.runtime ?? 0}
+Passed Testcases: ${selectedSubmitResult.passed_testcases ?? 0}/${selectedSubmitResult.total_testcases ?? 0}
 
 Submission ID: ${selectedSubmissionMeta?.submission_id || "N/A"}
 Task Status: ${selectedSubmissionMeta?.status || "N/A"}`
