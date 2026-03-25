@@ -6,6 +6,8 @@ import "../styles/global.css";
 import "../styles/variables.css";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
+import useContestSocket from "../hooks/useContestSocket";
+
 
 const API_BASE_URL = "http://127.0.0.1:8000/api";
 
@@ -17,6 +19,18 @@ function ContestDetailsPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
 
+    useContestSocket(id, (msg) => {
+        if (msg.event === "participant_count") {
+            setContest((prev) =>
+                prev
+                    ? {
+                        ...prev,
+                        participants: msg.data?.count ?? prev.participants,
+                    }
+                    : prev
+            );
+        }
+    });
 
     useEffect(() => {
         const fetchContestDetails = async () => {
@@ -163,7 +177,16 @@ function ContestDetailsPage() {
             </>
         );
     }
+    useContestSocket(id, (msg) => {
 
+        if (msg.event === "participant_update") {
+            setContest(prev => ({
+                ...prev,
+                participants: msg.count
+            }));
+        }
+
+    });
     return (
         <>
             <Navbar />

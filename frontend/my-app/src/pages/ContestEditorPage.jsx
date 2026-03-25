@@ -6,6 +6,7 @@ import axios from "axios";
 import "../styles/ContestEditorPage.css";
 import "../styles/global.css";
 import "../styles/variables.css";
+import useContestSocket from "../hooks/useContestSocket";
 
 const API = import.meta.env.VITE_API_BASE_URL;
 
@@ -84,6 +85,60 @@ function ContestEditorPage() {
   const problemStartRef = useRef(Date.now());
   const [problemTimeMap, setProblemTimeMap] = useState({});
 
+  useContestSocket(id, (msg) => {
+    if (msg.event === "submission_update") {
+      const data = msg.data || {};
+
+      if (data.problem_id) {
+        setSubmissionMeta((prev) => ({
+          ...prev,
+          [data.problem_id]: {
+            ...(prev[data.problem_id] || {}),
+            submission_id: data.submission_id || prev[data.problem_id]?.submission_id,
+            status: data.status || prev[data.problem_id]?.status,
+            runtime: data.runtime ?? prev[data.problem_id]?.runtime ?? 0,
+            score: data.score ?? prev[data.problem_id]?.score ?? 0,
+            submitted_at: data.submitted_at || prev[data.problem_id]?.submitted_at,
+          },
+        }));
+
+        setSubmitResults((prev) => ({
+          ...prev,
+          [data.problem_id]: {
+            ...(prev[data.problem_id] || {}),
+            problem_id: data.problem_id,
+            title:
+              problemList.find((item) => item.id === data.problem_id)?.title ||
+              prev[data.problem_id]?.title ||
+              `Problem ${data.problem_id}`,
+            status: data.status || prev[data.problem_id]?.status || "PENDING",
+            passed: data.status === "AC",
+            score: data.score ?? prev[data.problem_id]?.score ?? 0,
+            runtime: data.runtime ?? prev[data.problem_id]?.runtime ?? 0,
+          },
+        }));
+
+        if (Number(selectedProblemId) === Number(data.problem_id)) {
+          setBottomTab("result");
+          if (data.status && data.status !== "PENDING") {
+            setSubmitLoading(false);
+            setPollingProblemId(null);
+          }
+        }
+      }
+    }
+
+    if (msg.event === "contest_time") {
+      const endTime = msg.data?.end_time;
+      if (endTime) {
+        const remainingSeconds = Math.max(
+          0,
+          Math.floor((new Date(endTime).getTime() - Date.now()) / 1000)
+        );
+        setContestTime(remainingSeconds);
+      }
+    }
+  });
   const selectedProblem = useMemo(() => {
     if (!problemList.length) return null;
     return (
@@ -264,8 +319,8 @@ function ContestEditorPage() {
       console.error("Contest editor load error:", err.response?.data || err.message);
       setError(
         err.response?.data?.detail ||
-          err.response?.data?.error ||
-          "Failed to load contest editor."
+        err.response?.data?.error ||
+        "Failed to load contest editor."
       );
     } finally {
       setLoading(false);
@@ -425,8 +480,8 @@ function ContestEditorPage() {
       setSubmitLoading(false);
       alert(
         err.response?.data?.error ||
-          err.response?.data?.detail ||
-          "Failed to fetch submission status"
+        err.response?.data?.detail ||
+        "Failed to fetch submission status"
       );
     }
   };
@@ -512,8 +567,8 @@ function ContestEditorPage() {
 
       alert(
         err.response?.data?.error ||
-          err.response?.data?.detail ||
-          "Code submit failed"
+        err.response?.data?.detail ||
+        "Code submit failed"
       );
     }
   };
@@ -579,8 +634,8 @@ function ContestEditorPage() {
 
       alert(
         err.response?.data?.error ||
-          err.response?.data?.detail ||
-          "Contest submit failed"
+        err.response?.data?.detail ||
+        "Contest submit failed"
       );
     } finally {
       setSubmitLoading(false);
@@ -690,9 +745,8 @@ function ContestEditorPage() {
               {problemList.map((problem, index) => (
                 <button
                   key={problem.id}
-                  className={`editor-problem-tab ${
-                    selectedProblem.id === problem.id ? "active" : ""
-                  }`}
+                  className={`editor-problem-tab ${selectedProblem.id === problem.id ? "active" : ""
+                    }`}
                   onClick={() => handleProblemChange(problem)}
                 >
                   {index + 1}. {problem.title}
@@ -736,27 +790,24 @@ function ContestEditorPage() {
 
             <div className="editor-left-tabs">
               <button
-                className={`editor-left-tab-btn ${
-                  leftTab === "description" ? "active" : ""
-                }`}
+                className={`editor-left-tab-btn ${leftTab === "description" ? "active" : ""
+                  }`}
                 onClick={() => setLeftTab("description")}
               >
                 Description
               </button>
 
               <button
-                className={`editor-left-tab-btn ${
-                  leftTab === "examples" ? "active" : ""
-                }`}
+                className={`editor-left-tab-btn ${leftTab === "examples" ? "active" : ""
+                  }`}
                 onClick={() => setLeftTab("examples")}
               >
                 Examples
               </button>
 
               <button
-                className={`editor-left-tab-btn ${
-                  leftTab === "constraints" ? "active" : ""
-                }`}
+                className={`editor-left-tab-btn ${leftTab === "constraints" ? "active" : ""
+                  }`}
                 onClick={() => setLeftTab("constraints")}
               >
                 Constraints
@@ -868,18 +919,16 @@ function ContestEditorPage() {
           <div className="editor-bottom-panel">
             <div className="editor-bottom-tabs">
               <button
-                className={`editor-bottom-tab ${
-                  bottomTab === "testcase" ? "active" : ""
-                }`}
+                className={`editor-bottom-tab ${bottomTab === "testcase" ? "active" : ""
+                  }`}
                 onClick={() => setBottomTab("testcase")}
               >
                 Testcase
               </button>
 
               <button
-                className={`editor-bottom-tab ${
-                  bottomTab === "result" ? "active" : ""
-                }`}
+                className={`editor-bottom-tab ${bottomTab === "result" ? "active" : ""
+                  }`}
                 onClick={() => setBottomTab("result")}
               >
                 Test Result
@@ -950,9 +999,9 @@ ${item.actual_output || "No output"}`}
                     {selectedSubmitResult
                       ? `Problem: ${selectedSubmitResult.title || selectedProblem.title}
 Verdict: ${getVerdictLabel(
-                          selectedSubmitResult.status ||
-                            (selectedSubmitResult.passed ? "AC" : "WA")
-                        )}
+                        selectedSubmitResult.status ||
+                        (selectedSubmitResult.passed ? "AC" : "WA")
+                      )}
 Score: ${selectedSubmitResult.score ?? 0}
 Runtime: ${selectedSubmitResult.runtime ?? 0}
 

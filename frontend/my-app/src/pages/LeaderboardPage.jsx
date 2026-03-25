@@ -14,6 +14,7 @@ import {
 import axios from "axios";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
+import useContestSocket from "../hooks/useContestSocket";
 
 const API = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
 
@@ -27,7 +28,11 @@ function LeaderboardPage() {
   useEffect(() => {
     fetchLeaderboard();
   }, [id]);
-
+  useContestSocket(id, (msg) => {
+    if (msg.event === "leaderboard_update") {
+      fetchLeaderboard();
+    }
+  });
   const fetchLeaderboard = async () => {
     try {
       setLoading(true);
@@ -74,6 +79,13 @@ function LeaderboardPage() {
   }, [leaders, search]);
 
   const topThree = leaders.slice(0, 3);
+  useContestSocket(id, (msg) => {
+
+    if (msg.event === "leaderboard_update") {
+      fetchLeaderboard();
+    }
+
+  });
 
   return (
     <>

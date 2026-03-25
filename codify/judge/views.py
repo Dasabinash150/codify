@@ -12,6 +12,9 @@ from rest_framework.views import APIView
 
 from celery.result import AsyncResult
 
+from channels.layers import get_channel_layer
+from asgiref.sync import async_to_sync
+
 from contest.models import (
     Problem,
     TestCase,
@@ -20,6 +23,12 @@ from contest.models import (
     ContestProblem,
     Leaderboard,
     ContestRegistration,
+)
+
+from .websocket import (
+    broadcast_leaderboard,
+    broadcast_submission_update,
+    broadcast_participant_count,
 )
 
 from django.conf import settings
@@ -377,6 +386,19 @@ def submit_contest(request):
     if leaderboard_updates:
         Leaderboard.objects.bulk_update(leaderboard_updates, ["rank"])
 
+    broadcast_leaderboard(contest.id)
+
+    broadcast_submission_update(
+        contest.id,
+        {
+            "contest_id": contest.id,
+            "user": str(user),
+            "type": "contest_submit",
+            "total_score": total_score,
+            "solved_count": solved_count,
+        },
+    )
+
     return Response(
         {
             "message": "Contest submitted successfully",
@@ -386,7 +408,18 @@ def submit_contest(request):
         },
         status=200,
     )
+channel_layer = get_channel_layer()
 
+async_to_sync(channel_layer.group_send)(
+    f"contest_{contest.id}",
+    {
+        "type": "leaderboard_event",
+        "data": {
+            "contest_id": contest.id,
+            "message": "Leaderboard updated"
+        }
+    }
+)
 
 @api_view(["GET"])
 def leaderboard(request, contest_id):
@@ -417,7 +450,6 @@ def leaderboard(request, contest_id):
 
     return Response(result, status=200)
 
-
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def join_contest(request, contest_id):
@@ -431,15 +463,18 @@ def join_contest(request, contest_id):
         user=request.user,
     )
 
+    participants_count = contest.registrations.count()
+
+    broadcast_participant_count(contest.id, participants_count)
+
     return Response(
         {
             "joined": True,
             "created": created,
-            "participants_count": contest.registrations.count(),
+            "participants_count": participants_count,
         },
         status=200,
     )
-
 
 class SubmitCodeView(APIView):
     permission_classes = [IsAuthenticated]
@@ -492,7 +527,6 @@ class SubmitCodeView(APIView):
             status=status.HTTP_202_ACCEPTED,
         )
 
-
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def submission_status(request, submission_id):
@@ -500,6 +534,20 @@ def submission_status(request, submission_id):
         submission = Submission.objects.get(id=submission_id, user=request.user)
     except Submission.DoesNotExist:
         return Response({"error": "Submission not found"}, status=404)
+
+    if submission.contest_id and submission.status != "PENDING":
+        broadcast_submission_update(
+            submission.contest_id,
+            {
+                "submission_id": submission.id,
+                "problem_id": submission.problem_id,
+                "status": submission.status,
+                "runtime": submission.runtime,
+                "score": submission.score,
+                "submitted_at": submission.submitted_at.isoformat() if submission.submitted_at else None,
+            },
+        )
+        broadcast_leaderboard(submission.contest_id)
 
     return Response(
         {
@@ -511,7 +559,6 @@ def submission_status(request, submission_id):
         },
         status=200,
     )
-
 
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
