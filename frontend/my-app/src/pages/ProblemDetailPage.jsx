@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
-import { getProblemById, getProblemTestCases } from "../api/problemApi";
+import { getProblemById, getProblemTestCases } from "../services/problemApi";
 import "bootstrap/dist/css/bootstrap.min.css";
 
 function ProblemDetailPage() {

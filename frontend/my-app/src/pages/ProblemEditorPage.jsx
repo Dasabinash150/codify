@@ -7,7 +7,7 @@ import {
   getProblemTestCases,
   runProblemCode,
   submitProblemCode,
-} from "../api/problemApi";
+} from "../services/problemApi";
 import "bootstrap/dist/css/bootstrap.min.css";
 
 const LANGUAGE_OPTIONS = [

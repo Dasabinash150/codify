@@ -15,11 +15,10 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-export const getProblemById = (id) => api.get(`/problems/${id}/`);
-export const getProblemTestCases = (id) => api.get(`/testcases/?problem=${id}`);
-
-export const runProblemCode = (payload) => api.post(`/run-code/`, payload);
-
-export const submitProblemCode = (payload) => api.post(`/submit-code/`, payload);
+export const getProblems = () => api.get("/api/problems/");
+export const getProblemById = (id) => api.get(`/api/problems/${id}/`);
+export const getProblemTestCases = (id) => api.get(`/api/testcases/?problem=${id}`);
+export const runProblemCode = (payload) => api.post("/api/run-code/", payload);
+export const submitProblemCode = (payload) => api.post("/api/submit-code/", payload);
 
 export default api;

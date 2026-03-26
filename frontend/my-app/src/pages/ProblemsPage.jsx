@@ -1,41 +1,62 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
+import { getProblems } from "../services/problemApi";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "../styles/ProblemsPage.css";
 
-const problemData = [
-  { id: 1, title: "Two Sum", difficulty: "Easy", status: "Solved", tags: ["Array", "HashMap"] },
-  { id: 2, title: "Longest Substring Without Repeating Characters", difficulty: "Medium", status: "Attempted", tags: ["String", "Sliding Window"] },
-  { id: 3, title: "Median of Two Sorted Arrays", difficulty: "Hard", status: "Unsolved", tags: ["Binary Search"] },
-  { id: 4, title: "Valid Parentheses", difficulty: "Easy", status: "Solved", tags: ["Stack"] },
-  { id: 5, title: "Merge Intervals", difficulty: "Medium", status: "Unsolved", tags: ["Sorting", "Array"] },
-  { id: 6, title: "Word Ladder", difficulty: "Hard", status: "Attempted", tags: ["Graph", "BFS"] },
-  { id: 7, title: "Best Time to Buy and Sell Stock", difficulty: "Easy", status: "Solved", tags: ["Array"] },
-  { id: 8, title: "Course Schedule", difficulty: "Medium", status: "Unsolved", tags: ["Graph", "Topological Sort"] },
-];
-
 function ProblemsPage() {
+  const [problems, setProblems] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [difficultyFilter, setDifficultyFilter] = useState("All");
-  const [statusFilter, setStatusFilter] = useState("All");
+
+  useEffect(() => {
+    const loadProblems = async () => {
+      try {
+        setLoading(true);
+        const res = await getProblems();
+        setProblems(Array.isArray(res.data) ? res.data : []);
+      } catch (error) {
+        console.error("Failed to fetch problems:", error);
+        setProblems([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadProblems();
+  }, []);
 
   const filteredProblems = useMemo(() => {
-    return problemData.filter((problem) => {
+    return problems.filter((problem) => {
+      const title = problem.title || "";
+      const tags = Array.isArray(problem.tags) ? problem.tags.join(" ") : "";
+      const difficulty = problem.difficulty || "";
+
       const matchSearch =
-        problem.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        problem.tags.join(" ").toLowerCase().includes(searchTerm.toLowerCase());
+        title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        tags.toLowerCase().includes(searchTerm.toLowerCase());
 
       const matchDifficulty =
-        difficultyFilter === "All" || problem.difficulty === difficultyFilter;
+        difficultyFilter === "All" ||
+        difficulty.toLowerCase() === difficultyFilter.toLowerCase();
 
-      const matchStatus =
-        statusFilter === "All" || problem.status === statusFilter;
-
-      return matchSearch && matchDifficulty && matchStatus;
+      return matchSearch && matchDifficulty;
     });
-  }, [searchTerm, difficultyFilter, statusFilter]);
+  }, [problems, searchTerm, difficultyFilter]);
+
+  const totalProblems = problems.length;
+  const easyCount = problems.filter(
+    (p) => (p.difficulty || "").toLowerCase() === "easy"
+  ).length;
+  const mediumCount = problems.filter(
+    (p) => (p.difficulty || "").toLowerCase() === "medium"
+  ).length;
+  const hardCount = problems.filter(
+    (p) => (p.difficulty || "").toLowerCase() === "hard"
+  ).length;
 
   return (
     <>
@@ -48,7 +69,7 @@ function ProblemsPage() {
               <div>
                 <h2 className="fw-bold mb-1">Problem List</h2>
                 <p className="mb-0 text-muted-custom">
-                  Practice coding problems by difficulty, topic, and solve status.
+                  Practice coding problems by difficulty and topic.
                 </p>
               </div>
 
@@ -65,7 +86,7 @@ function ProblemsPage() {
 
           <div className="problems-card p-3 p-lg-4 mb-4">
             <div className="row g-3">
-              <div className="col-md-6 col-lg-5">
+              <div className="col-md-8 col-lg-7">
                 <input
                   type="text"
                   className="form-control"
@@ -75,7 +96,7 @@ function ProblemsPage() {
                 />
               </div>
 
-              <div className="col-md-3 col-lg-3">
+              <div className="col-md-4 col-lg-3">
                 <select
                   className="form-select"
                   value={difficultyFilter}
@@ -88,26 +109,12 @@ function ProblemsPage() {
                 </select>
               </div>
 
-              <div className="col-md-3 col-lg-3">
-                <select
-                  className="form-select"
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
-                >
-                  <option value="All">All Status</option>
-                  <option value="Solved">Solved</option>
-                  <option value="Attempted">Attempted</option>
-                  <option value="Unsolved">Unsolved</option>
-                </select>
-              </div>
-
-              <div className="col-lg-1 d-grid">
+              <div className="col-lg-2 d-grid">
                 <button
                   className="btn btn-outline-theme"
                   onClick={() => {
                     setSearchTerm("");
                     setDifficultyFilter("All");
-                    setStatusFilter("All");
                   }}
                 >
                   Reset
@@ -117,26 +124,31 @@ function ProblemsPage() {
           </div>
 
           <div className="row g-3 mb-4">
-            <div className="col-md-4">
+            <div className="col-md-3">
               <div className="stat-card p-3 p-lg-4 h-100">
                 <div className="stat-label mb-1">Total Problems</div>
-                <div className="stat-value">{problemData.length}</div>
+                <div className="stat-value">{totalProblems}</div>
               </div>
             </div>
 
-            <div className="col-md-4">
+            <div className="col-md-3">
               <div className="stat-card p-3 p-lg-4 h-100">
-                <div className="stat-label mb-1">Solved</div>
-                <div className="stat-value">
-                  {problemData.filter((p) => p.status === "Solved").length}
-                </div>
+                <div className="stat-label mb-1">Easy</div>
+                <div className="stat-value">{easyCount}</div>
               </div>
             </div>
 
-            <div className="col-md-4">
+            <div className="col-md-3">
               <div className="stat-card p-3 p-lg-4 h-100">
-                <div className="stat-label mb-1">Showing</div>
-                <div className="stat-value">{filteredProblems.length}</div>
+                <div className="stat-label mb-1">Medium</div>
+                <div className="stat-value">{mediumCount}</div>
+              </div>
+            </div>
+
+            <div className="col-md-3">
+              <div className="stat-card p-3 p-lg-4 h-100">
+                <div className="stat-label mb-1">Hard</div>
+                <div className="stat-value">{hardCount}</div>
               </div>
             </div>
           </div>
@@ -148,13 +160,18 @@ function ProblemsPage() {
                   <tr>
                     <th className="ps-4">Problem</th>
                     <th>Difficulty</th>
-                    <th>Status</th>
                     <th>Tags</th>
                     <th className="text-center pe-4">Action</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredProblems.length > 0 ? (
+                  {loading ? (
+                    <tr>
+                      <td colSpan="4" className="text-center py-5">
+                        <div className="spinner-border" role="status" />
+                      </td>
+                    </tr>
+                  ) : filteredProblems.length > 0 ? (
                     filteredProblems.map((problem) => (
                       <tr key={problem.id}>
                         <td className="ps-4">
@@ -164,27 +181,25 @@ function ProblemsPage() {
 
                         <td>
                           <span
-                            className={`difficulty-badge difficulty-${problem.difficulty.toLowerCase()}`}
+                            className={`difficulty-badge difficulty-${(
+                              problem.difficulty || "easy"
+                            ).toLowerCase()}`}
                           >
                             {problem.difficulty}
                           </span>
                         </td>
 
                         <td>
-                          <span
-                            className={`status-badge status-${problem.status.toLowerCase()}`}
-                          >
-                            {problem.status}
-                          </span>
-                        </td>
-
-                        <td>
                           <div className="d-flex flex-wrap gap-2">
-                            {problem.tags.map((tag, index) => (
-                              <span key={index} className="tag-pill">
-                                {tag}
-                              </span>
-                            ))}
+                            {Array.isArray(problem.tags) && problem.tags.length > 0 ? (
+                              problem.tags.map((tag, index) => (
+                                <span key={index} className="tag-pill">
+                                  {tag}
+                                </span>
+                              ))
+                            ) : (
+                              <span className="text-muted">No tags</span>
+                            )}
                           </div>
                         </td>
 
@@ -208,7 +223,7 @@ function ProblemsPage() {
                     ))
                   ) : (
                     <tr>
-                      <td colSpan="5" className="text-center empty-state">
+                      <td colSpan="4" className="text-center empty-state">
                         No problems found.
                       </td>
                     </tr>
