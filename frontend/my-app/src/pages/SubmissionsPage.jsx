@@ -48,8 +48,8 @@ function SubmissionsPage() {
         setPageError("");
 
         const [submissionsRes, problemsRes] = await Promise.all([
-          api.get("/submissions/").catch(() => ({ data: [] })),
-          api.get("/problems/").catch(() => ({ data: [] })),
+          api.get("/api/submissions/").catch(() => ({ data: [] })),
+          api.get("/api/problems/").catch(() => ({ data: [] })),
         ]);
 
         const submissionsData = Array.isArray(submissionsRes?.data)
@@ -63,6 +63,7 @@ function SubmissionsPage() {
         setSubmissions(submissionsData);
         setProblems(problemsData);
       } catch (error) {
+        console.error("Submissions API error:", error);
         setPageError("Failed to load submissions.");
       } finally {
         setLoading(false);
@@ -85,12 +86,12 @@ function SubmissionsPage() {
         statusRaw === "AC"
           ? "Accepted"
           : statusRaw === "WA"
-          ? "Wrong Answer"
-          : statusRaw === "TLE"
-          ? "Time Limit Exceeded"
-          : statusRaw === "RE"
-          ? "Runtime Error"
-          : statusRaw;
+            ? "Wrong Answer"
+            : statusRaw === "TLE"
+              ? "Time Limit Exceeded"
+              : statusRaw === "RE"
+                ? "Runtime Error"
+                : statusRaw;
 
       const problem =
         item.problem_title ||
@@ -159,25 +160,37 @@ function SubmissionsPage() {
   }, [normalizedSubmissions]);
 
   const getStatusBadge = (status) => {
-    const value = String(status).toLowerCase();
+    const value = String(status || "").toLowerCase();
 
-    if (value === "accepted") {
-      return <Badge bg="success">Accepted</Badge>;
-    }
-    if (value === "wrong answer") {
-      return <Badge bg="danger">Wrong Answer</Badge>;
-    }
-    if (value === "time limit exceeded") {
-      return (
-        <Badge bg="warning" text="dark">
-          TLE
-        </Badge>
-      );
-    }
-    if (value === "runtime error") {
-      return <Badge bg="dark">Runtime Error</Badge>;
-    }
-    return <Badge bg="secondary">{status}</Badge>;
+    const statusMap = {
+      accepted: {
+        label: "Accepted",
+        class: "status-pill status-accepted",
+      },
+      "wrong answer": {
+        label: "Wrong Answer",
+        class: "status-pill status-wrong",
+      },
+      "time limit exceeded": {
+        label: "TLE",
+        class: "status-pill status-tle",
+      },
+      "runtime error": {
+        label: "Runtime Error",
+        class: "status-pill status-runtime",
+      },
+      pending: {
+        label: "Pending",
+        class: "status-pill status-default",
+      },
+    };
+
+    const item = statusMap[value] || {
+      label: status || "Unknown",
+      class: "status-pill status-default",
+    };
+
+    return <span className={item.class}>{item.label}</span>;
   };
 
   return (
@@ -284,15 +297,15 @@ function SubmissionsPage() {
             </Card.Body>
           </Card>
 
-          <Card className="submissions-card border-0">
+          <Card className="submissions-card border-0 theme-card">
             <Card.Body>
               {loading ? (
                 <div className="text-center py-5">
-                  <Spinner animation="border" />
+                  <Spinner animation="border" className="theme-spinner" />
                 </div>
               ) : (
                 <div className="table-responsive">
-                  <Table hover className="align-middle submissions-table mb-0">
+                  <Table className="align-middle submissions-table theme-table mb-0">
                     <thead>
                       <tr>
                         <th>ID</th>
@@ -301,7 +314,7 @@ function SubmissionsPage() {
                         <th>Status</th>
                         <th>Runtime</th>
                         <th>Submitted</th>
-                        <th>Action</th>
+                        {/* <th>Action</th> */}
                       </tr>
                     </thead>
                     <tbody>
@@ -314,25 +327,25 @@ function SubmissionsPage() {
                             <td>{getStatusBadge(item.status)}</td>
                             <td>{item.runtime}</td>
                             <td>{formatDateTime(item.createdAt)}</td>
-                            <td>
+                            {/* <td>
                               {item.rawProblemId ? (
                                 <Button
                                   as={Link}
                                   to={`/problems/${item.rawProblemId}`}
                                   size="sm"
-                                  variant="outline-primary"
+                                  className="theme-outline-btn"
                                 >
                                   Open Problem
                                 </Button>
                               ) : (
-                                <span className="text-muted">N/A</span>
+                                <span className="text-muted-custom">N/A</span>
                               )}
-                            </td>
+                            </td> */}
                           </tr>
                         ))
                       ) : (
                         <tr>
-                          <td colSpan="7" className="text-center py-5 text-muted">
+                          <td colSpan="7" className="text-center py-5 text-muted-custom">
                             No submissions found
                           </td>
                         </tr>
@@ -351,9 +364,7 @@ function SubmissionsPage() {
 
 function formatDateTime(dateString) {
   if (!dateString) return "N/A";
-
-  const date = new Date(dateString);
-  return date.toLocaleString();
+  return new Date(dateString).toLocaleString();
 }
 
 export default SubmissionsPage;

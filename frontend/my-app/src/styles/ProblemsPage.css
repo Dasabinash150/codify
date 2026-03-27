@@ -167,16 +167,26 @@
   background: var(--unsolved-bg);
   color: var(--unsolved-text);
 }
-
 .tag-pill {
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 20px;
+
+  background: var(--bg-soft);
+  color: var(--text-main);
+  border: 1px solid var(--border-color);
+
   display: inline-flex;
   align-items: center;
-  padding: 0.38rem 0.72rem;
-  border-radius: 999px;
-  background: var(--tag-bg);
-  color: var(--tag-text);
-  font-size: 0.76rem;
-  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* Hover */
+.tag-pill:hover {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
 }
 
 .empty-state {

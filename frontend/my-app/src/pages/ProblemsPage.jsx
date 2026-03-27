@@ -198,19 +198,18 @@ function ProblemsPage() {
                                 </span>
                               ))
                             ) : (
-                              <span className="text-muted">No tags</span>
+                              <span className="text-muted-custom">No tags</span>
                             )}
                           </div>
                         </td>
-
                         <td className="text-center pe-4">
                           <div className="d-flex justify-content-center gap-2 flex-wrap">
-                            <Link
+                            {/* <Link
                               to={`/problems/${problem.id}`}
                               className="btn btn-sm btn-outline-secondary px-3"
                             >
                               View
-                            </Link>
+                            </Link> */}
                             <Link
                               to={`/problems/${problem.id}/editor`}
                               className="btn btn-sm btn-primary-custom px-3"
