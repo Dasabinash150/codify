@@ -1,424 +1,768 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { Link, useParams } from "react-router-dom";
-import Navbar from "../components/Navbar";
-import Footer from "../components/Footer";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { Button, Form, Spinner } from "react-bootstrap";
+import Editor from "@monaco-editor/react";
 import {
   getProblemById,
   getProblemTestCases,
   runProblemCode,
   submitProblemCode,
 } from "../services/problemApi";
-import "bootstrap/dist/css/bootstrap.min.css";
+import "../styles/ContestEditorPage.css";
+import "../styles/global.css";
+import "../styles/variables.css";
 
-const LANGUAGE_OPTIONS = [
-  { label: "Python", value: "python", judge0: 71 },
-  { label: "JavaScript", value: "javascript", judge0: 63 },
-  { label: "Java", value: "java", judge0: 62 },
-  { label: "C++", value: "cpp", judge0: 54 },
-];
+const editorLanguageMap = {
+  javascript: "javascript",
+  python: "python",
+  cpp: "cpp",
+  java: "java",
+};
 
-const DEFAULT_SNIPPETS = {
+const judge0LanguageMap = {
+  cpp: 54,
+  python: 71,
+  javascript: 63,
+  java: 62,
+};
+
+const starterTemplates = {
+  javascript: `function solve() {
+  // Write your code here
+  
+}
+
+solve();`,
   python: `def solve():
-    # write your code here
+    # Write your code here
     pass
 
-solve()
-`,
-  javascript: `function solve() {
-  // write your code here
-}
-
-solve();
-`,
-  java: `public class Main {
-    public static void main(String[] args) {
-        // write your code here
-    }
-}
-`,
+solve()`,
   cpp: `#include <bits/stdc++.h>
 using namespace std;
 
 int main() {
-    // write your code here
+    // Write your code here
+    
     return 0;
-}
-`,
+}`,
+  java: `import java.util.*;
+
+public class Main {
+    public static void main(String[] args) {
+        // Write your code here
+    }
+}`,
 };
+
+const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
 
 function ProblemEditorPage() {
   const { id } = useParams();
+  const navigate = useNavigate();
+
+  const draftKey = useMemo(() => `problem_editor_draft_${id}`, [id]);
+
+  const mainGridRef = useRef(null);
+  const rightPanelRef = useRef(null);
+  const dragStateRef = useRef(null);
+  const hydratedRef = useRef(false);
 
   const [problem, setProblem] = useState(null);
   const [testCases, setTestCases] = useState([]);
-  const [activeCase, setActiveCase] = useState(0);
   const [language, setLanguage] = useState("python");
-  const [code, setCode] = useState(DEFAULT_SNIPPETS.python);
+  const [leftTab, setLeftTab] = useState("description");
+  const [bottomTab, setBottomTab] = useState("testcase");
+
+  const [codeStore, setCodeStore] = useState({
+    javascript: starterTemplates.javascript,
+    python: starterTemplates.python,
+    cpp: starterTemplates.cpp,
+    java: starterTemplates.java,
+  });
+
   const [customInput, setCustomInput] = useState("");
-  const [output, setOutput] = useState("Run your code to see output here.");
-  const [status, setStatus] = useState("Idle");
-  const [loadingProblem, setLoadingProblem] = useState(true);
-  const [running, setRunning] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
+  const [runSummary, setRunSummary] = useState(null);
+  const [runResults, setRunResults] = useState([]);
+  const [submitResult, setSubmitResult] = useState(null);
 
-  const currentLanguage = useMemo(
-    () => LANGUAGE_OPTIONS.find((item) => item.value === language),
-    [language]
-  );
+  const [loading, setLoading] = useState(true);
+  const [runLoading, setRunLoading] = useState(false);
+  const [submitLoading, setSubmitLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  useEffect(() => {
-    const savedCode = localStorage.getItem(`problem_code_${id}_${language}`);
-    if (savedCode) {
-      setCode(savedCode);
-    } else {
-      setCode(DEFAULT_SNIPPETS[language] || "");
-    }
-  }, [id, language]);
+  const [leftPanelWidth, setLeftPanelWidth] = useState(45);
+  const [bottomPanelHeight, setBottomPanelHeight] = useState(240);
+  const [isSubmitted, setIsSubmitted] = useState(false);
 
-  useEffect(() => {
-    localStorage.setItem(`problem_code_${id}_${language}`, code);
-  }, [id, language, code]);
+  const currentCode = codeStore[language] || starterTemplates[language];
+
+  const hasUnsavedWork = useMemo(() => {
+    const hasCodeChange = Object.entries(starterTemplates).some(
+      ([lang, template]) => (codeStore[lang] ?? template) !== template
+    );
+    const hasCustomInput = customInput.trim() !== "";
+    return !isSubmitted && (hasCodeChange || hasCustomInput);
+  }, [codeStore, customInput, isSubmitted]);
+
+  const parseTags = (tagsValue) => {
+    if (!tagsValue) return [];
+    if (Array.isArray(tagsValue)) return tagsValue;
+
+    return String(tagsValue)
+      .split(",")
+      .map((tag) => tag.trim())
+      .filter(Boolean);
+  };
+
+  const parseConstraints = (constraintsValue) => {
+    if (!constraintsValue) return [];
+
+    return String(constraintsValue)
+      .split("\n")
+      .map((item) => item.trim())
+      .filter(Boolean);
+  };
+
+  const getDifficultyClass = (difficulty) => {
+    const value = String(difficulty || "").toLowerCase();
+    if (value === "easy") return "editor-badge-easy";
+    if (value === "medium") return "editor-badge-medium";
+    if (value === "hard") return "editor-badge-hard";
+    return "editor-badge-default";
+  };
+
+  const getVerdictLabel = (status) => {
+    const value = String(status || "").toUpperCase();
+
+    if (value === "AC") return "Accepted";
+    if (value === "WA") return "Wrong Answer";
+    if (value === "TLE") return "Time Limit Exceeded";
+    if (value === "RE") return "Runtime Error";
+    if (value === "CE") return "Compilation Error";
+    if (value === "PENDING") return "Pending";
+
+    return value || "Unknown";
+  };
+
+  const examples = useMemo(() => {
+    return testCases
+      .filter((tc) => tc.is_sample || tc.sample || tc.isSample)
+      .map((tc, index) => ({
+        input: tc.input,
+        output: tc.expected_output,
+        explanation: `Sample testcase ${index + 1}`,
+      }));
+  }, [testCases]);
+
+  const fallbackExamples = useMemo(() => {
+    if (examples.length) return examples;
+
+    return testCases.slice(0, 2).map((tc, index) => ({
+      input: tc.input,
+      output: tc.expected_output,
+      explanation: `Sample testcase ${index + 1}`,
+    }));
+  }, [examples, testCases]);
+
+  const defaultInput = useMemo(() => {
+    return testCases[0]?.input || "";
+  }, [testCases]);
+
+  const clearDraft = () => {
+    localStorage.removeItem(draftKey);
+  };
 
   useEffect(() => {
     const loadProblem = async () => {
       try {
-        setLoadingProblem(true);
+        setLoading(true);
+        setError("");
 
         const [problemRes, testCaseRes] = await Promise.all([
           getProblemById(id),
           getProblemTestCases(id),
         ]);
 
-        setProblem(problemRes.data);
-        setTestCases(Array.isArray(testCaseRes.data) ? testCaseRes.data : []);
-      } catch (error) {
-        console.error("Problem load error:", error);
-        setOutput("Failed to load problem details.");
-        setStatus("Error");
+        const loadedProblem = problemRes.data;
+        const loadedTestCases = Array.isArray(testCaseRes.data)
+          ? testCaseRes.data
+          : testCaseRes.data?.results || [];
+
+        setProblem(loadedProblem);
+        setTestCases(loadedTestCases);
+
+        let savedDraft = null;
+        try {
+          const raw = localStorage.getItem(draftKey);
+          savedDraft = raw ? JSON.parse(raw) : null;
+        } catch (e) {
+          console.error("Draft parse error:", e);
+        }
+
+        if (savedDraft?.codeStore) {
+          setCodeStore((prev) => ({
+            ...prev,
+            ...savedDraft.codeStore,
+          }));
+        }
+
+        if (typeof savedDraft?.customInput === "string") {
+          setCustomInput(savedDraft.customInput);
+        } else {
+          setCustomInput(loadedTestCases[0]?.input || "");
+        }
+
+        if (
+          savedDraft?.language &&
+          Object.prototype.hasOwnProperty.call(starterTemplates, savedDraft.language)
+        ) {
+          setLanguage(savedDraft.language);
+        }
+
+        setLeftPanelWidth(clamp(Number(savedDraft?.leftPanelWidth) || 45, 28, 72));
+        setBottomPanelHeight(
+          clamp(Number(savedDraft?.bottomPanelHeight) || 240, 160, 500)
+        );
+        setIsSubmitted(Boolean(savedDraft?.isSubmitted));
+
+        hydratedRef.current = true;
+      } catch (err) {
+        console.error("Problem editor load error:", err);
+        setError("Failed to load problem.");
       } finally {
-        setLoadingProblem(false);
+        setLoading(false);
       }
     };
 
     loadProblem();
-  }, [id]);
+  }, [id, draftKey]);
 
-  const handleLanguageChange = (e) => {
-    setLanguage(e.target.value);
+  useEffect(() => {
+    if (!hydratedRef.current || loading) return;
+
+    const payload = {
+      codeStore,
+      customInput,
+      language,
+      leftPanelWidth,
+      bottomPanelHeight,
+      isSubmitted,
+      savedAt: new Date().toISOString(),
+    };
+
+    localStorage.setItem(draftKey, JSON.stringify(payload));
+  }, [
+    bottomPanelHeight,
+    codeStore,
+    customInput,
+    draftKey,
+    isSubmitted,
+    language,
+    leftPanelWidth,
+    loading,
+  ]);
+
+  useEffect(() => {
+    const handleBeforeUnload = (event) => {
+      if (!hasUnsavedWork) return;
+      event.preventDefault();
+      event.returnValue = "";
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [hasUnsavedWork]);
+
+  useEffect(() => {
+    const handleMouseMove = (event) => {
+      if (!dragStateRef.current) return;
+
+      if (dragStateRef.current.type === "horizontal" && mainGridRef.current) {
+        const rect = mainGridRef.current.getBoundingClientRect();
+        const nextWidth = clamp(
+          ((event.clientX - rect.left) / rect.width) * 100,
+          28,
+          72
+        );
+        setLeftPanelWidth(nextWidth);
+      }
+
+      if (dragStateRef.current.type === "vertical" && rightPanelRef.current) {
+        const rect = rightPanelRef.current.getBoundingClientRect();
+        const maxHeight = Math.max(220, rect.height - 140);
+        const nextHeight = clamp(rect.bottom - event.clientY, 160, maxHeight);
+        setBottomPanelHeight(nextHeight);
+      }
+    };
+
+    const handleMouseUp = () => {
+      dragStateRef.current = null;
+      document.body.style.userSelect = "";
+      document.body.style.cursor = "";
+    };
+
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, []);
+
+  const startHorizontalResize = () => {
+    dragStateRef.current = { type: "horizontal" };
+    document.body.style.userSelect = "none";
+    document.body.style.cursor = "col-resize";
   };
 
-  const handleReset = () => {
-    const freshCode = DEFAULT_SNIPPETS[language] || "";
-    setCode(freshCode);
-    localStorage.setItem(`problem_code_${id}_${language}`, freshCode);
+  const startVerticalResize = () => {
+    dragStateRef.current = { type: "vertical" };
+    document.body.style.userSelect = "none";
+    document.body.style.cursor = "row-resize";
   };
 
-  const handleUseSampleInput = () => {
-    if (testCases.length > 0) {
-      setCustomInput(testCases[activeCase]?.input || "");
+  const handleBackToProblems = () => {
+    if (!hasUnsavedWork) {
+      navigate("/problems");
+      return;
     }
+
+    const shouldLeave = window.confirm(
+      "You have unsaved code. Do you want to leave without submitting?"
+    );
+
+    if (shouldLeave) {
+      navigate("/problems");
+    }
+  };
+
+  const handleEditorChange = (value) => {
+    setIsSubmitted(false);
+    setCodeStore((prev) => ({
+      ...prev,
+      [language]: value || "",
+    }));
+  };
+
+  const handleCustomInputChange = (value) => {
+    setIsSubmitted(false);
+    setCustomInput(value);
   };
 
   const handleRun = async () => {
     try {
-      setRunning(true);
-      setStatus("Running");
-      setOutput("Running code...");
+      setRunLoading(true);
+      setBottomTab("testcase");
 
-      const payload = {
-        source_code: code,
-        language_id: currentLanguage.judge0,
-        stdin: customInput || testCases[activeCase]?.input || "",
-      };
-
-      const res = await runProblemCode(payload);
+      const res = await runProblemCode({
+        source_code: currentCode,
+        language_id: judge0LanguageMap[language],
+        stdin: customInput || defaultInput || "",
+        problem_id: Number(id),
+      });
 
       const data = res.data || {};
-      const stdout = data.stdout || "";
-      const stderr = data.stderr || "";
-      const compile_output = data.compile_output || "";
-      const message = data.message || "";
 
-      setStatus(data.status?.description || "Completed");
+      if (Array.isArray(data.results)) {
+        setRunSummary({
+          passed: data.passed ?? 0,
+          total: data.total ?? data.results.length,
+        });
+        setRunResults(data.results);
+      } else {
+        const stdout = data.stdout || "";
+        const stderr = data.stderr || "";
+        const compileOutput = data.compile_output || "";
+        const message = data.message || "";
 
-      setOutput(
-        [
-          stdout ? `STDOUT:\n${stdout}` : "",
-          stderr ? `STDERR:\n${stderr}` : "",
-          compile_output ? `COMPILE OUTPUT:\n${compile_output}` : "",
-          message ? `MESSAGE:\n${message}` : "",
-        ]
-          .filter(Boolean)
-          .join("\n\n") || "No output"
-      );
-    } catch (error) {
-      console.error("Run error:", error);
-      setStatus("Run Failed");
-      setOutput(
-        error?.response?.data?.error ||
-          error?.response?.data?.detail ||
-          "Something went wrong while running code."
+        setRunSummary(null);
+        setRunResults([
+          {
+            testcase: 1,
+            passed: !stderr && !compileOutput,
+            expected_output: "N/A",
+            actual_output:
+              stdout || stderr || compileOutput || message || "No output",
+          },
+        ]);
+      }
+    } catch (err) {
+      console.error("RUN ERROR:", err);
+      alert(
+        err?.response?.data?.detail ||
+          err?.response?.data?.error ||
+          "Run failed"
       );
     } finally {
-      setRunning(false);
+      setRunLoading(false);
     }
   };
 
   const handleSubmit = async () => {
     try {
-      setSubmitting(true);
-      setStatus("Submitting");
-      setOutput("Submitting code...");
+      setSubmitLoading(true);
+      setBottomTab("result");
 
-      const payload = {
+      const res = await submitProblemCode({
         problem_id: Number(id),
-        source_code: code,
-        language_id: currentLanguage.judge0,
-      };
+        source_code: currentCode,
+        language_id: judge0LanguageMap[language],
+      });
 
-      const res = await submitProblemCode(payload);
       const data = res.data || {};
 
-      if (data.results && Array.isArray(data.results)) {
-        const formatted = data.results
-          .map(
-            (item, index) =>
-              `Test Case ${index + 1}
-Passed: ${item.passed ? "Yes" : "No"}
-Expected: ${item.expected_output ?? ""}
-Actual: ${item.actual_output ?? ""}
-`
-          )
-          .join("\n");
+      setSubmitResult({
+        title: problem?.title || "Problem",
+        status:
+          data.status ||
+          (data.passed === data.total && data.total > 0 ? "AC" : "WA"),
+        score: data.score ?? 0,
+        runtime: data.runtime ?? 0,
+        passed_testcases: data.passed ?? 0,
+        total_testcases: data.total ?? testCases.length,
+        raw: data,
+      });
 
-        setOutput(
-          `Passed: ${data.passed ?? 0}/${data.total ?? 0}\n\n${formatted}`
-        );
-      } else {
-        setOutput(JSON.stringify(data, null, 2));
-      }
-
-      setStatus(
-        data.passed === data.total && data.total > 0 ? "Accepted" : "Evaluated"
-      );
-    } catch (error) {
-      console.error("Submit error:", error);
-      setStatus("Submit Failed");
-      setOutput(
-        error?.response?.data?.error ||
-          error?.response?.data?.detail ||
-          "Something went wrong while submitting code."
+      setIsSubmitted(true);
+      clearDraft();
+    } catch (err) {
+      console.error("Submit error:", err);
+      alert(
+        err?.response?.data?.detail ||
+          err?.response?.data?.error ||
+          "Submit failed"
       );
     } finally {
-      setSubmitting(false);
+      setSubmitLoading(false);
     }
   };
 
-  if (loadingProblem) {
+  if (loading) {
     return (
-      <>
-        <Navbar />
-        <div className="container py-5">
-          <div className="text-center py-5">
-            <div className="spinner-border" role="status" />
-            <p className="mt-3 mb-0">Loading problem...</p>
-          </div>
+      <div className="contest-editor-layout d-flex align-items-center justify-content-center">
+        <div className="text-center text-light">
+          <Spinner animation="border" className="mb-3" />
+          <div>Loading problem editor...</div>
         </div>
-        <Footer />
-      </>
+      </div>
     );
   }
 
-  if (!problem) {
+  if (error || !problem) {
     return (
-      <>
-        <Navbar />
-        <div className="container py-5">
-          <div className="alert alert-danger">Problem not found.</div>
+      <div className="contest-editor-layout d-flex align-items-center justify-content-center">
+        <div className="text-center text-light">
+          <h5 className="mb-2">Failed to load editor</h5>
+          <p className="mb-3">{error || "Problem not found."}</p>
+          <Button onClick={() => window.location.reload()}>Retry</Button>
         </div>
-        <Footer />
-      </>
+      </div>
     );
   }
 
   return (
-    <>
-      <Navbar />
+    <div className="contest-editor-layout">
+      <div className="editor-topbar d-flex align-items-center justify-content-between px-3 border-bottom bg-dark text-light">
+        <div className="d-flex align-items-center gap-3">
+          <button
+            type="button"
+            onClick={handleBackToProblems}
+            className="btn btn-link text-decoration-none text-light small p-0"
+          >
+            ← Problem List
+          </button>
 
-      <div className="container-fluid py-4">
-        <div className="row g-4">
-          <div className="col-xl-5">
-            <div className="card shadow-sm border-0 h-100">
-              <div className="card-body">
-                <div className="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
-                  <div>
-                    <Link to="/problems" className="text-decoration-none small">
-                      ← Back to Problems
-                    </Link>
-                    <h2 className="fw-bold mt-2 mb-1">{problem.title}</h2>
-                    <div className="text-muted">
-                      Difficulty: {problem.difficulty} · Points: {problem.points ?? 100}
-                    </div>
-                  </div>
+          <div className="vr"></div>
 
-                  <span className="badge bg-primary rounded-pill px-3 py-2">
-                    Problem #{problem.id}
-                  </span>
-                </div>
+          <span className="fw-semibold small">{problem.title}</span>
 
-                <hr />
+          <span className={`editor-pill ${getDifficultyClass(problem.difficulty)}`}>
+            {problem.difficulty || "Unknown"}
+          </span>
 
-                <div className="mb-4">
-                  <h5 className="fw-semibold">Description</h5>
-                  <p className="mb-0">{problem.description}</p>
-                </div>
+          <span className="editor-pill editor-points-pill">
+            {problem.points ?? 100} Points
+          </span>
+        </div>
 
-                {problem.constraints && (
-                  <div className="mb-4">
-                    <h5 className="fw-semibold">Constraints</h5>
-                    <div>{problem.constraints}</div>
-                  </div>
-                )}
+        <div className="d-flex gap-2">
+          <Button
+            size="sm"
+            variant="outline-light"
+            onClick={handleRun}
+            disabled={runLoading}
+          >
+            {runLoading ? "Running..." : "Run"}
+          </Button>
 
-                <div className="mb-3">
-                  <h5 className="fw-semibold">Sample Test Cases</h5>
-
-                  <div className="d-flex flex-wrap gap-2 mb-3">
-                    {testCases.map((item, index) => (
-                      <button
-                        key={item.id || index}
-                        className={`btn btn-sm ${
-                          activeCase === index ? "btn-primary" : "btn-outline-secondary"
-                        }`}
-                        onClick={() => setActiveCase(index)}
-                      >
-                        Case {index + 1}
-                      </button>
-                    ))}
-                  </div>
-
-                  {testCases.length > 0 ? (
-                    <div className="border rounded p-3 bg-light">
-                      <p className="mb-2">
-                        <strong>Input:</strong>
-                      </p>
-                      <pre className="mb-3">{testCases[activeCase]?.input}</pre>
-
-                      <p className="mb-2">
-                        <strong>Expected Output:</strong>
-                      </p>
-                      <pre className="mb-0">{testCases[activeCase]?.expected_output}</pre>
-                    </div>
-                  ) : (
-                    <div className="alert alert-secondary mb-0">
-                      No sample test cases found.
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="col-xl-7">
-            <div className="card shadow-sm border-0 mb-4">
-              <div className="card-header bg-white border-0 py-3">
-                <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
-                  <div className="d-flex align-items-center gap-2 flex-wrap">
-                    <span className="fw-semibold">Code Editor</span>
-
-                    <select
-                      className="form-select form-select-sm"
-                      style={{ width: "160px" }}
-                      value={language}
-                      onChange={handleLanguageChange}
-                    >
-                      {LANGUAGE_OPTIONS.map((item) => (
-                        <option key={item.value} value={item.value}>
-                          {item.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="d-flex gap-2 flex-wrap">
-                    <button
-                      className="btn btn-outline-secondary btn-sm"
-                      onClick={handleReset}
-                    >
-                      Reset
-                    </button>
-
-                    <button
-                      className="btn btn-outline-primary btn-sm"
-                      onClick={handleUseSampleInput}
-                    >
-                      Use Sample
-                    </button>
-
-                    <button
-                      className="btn btn-success btn-sm"
-                      onClick={handleRun}
-                      disabled={running}
-                    >
-                      {running ? "Running..." : "Run"}
-                    </button>
-
-                    <button
-                      className="btn btn-primary btn-sm"
-                      onClick={handleSubmit}
-                      disabled={submitting}
-                    >
-                      {submitting ? "Submitting..." : "Submit"}
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              <div className="card-body pt-0">
-                <textarea
-                  className="form-control font-monospace"
-                  style={{
-                    minHeight: "420px",
-                    resize: "vertical",
-                    whiteSpace: "pre",
-                  }}
-                  value={code}
-                  onChange={(e) => setCode(e.target.value)}
-                  spellCheck={false}
-                />
-              </div>
-            </div>
-
-            <div className="card shadow-sm border-0 mb-4">
-              <div className="card-header bg-white fw-semibold">Custom Input</div>
-              <div className="card-body">
-                <textarea
-                  className="form-control font-monospace"
-                  rows="6"
-                  placeholder="Enter custom input for Run..."
-                  value={customInput}
-                  onChange={(e) => setCustomInput(e.target.value)}
-                />
-              </div>
-            </div>
-
-            <div className="card shadow-sm border-0">
-              <div className="card-header bg-white d-flex justify-content-between align-items-center">
-                <span className="fw-semibold">Results / Output</span>
-                <span className="badge bg-dark">{status}</span>
-              </div>
-              <div className="card-body">
-                <pre className="mb-0" style={{ whiteSpace: "pre-wrap" }}>
-                  {output}
-                </pre>
-              </div>
-            </div>
-          </div>
+          <Button
+            size="sm"
+            variant="primary"
+            onClick={handleSubmit}
+            disabled={submitLoading}
+          >
+            {submitLoading ? "Submitting..." : "Submit"}
+          </Button>
         </div>
       </div>
 
-      <Footer />
-    </>
+      <div
+        className="editor-main-grid"
+        ref={mainGridRef}
+        style={{
+          gridTemplateColumns: `${leftPanelWidth}% 8px calc(${100 - leftPanelWidth}% - 8px)`,
+        }}
+      >
+        <aside className="editor-left-panel">
+          <div className="editor-problem-details">
+            <div className="editor-problem-title-row">
+              <h2 className="editor-problem-title">{problem.title}</h2>
+            </div>
+
+            <div className="editor-problem-badges">
+              <span className={`editor-pill ${getDifficultyClass(problem.difficulty)}`}>
+                {problem.difficulty || "Unknown"}
+              </span>
+
+              <span className="editor-pill editor-points-pill">
+                {problem.points ?? 100} Points
+              </span>
+
+              {parseTags(problem.tags).map((tag, index) => (
+                <span key={index} className="editor-pill editor-tag-pill">
+                  {tag}
+                </span>
+              ))}
+            </div>
+
+            <div className="editor-left-tabs">
+              <button
+                className={`editor-left-tab-btn ${leftTab === "description" ? "active" : ""}`}
+                onClick={() => setLeftTab("description")}
+              >
+                Description
+              </button>
+
+              <button
+                className={`editor-left-tab-btn ${leftTab === "examples" ? "active" : ""}`}
+                onClick={() => setLeftTab("examples")}
+              >
+                Examples
+              </button>
+
+              <button
+                className={`editor-left-tab-btn ${leftTab === "constraints" ? "active" : ""}`}
+                onClick={() => setLeftTab("constraints")}
+              >
+                Constraints
+              </button>
+            </div>
+
+            <div className="editor-left-content">
+              {leftTab === "description" && (
+                <div className="editor-content-section">
+                  {String(problem.description || "No description available.")
+                    .split("\n\n")
+                    .map((para, index) => (
+                      <p key={index} className="editor-text">
+                        {para}
+                      </p>
+                    ))}
+                </div>
+              )}
+
+              {leftTab === "examples" && (
+                <div className="editor-content-section">
+                  {fallbackExamples.length ? (
+                    fallbackExamples.map((example, index) => (
+                      <div key={index} className="editor-example-card">
+                        <h6 className="editor-section-heading">Example {index + 1}</h6>
+
+                        <div className="editor-example-block">
+                          <strong>Input:</strong>
+                          <pre>{example.input}</pre>
+                        </div>
+
+                        <div className="editor-example-block">
+                          <strong>Output:</strong>
+                          <pre>{example.output}</pre>
+                        </div>
+
+                        <div className="editor-example-block">
+                          <strong>Explanation:</strong>
+                          <pre>{example.explanation}</pre>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="editor-text">No sample examples available.</p>
+                  )}
+                </div>
+              )}
+
+              {leftTab === "constraints" && (
+                <div className="editor-content-section">
+                  <h6 className="editor-section-heading">Constraints</h6>
+                  {parseConstraints(problem.constraints).length ? (
+                    <ul className="editor-constraints-list">
+                      {parseConstraints(problem.constraints).map((item, index) => (
+                        <li key={index}>{item}</li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="editor-text">No constraints available.</p>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </aside>
+
+        <div
+          role="separator"
+          aria-orientation="vertical"
+          className="editor-resizer editor-resizer-vertical"
+          onMouseDown={startHorizontalResize}
+        />
+
+        <section
+          className="editor-right-panel"
+          ref={rightPanelRef}
+          style={{
+            display: "grid",
+            gridTemplateRows: `48px minmax(0, 1fr) 8px ${bottomPanelHeight}px`,
+          }}
+        >
+          <div className="editor-code-header">
+            <div className="editor-code-header-left">
+              <span className="editor-code-title">Code</span>
+            </div>
+
+            <div className="editor-code-header-right">
+              <Form.Select
+                value={language}
+                onChange={(e) => setLanguage(e.target.value)}
+                className="editor-language-select"
+              >
+                <option value="python">Python</option>
+                <option value="cpp">C++</option>
+                <option value="javascript">JavaScript</option>
+                <option value="java">Java</option>
+              </Form.Select>
+            </div>
+          </div>
+
+          <div className="editor-monaco-wrap">
+            <Editor
+              height="100%"
+              language={editorLanguageMap[language]}
+              value={currentCode}
+              onChange={handleEditorChange}
+              theme="vs-dark"
+              options={{
+                minimap: { enabled: false },
+                fontSize: 15,
+                lineNumbers: "on",
+                roundedSelection: true,
+                scrollBeyondLastLine: false,
+                automaticLayout: true,
+                wordWrap: "on",
+                padding: { top: 16 },
+              }}
+            />
+          </div>
+
+          <div
+            role="separator"
+            aria-orientation="horizontal"
+            className="editor-resizer editor-resizer-horizontal"
+            onMouseDown={startVerticalResize}
+          />
+
+          <div className="editor-bottom-panel">
+            <div className="editor-bottom-tabs">
+              <button
+                className={`editor-bottom-tab ${bottomTab === "testcase" ? "active" : ""}`}
+                onClick={() => setBottomTab("testcase")}
+              >
+                Testcase
+              </button>
+
+              <button
+                className={`editor-bottom-tab ${bottomTab === "result" ? "active" : ""}`}
+                onClick={() => setBottomTab("result")}
+              >
+                Result
+              </button>
+            </div>
+
+            <div className="editor-bottom-content">
+              {bottomTab === "testcase" && (
+                <div className="editor-testcase-section">
+                  <label className="editor-input-label">Custom Input</label>
+
+                  <textarea
+                    className="editor-custom-input"
+                    value={customInput}
+                    onChange={(e) => handleCustomInputChange(e.target.value)}
+                    placeholder={defaultInput || "Enter custom input"}
+                  />
+
+                  <div className="editor-output-card">
+                    <div className="editor-output-heading">Run Summary</div>
+                    <pre className="editor-output-pre">
+                      {runSummary
+                        ? `Passed ${runSummary.passed}/${runSummary.total} testcases`
+                        : "Run your code to see output here."}
+                    </pre>
+                  </div>
+
+                  {!!runResults.length && (
+                    <div className="editor-output-card mt-3">
+                      <div className="editor-output-heading">Detailed Results</div>
+
+                      {runResults.map((item, index) => (
+                        <div key={index} className="mb-3">
+                          <div className={item.passed ? "text-success" : "text-danger"}>
+                            Test Case {item.testcase || index + 1}:{" "}
+                            {item.passed ? "Passed" : "Failed"}
+                          </div>
+                          <pre className="editor-output-pre mb-2">
+                            {`Expected:
+${item.expected_output || "N/A"}
+
+Actual:
+${item.actual_output || "No output"}`}
+                          </pre>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {bottomTab === "result" && (
+                <div className="editor-output-card editor-output-card-full">
+                  <div className="editor-output-heading">Submission Result</div>
+
+                  <pre className="editor-output-pre">
+                    {submitResult
+                      ? `Problem: ${submitResult.title}
+Verdict: ${getVerdictLabel(submitResult.status)}
+Score: ${submitResult.score ?? 0}
+Runtime: ${submitResult.runtime ?? 0}
+Passed Testcases: ${submitResult.passed_testcases ?? 0}/${submitResult.total_testcases ?? 0}`
+                      : "Submission result will appear here."}
+                  </pre>
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
   );
 }
 

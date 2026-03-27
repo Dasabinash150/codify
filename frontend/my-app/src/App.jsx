@@ -12,7 +12,6 @@ import ContestEditorPage from "./pages/ContestEditorPage";
 import LeaderboardPage from "./pages/LeaderboardPage";
 
 import ProblemsPage from "./pages/ProblemsPage";
-import ProblemDetailPage from "./pages/ProblemDetailPage";
 import ProblemEditorPage from "./pages/ProblemEditorPage";
 
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -28,7 +27,6 @@ function App() {
 
       {/* Problem Routes */}
       <Route path="/problems" element={<ProblemsPage />} />
-      <Route path="/problems/:id" element={<ProblemDetailPage />} />
       <Route
         path="/problems/:id/editor"
         element={
