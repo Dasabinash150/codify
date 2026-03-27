@@ -5,6 +5,7 @@ import Login from "./pages/LogIn";
 import Register from "./pages/Register";
 import RegisterWithOTP from "./pages/RegisterWithOTP";
 import DashboardPage from "./pages/DashboardPage";
+import SubmissionsPage from "./pages/SubmissionsPage";
 
 import ContestListPage from "./pages/ContestListPage";
 import ContestDetailsPage from "./pages/ContestDetailsPage";
@@ -62,6 +63,15 @@ function App() {
         element={
           <ProtectedRoute>
             <DashboardPage />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/submissions"
+        element={
+          <ProtectedRoute>
+            <SubmissionsPage />
           </ProtectedRoute>
         }
       />
