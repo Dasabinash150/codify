@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { Button, Form, Spinner } from "react-bootstrap";
 import Editor from "@monaco-editor/react";
 import axios from "axios";
@@ -53,9 +53,19 @@ public class Main {
 }`,
 };
 
+const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
+
 function ContestEditorPage() {
   const { id, problemId } = useParams();
   const navigate = useNavigate();
+
+  const contestDraftKey = useMemo(() => `contest_draft_${id}`, [id]);
+
+  const mainGridRef = useRef(null);
+  const rightPanelRef = useRef(null);
+  const dragStateRef = useRef(null);
+  const isDraftHydratedRef = useRef(false);
+  const problemStartRef = useRef(Date.now());
 
   const [contestInfo, setContestInfo] = useState(null);
   const [problemList, setProblemList] = useState([]);
@@ -81,8 +91,10 @@ function ContestEditorPage() {
 
   const [contestTime, setContestTime] = useState(0);
   const [activeTime, setActiveTime] = useState(0);
-  const problemStartRef = useRef(Date.now());
   const [problemTimeMap, setProblemTimeMap] = useState({});
+  const [submittedProblemIds, setSubmittedProblemIds] = useState({});
+  const [leftPanelWidth, setLeftPanelWidth] = useState(45);
+  const [bottomPanelHeight, setBottomPanelHeight] = useState(240);
 
   const selectedProblem = useMemo(() => {
     if (!problemList.length) return null;
@@ -96,15 +108,50 @@ function ContestEditorPage() {
     ? codeStore?.[selectedProblem.id]?.[language] || starterTemplates[language]
     : starterTemplates[language];
 
+  const getDefaultInputForProblem = useCallback((problem) => {
+    return problem?.testcases || "";
+  }, []);
+
+  const clearContestDraft = useCallback(() => {
+    localStorage.removeItem(contestDraftKey);
+  }, [contestDraftKey]);
+
+  const clearProblemDraft = useCallback(
+    (problemIdToClear) => {
+      try {
+        const savedDraft = localStorage.getItem(contestDraftKey);
+        if (!savedDraft) return;
+
+        const parsedDraft = JSON.parse(savedDraft);
+
+        if (parsedDraft?.codeStore?.[problemIdToClear]) {
+          delete parsedDraft.codeStore[problemIdToClear];
+        }
+
+        if (parsedDraft?.customInputMap?.[problemIdToClear] !== undefined) {
+          delete parsedDraft.customInputMap[problemIdToClear];
+        }
+
+        if (parsedDraft?.submittedProblemIds) {
+          parsedDraft.submittedProblemIds[problemIdToClear] = true;
+        }
+
+        localStorage.setItem(contestDraftKey, JSON.stringify(parsedDraft));
+      } catch (draftError) {
+        console.error("Draft cleanup failed:", draftError);
+      }
+    },
+    [contestDraftKey]
+  );
+
   const formatTime = (sec) => {
     const safe = Math.max(0, Number(sec) || 0);
     const h = Math.floor(safe / 3600);
     const m = Math.floor((safe % 3600) / 60);
     const s = safe % 60;
-    return `${String(h).padStart(2, "0")}:${String(m).padStart(
-      2,
-      "0"
-    )}:${String(s).padStart(2, "0")}`;
+    return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(
+      s
+    ).padStart(2, "0")}`;
   };
 
   const buildCodeStore = (problems) => {
@@ -120,9 +167,64 @@ function ContestEditorPage() {
     return store;
   };
 
+  const getDraftableData = useCallback(() => {
+    const draftableCodeStore = {};
+    const draftableCustomInputMap = {};
+
+    problemList.forEach((problem) => {
+      if (submittedProblemIds[problem.id]) return;
+
+      const perProblemCode = codeStore[problem.id] || {};
+      const currentInput = customInputMap[problem.id] ?? "";
+      const defaultInput = getDefaultInputForProblem(problem);
+
+      const hasCodeForAnyLanguage = Object.entries(starterTemplates).some(
+        ([lang, template]) => {
+          const value = perProblemCode[lang] ?? template;
+          return value !== template;
+        }
+      );
+
+      if (hasCodeForAnyLanguage) {
+        draftableCodeStore[problem.id] = {
+          javascript: perProblemCode.javascript ?? starterTemplates.javascript,
+          python: perProblemCode.python ?? starterTemplates.python,
+          cpp: perProblemCode.cpp ?? starterTemplates.cpp,
+          java: perProblemCode.java ?? starterTemplates.java,
+        };
+      }
+
+      if (currentInput !== defaultInput) {
+        draftableCustomInputMap[problem.id] = currentInput;
+      }
+    });
+
+    return {
+      codeStore: draftableCodeStore,
+      customInputMap: draftableCustomInputMap,
+    };
+  }, [
+    codeStore,
+    customInputMap,
+    getDefaultInputForProblem,
+    problemList,
+    submittedProblemIds,
+  ]);
+
+  const hasUnsavedWork = useMemo(() => {
+    const { codeStore: draftableCodeStore, customInputMap: draftableCustomInputMap } =
+      getDraftableData();
+
+    return (
+      Object.keys(draftableCodeStore).length > 0 ||
+      Object.keys(draftableCustomInputMap).length > 0
+    );
+  }, [getDraftableData]);
+
   const parseTags = (tagsValue) => {
     if (!tagsValue) return [];
     if (Array.isArray(tagsValue)) return tagsValue;
+
     return String(tagsValue)
       .split(",")
       .map((tag) => tag.trim())
@@ -131,6 +233,7 @@ function ContestEditorPage() {
 
   const parseConstraints = (constraintsValue) => {
     if (!constraintsValue) return [];
+
     return String(constraintsValue)
       .split("\n")
       .map((item) => item.trim())
@@ -165,12 +268,7 @@ function ContestEditorPage() {
     return value || "Unknown";
   };
 
-  const normalizeProblemData = (
-    problem,
-    contestProblem,
-    allTestcases,
-    solvedMap
-  ) => {
+  const normalizeProblemData = (problem, contestProblem, allTestcases, solvedMap) => {
     const problemTestcases = allTestcases.filter(
       (tc) => Number(tc.problem) === Number(problem.id)
     );
@@ -213,9 +311,7 @@ function ContestEditorPage() {
       const problemIds = contestProblems.map((item) => item.problem_id);
 
       const [problemResponses, testcaseResponse] = await Promise.all([
-        Promise.all(
-          problemIds.map((pid) => axios.get(`${API}/api/problems/${pid}/`))
-        ),
+        Promise.all(problemIds.map((pid) => axios.get(`${API}/api/problems/${pid}/`))),
         axios.get(`${API}/api/testcases/`),
       ]);
 
@@ -232,6 +328,7 @@ function ContestEditorPage() {
             (problem) => Number(problem.id) === Number(contestProblem.problem_id)
           );
           if (!matchingProblem) return null;
+
           return normalizeProblemData(
             matchingProblem,
             contestProblem,
@@ -242,22 +339,81 @@ function ContestEditorPage() {
         .filter(Boolean)
         .sort((a, b) => a.order - b.order);
 
-      setContestInfo(contest);
-      setProblemList(enrichedProblems);
-      setCodeStore(buildCodeStore(enrichedProblems));
+      const defaultCodeStore = buildCodeStore(enrichedProblems);
+      const defaultCustomInputs = {};
+      enrichedProblems.forEach((problem) => {
+        defaultCustomInputs[problem.id] = getDefaultInputForProblem(problem);
+      });
+
+      let savedDraft = null;
+
+      try {
+        const rawDraft = localStorage.getItem(contestDraftKey);
+        savedDraft = rawDraft ? JSON.parse(rawDraft) : null;
+      } catch (draftError) {
+        console.error("Draft parse error:", draftError);
+      }
+
+      const validProblemIds = new Set(enrichedProblems.map((problem) => String(problem.id)));
+      const mergedCodeStore = { ...defaultCodeStore };
+      const mergedCustomInputs = { ...defaultCustomInputs };
+      const restoredSubmittedProblemIds = {};
+
+      if (savedDraft?.codeStore) {
+        Object.entries(savedDraft.codeStore).forEach(([savedProblemId, savedLanguages]) => {
+          if (!validProblemIds.has(String(savedProblemId))) return;
+
+          mergedCodeStore[savedProblemId] = {
+            ...defaultCodeStore[savedProblemId],
+            ...savedLanguages,
+          };
+        });
+      }
+
+      if (savedDraft?.customInputMap) {
+        Object.entries(savedDraft.customInputMap).forEach(([savedProblemId, savedInput]) => {
+          if (!validProblemIds.has(String(savedProblemId))) return;
+          mergedCustomInputs[savedProblemId] = savedInput;
+        });
+      }
+
+      if (savedDraft?.submittedProblemIds) {
+        Object.entries(savedDraft.submittedProblemIds).forEach(
+          ([savedProblemId, isSubmitted]) => {
+            if (!validProblemIds.has(String(savedProblemId))) return;
+            restoredSubmittedProblemIds[savedProblemId] = Boolean(isSubmitted);
+          }
+        );
+      }
+
+      const initialSelectedIdFromDraft =
+        savedDraft?.selectedProblemId &&
+        enrichedProblems.some(
+          (problem) => Number(problem.id) === Number(savedDraft.selectedProblemId)
+        )
+          ? Number(savedDraft.selectedProblemId)
+          : null;
 
       const initialSelectedId =
-        problemId && enrichedProblems.some((p) => p.id === Number(problemId))
+        initialSelectedIdFromDraft ||
+        (problemId && enrichedProblems.some((p) => p.id === Number(problemId))
           ? Number(problemId)
-          : enrichedProblems[0]?.id || null;
+          : enrichedProblems[0]?.id || null);
 
+      setContestInfo(contest);
+      setProblemList(enrichedProblems);
+      setCodeStore(mergedCodeStore);
+      setCustomInputMap(mergedCustomInputs);
       setSelectedProblemId(initialSelectedId);
-
-      const customInputs = {};
-      enrichedProblems.forEach((problem) => {
-        customInputs[problem.id] = problem.testcases || "";
-      });
-      setCustomInputMap(customInputs);
+      setProblemTimeMap(savedDraft?.problemTimeMap || {});
+      setSubmittedProblemIds(restoredSubmittedProblemIds);
+      setLanguage(
+        savedDraft?.language && starterTemplates[savedDraft.language]
+          ? savedDraft.language
+          : "python"
+      );
+      setLeftPanelWidth(clamp(Number(savedDraft?.leftPanelWidth) || 45, 28, 72));
+      setBottomPanelHeight(clamp(Number(savedDraft?.bottomPanelHeight) || 240, 160, 500));
 
       if (contest.end_time) {
         const remainingSeconds = Math.max(
@@ -266,12 +422,14 @@ function ContestEditorPage() {
         );
         setContestTime(remainingSeconds);
       }
+
+      isDraftHydratedRef.current = true;
     } catch (err) {
       console.error("Contest editor load error:", err.response?.data || err.message);
       setError(
         err.response?.data?.detail ||
-        err.response?.data?.error ||
-        "Failed to load contest editor."
+          err.response?.data?.error ||
+          "Failed to load contest editor."
       );
     } finally {
       setLoading(false);
@@ -281,6 +439,40 @@ function ContestEditorPage() {
   useEffect(() => {
     initializeContest();
   }, [id]);
+
+  useEffect(() => {
+    if (!isDraftHydratedRef.current || loading || !problemList.length) return;
+
+    const { codeStore: draftableCodeStore, customInputMap: draftableCustomInputMap } =
+      getDraftableData();
+
+    const payload = {
+      codeStore: draftableCodeStore,
+      customInputMap: draftableCustomInputMap,
+      selectedProblemId,
+      language,
+      problemTimeMap,
+      submittedProblemIds,
+      leftPanelWidth,
+      bottomPanelHeight,
+      savedAt: new Date().toISOString(),
+    };
+
+    localStorage.setItem(contestDraftKey, JSON.stringify(payload));
+  }, [
+    bottomPanelHeight,
+    codeStore,
+    contestDraftKey,
+    customInputMap,
+    getDraftableData,
+    language,
+    leftPanelWidth,
+    loading,
+    problemList,
+    problemTimeMap,
+    selectedProblemId,
+    submittedProblemIds,
+  ]);
 
   useEffect(() => {
     if (!contestInfo?.end_time) return;
@@ -312,6 +504,80 @@ function ContestEditorPage() {
     }));
   }, [language, selectedProblem]);
 
+  useEffect(() => {
+    const handleBeforeUnload = (event) => {
+      if (!hasUnsavedWork) return;
+      event.preventDefault();
+      event.returnValue = "";
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [hasUnsavedWork]);
+
+  useEffect(() => {
+    const handleMouseMove = (event) => {
+      if (!dragStateRef.current) return;
+
+      if (dragStateRef.current.type === "horizontal" && mainGridRef.current) {
+        const rect = mainGridRef.current.getBoundingClientRect();
+        const nextWidth = clamp(
+          ((event.clientX - rect.left) / rect.width) * 100,
+          28,
+          72
+        );
+        setLeftPanelWidth(nextWidth);
+      }
+
+      if (dragStateRef.current.type === "vertical" && rightPanelRef.current) {
+        const rect = rightPanelRef.current.getBoundingClientRect();
+        const maxHeight = Math.max(220, rect.height - 140);
+        const nextHeight = clamp(rect.bottom - event.clientY, 160, maxHeight);
+        setBottomPanelHeight(nextHeight);
+      }
+    };
+
+    const handleMouseUp = () => {
+      dragStateRef.current = null;
+      document.body.style.userSelect = "";
+      document.body.style.cursor = "";
+    };
+
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, []);
+
+  const startHorizontalResize = () => {
+    dragStateRef.current = { type: "horizontal" };
+    document.body.style.userSelect = "none";
+    document.body.style.cursor = "col-resize";
+  };
+
+  const startVerticalResize = () => {
+    dragStateRef.current = { type: "vertical" };
+    document.body.style.userSelect = "none";
+    document.body.style.cursor = "row-resize";
+  };
+
+  const handleBackToProblems = () => {
+    if (!hasUnsavedWork) {
+      navigate(`/contest/${id}`);
+      return;
+    }
+
+    const shouldLeave = window.confirm(
+      "You have unsaved code. Do you want to leave without submitting?"
+    );
+
+    if (shouldLeave) {
+      navigate(`/contest/${id}`);
+    }
+  };
 
   const handleProblemChange = (problem) => {
     if (!problem) return;
@@ -332,12 +598,31 @@ function ContestEditorPage() {
   const handleEditorChange = (value) => {
     if (!selectedProblem) return;
 
+    setSubmittedProblemIds((prev) => ({
+      ...prev,
+      [selectedProblem.id]: false,
+    }));
+
     setCodeStore((prev) => ({
       ...prev,
       [selectedProblem.id]: {
         ...(prev[selectedProblem.id] || {}),
         [language]: value || "",
       },
+    }));
+  };
+
+  const handleCustomInputChange = (value) => {
+    if (!selectedProblem) return;
+
+    setSubmittedProblemIds((prev) => ({
+      ...prev,
+      [selectedProblem.id]: false,
+    }));
+
+    setCustomInputMap((prev) => ({
+      ...prev,
+      [selectedProblem.id]: value,
     }));
   };
 
@@ -348,9 +633,7 @@ function ContestEditorPage() {
       setRunLoading(true);
       setBottomTab("testcase");
 
-      const finalUrl = `${API}/api/run-code/`;
-
-      const res = await axios.post(finalUrl, {
+      const res = await axios.post(`${API}/api/run-code/`, {
         problem_id: selectedProblem.id,
         source_code: currentCode,
         language_id: judge0LanguageMap[language],
@@ -442,9 +725,15 @@ function ContestEditorPage() {
           total_testcases: selectedProblem.testcaseObjects?.length || 0,
         },
       }));
+
+      setSubmittedProblemIds((prev) => ({
+        ...prev,
+        [selectedProblem.id]: true,
+      }));
+
+      clearProblemDraft(selectedProblem.id);
     } catch (err) {
       console.error("Submit error:", err.response?.data || err.message);
-
       setSubmitLoading(false);
 
       if (err.response?.status === 401) {
@@ -456,8 +745,8 @@ function ContestEditorPage() {
 
       alert(
         err.response?.data?.error ||
-        err.response?.data?.detail ||
-        "Code submit failed"
+          err.response?.data?.detail ||
+          "Code submit failed"
       );
     }
   };
@@ -508,6 +797,7 @@ function ContestEditorPage() {
 
       setSubmitResults(resultMap);
       setBottomTab("result");
+      clearContestDraft();
 
       alert("Contest submitted successfully.");
       navigate(`/contest/${id}/leaderboard`);
@@ -523,8 +813,8 @@ function ContestEditorPage() {
 
       alert(
         err.response?.data?.error ||
-        err.response?.data?.detail ||
-        "Contest submit failed"
+          err.response?.data?.detail ||
+          "Contest submit failed"
       );
     } finally {
       setSubmitLoading(false);
@@ -573,12 +863,13 @@ function ContestEditorPage() {
     <div className="contest-editor-layout">
       <div className="editor-topbar d-flex align-items-center justify-content-between px-3 border-bottom bg-dark text-light">
         <div className="d-flex align-items-center gap-3">
-          <Link
-            to={`/contest/${id}`}
-            className="text-decoration-none text-light small"
+          <button
+            type="button"
+            onClick={handleBackToProblems}
+            className="btn btn-link text-decoration-none text-light small p-0"
           >
             ← Problem List
-          </Link>
+          </button>
 
           <div className="vr"></div>
 
@@ -586,9 +877,7 @@ function ContestEditorPage() {
 
           <span className="badge bg-success">{contestStatus}</span>
 
-          <span className="badge bg-warning text-dark">
-            {formatTime(contestTime)}
-          </span>
+          <span className="badge bg-warning text-dark">{formatTime(contestTime)}</span>
 
           <span className="badge bg-secondary">
             This Problem: {formatTime(activeTime)}
@@ -625,15 +914,22 @@ function ContestEditorPage() {
         </div>
       </div>
 
-      <div className="editor-main-grid">
+      <div
+        className="editor-main-grid"
+        ref={mainGridRef}
+        style={{
+          gridTemplateColumns: `${leftPanelWidth}% 8px calc(${100 - leftPanelWidth}% - 8px)`,
+        }}
+      >
         <aside className="editor-left-panel">
           <div className="editor-left-header">
             <div className="editor-problem-tabs-scroll">
               {problemList.map((problem, index) => (
                 <button
                   key={problem.id}
-                  className={`editor-problem-tab ${selectedProblem.id === problem.id ? "active" : ""
-                    }`}
+                  className={`editor-problem-tab ${
+                    selectedProblem.id === problem.id ? "active" : ""
+                  }`}
                   onClick={() => handleProblemChange(problem)}
                 >
                   {index + 1}. {problem.title}
@@ -651,16 +947,12 @@ function ContestEditorPage() {
 
             <div className="editor-problem-badges">
               <span
-                className={`editor-pill ${getDifficultyClass(
-                  selectedProblem.difficulty
-                )}`}
+                className={`editor-pill ${getDifficultyClass(selectedProblem.difficulty)}`}
               >
                 {selectedProblem.difficulty}
               </span>
 
-              <span
-                className={`editor-pill ${getStatusClass(selectedProblem.status)}`}
-              >
+              <span className={`editor-pill ${getStatusClass(selectedProblem.status)}`}>
                 {selectedProblem.status}
               </span>
 
@@ -677,24 +969,21 @@ function ContestEditorPage() {
 
             <div className="editor-left-tabs">
               <button
-                className={`editor-left-tab-btn ${leftTab === "description" ? "active" : ""
-                  }`}
+                className={`editor-left-tab-btn ${leftTab === "description" ? "active" : ""}`}
                 onClick={() => setLeftTab("description")}
               >
                 Description
               </button>
 
               <button
-                className={`editor-left-tab-btn ${leftTab === "examples" ? "active" : ""
-                  }`}
+                className={`editor-left-tab-btn ${leftTab === "examples" ? "active" : ""}`}
                 onClick={() => setLeftTab("examples")}
               >
                 Examples
               </button>
 
               <button
-                className={`editor-left-tab-btn ${leftTab === "constraints" ? "active" : ""
-                  }`}
+                className={`editor-left-tab-btn ${leftTab === "constraints" ? "active" : ""}`}
                 onClick={() => setLeftTab("constraints")}
               >
                 Constraints
@@ -719,9 +1008,7 @@ function ContestEditorPage() {
                   {selectedProblem.examples.length ? (
                     selectedProblem.examples.map((example, index) => (
                       <div key={index} className="editor-example-card">
-                        <h6 className="editor-section-heading">
-                          Example {index + 1}
-                        </h6>
+                        <h6 className="editor-section-heading">Example {index + 1}</h6>
 
                         <div className="editor-example-block">
                           <strong>Input:</strong>
@@ -763,7 +1050,21 @@ function ContestEditorPage() {
           </div>
         </aside>
 
-        <section className="editor-right-panel">
+        <div
+          role="separator"
+          aria-orientation="vertical"
+          className="editor-resizer editor-resizer-vertical"
+          onMouseDown={startHorizontalResize}
+        />
+
+        <section
+          className="editor-right-panel"
+          ref={rightPanelRef}
+          style={{
+            display: "grid",
+            gridTemplateRows: `48px minmax(0, 1fr) 8px ${bottomPanelHeight}px`,
+          }}
+        >
           <div className="editor-code-header">
             <div className="editor-code-header-left">
               <span className="editor-code-title">Code</span>
@@ -803,19 +1104,24 @@ function ContestEditorPage() {
             />
           </div>
 
+          <div
+            role="separator"
+            aria-orientation="horizontal"
+            className="editor-resizer editor-resizer-horizontal"
+            onMouseDown={startVerticalResize}
+          />
+
           <div className="editor-bottom-panel">
             <div className="editor-bottom-tabs">
               <button
-                className={`editor-bottom-tab ${bottomTab === "testcase" ? "active" : ""
-                  }`}
+                className={`editor-bottom-tab ${bottomTab === "testcase" ? "active" : ""}`}
                 onClick={() => setBottomTab("testcase")}
               >
                 Testcase
               </button>
 
               <button
-                className={`editor-bottom-tab ${bottomTab === "result" ? "active" : ""
-                  }`}
+                className={`editor-bottom-tab ${bottomTab === "result" ? "active" : ""}`}
                 onClick={() => setBottomTab("result")}
               >
                 Test Result
@@ -830,12 +1136,7 @@ function ContestEditorPage() {
                   <textarea
                     className="editor-custom-input"
                     value={customInputMap[selectedProblem.id] || ""}
-                    onChange={(e) =>
-                      setCustomInputMap((prev) => ({
-                        ...prev,
-                        [selectedProblem.id]: e.target.value,
-                      }))
-                    }
+                    onChange={(e) => handleCustomInputChange(e.target.value)}
                     placeholder={selectedProblem.testcases || "Enter custom input"}
                   />
 
