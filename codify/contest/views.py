@@ -4,6 +4,8 @@ from django.db.models import Count
 from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
 
+from .permissions import AdminWriteOnly
+
 from .models import (
     Problem,
     TestCase,
@@ -33,25 +35,54 @@ class UserViewSet(viewsets.ModelViewSet):
 class ProblemViewSet(viewsets.ModelViewSet):
     queryset = Problem.objects.all().order_by("-created_at")
     serializer_class = ProblemSerializer
-    permission_classes = [IsAuthenticatedOrReadOnly]
+    permission_classes = [AdminWriteOnly]
 
 
 class TestCaseViewSet(viewsets.ModelViewSet):
-    queryset = TestCase.objects.all().order_by("id")
+
     serializer_class = TestCaseSerializer
-    permission_classes = [IsAuthenticatedOrReadOnly]
+    permission_classes = [AdminWriteOnly]
+
+    def get_queryset(self):
+
+        queryset = TestCase.objects.all().order_by("id")
+
+        problem_id = self.request.query_params.get("problem")
+
+        if problem_id:
+            queryset = queryset.filter(problem_id=problem_id)
+
+        # Admin sees all testcases
+        if self.request.user.is_staff:
+            return queryset
+
+        # Normal users cannot see hidden testcases
+        return queryset.filter(is_hidden=False)
 
 
 class SubmissionViewSet(viewsets.ModelViewSet):
-    queryset = Submission.objects.all().order_by("-submitted_at")
+
     serializer_class = SubmissionSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
 
+    def get_queryset(self):
+
+        user = self.request.user
+
+        # Admin can see everything
+        if user.is_staff:
+            return Submission.objects.all().order_by("-submitted_at")
+
+        # Users see only their own submissions
+        return Submission.objects.filter(user=user).order_by("-submitted_at")
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
 
 class ContestViewSet(viewsets.ModelViewSet):
     queryset = Contest.objects.all()
     serializer_class = ContestSerializer
-    permission_classes = [IsAuthenticatedOrReadOnly]
+    permission_classes = [AdminWriteOnly]
 
     def get_queryset(self):
         return (

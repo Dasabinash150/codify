@@ -18,10 +18,10 @@ class ProblemSerializer(serializers.ModelSerializer):
 
 
 class TestCaseSerializer(serializers.ModelSerializer):
+
     class Meta:
         model = TestCase
-        fields = "__all__"
-
+        fields = ["id", "problem", "input", "expected_output", "is_sample"]
 
 class SubmissionSerializer(serializers.ModelSerializer):
     class Meta:

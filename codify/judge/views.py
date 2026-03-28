@@ -131,7 +131,10 @@ def run_code(request):
     except Problem.DoesNotExist:
         return Response({"error": "Problem not found"}, status=404)
 
-    testcases = TestCase.objects.filter(problem=problem).order_by("id")
+    testcases = TestCase.objects.filter(
+        problem=problem,
+        is_hidden=True
+    ).order_by("id")
 
     if not testcases.exists():
         return Response({"error": "No testcases found for this problem"}, status=404)
