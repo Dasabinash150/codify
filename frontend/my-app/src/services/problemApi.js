@@ -1,24 +1,12 @@
-import axios from "axios";
+import API from "./api";
 
-const BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000/api";
+export const getProblems = () => API.get("/problems/");
+export const getProblemById = (id) => API.get(`/problems/${id}/`);
+export const getProblemTestCases = (id) =>
+  API.get(`/testcases/?problem=${id}`);
 
-const api = axios.create({
-  baseURL: BASE_URL,
-});
+export const runProblemCode = (payload) =>
+  API.post("/run-code/", payload);
 
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("access");
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
-
-export const getProblems = () => api.get("/api/problems/");
-export const getProblemById = (id) => api.get(`/api/problems/${id}/`);
-export const getProblemTestCases = (id) => api.get(`/api/testcases/?problem=${id}`);
-export const runProblemCode = (payload) => api.post("/api/run-code/", payload);
-export const submitProblemCode = (payload) => api.post("/api/submit-code/", payload);
-
-export default api;
+export const submitProblemCode = (payload) =>
+  API.post("/submit-code/", payload);

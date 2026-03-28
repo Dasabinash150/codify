@@ -7,8 +7,8 @@ import "../styles/variables.css";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import useContestSocket from "../hooks/useContestSocket";
+import API from "../services/api";
 
-const API_BASE_URL = "http://127.0.0.1:8000/api";
 
 function ContestDetailsPage() {
     const { id } = useParams();

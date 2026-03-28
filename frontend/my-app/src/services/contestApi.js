@@ -1,7 +1,6 @@
-import axios from "axios";
-
-const API = axios.create({
-  baseURL: "http://127.0.0.1:8000/api",
-});
+import API from "./api";
 
 export const getContests = () => API.get("/contests/");
+export const getContestById = (id) => API.get(`/contests/${id}/`);
+export const joinContest = (id) => API.post(`/contests/${id}/join/`);
+export const getLeaderboard = (id) => API.get(`/leaderboard/${id}/`);
