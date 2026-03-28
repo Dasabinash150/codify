@@ -11,12 +11,10 @@ import {
   Spinner,
   Alert,
 } from "react-bootstrap";
-import axios from "axios";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import useContestSocket from "../hooks/useContestSocket";
-
-const API = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
+import API from "../services/api";
 
 function LeaderboardPage() {
   const { id } = useParams();
@@ -30,11 +28,7 @@ function LeaderboardPage() {
       setLoading(true);
       setError("");
 
-      const token = localStorage.getItem("access");
-
-      const response = await axios.get(`${API}/api/leaderboard/${id}/`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
+      const response = await API.get(`/leaderboard/${id}/`);
 
       const rawData = Array.isArray(response.data)
         ? response.data
@@ -136,9 +130,7 @@ function LeaderboardPage() {
                             : "🥉 Rank 3"}
                         </div>
 
-                        <h5 className="leaderboard-top-name mb-3">
-                          {user.user_name}
-                        </h5>
+                        <h5 className="leaderboard-top-name mb-3">{user.user_name}</h5>
 
                         <div className="leaderboard-top-meta d-flex flex-column gap-2">
                           <span>Score: {user.score}</span>
@@ -188,10 +180,7 @@ function LeaderboardPage() {
                         ))
                       ) : (
                         <tr>
-                          <td
-                            colSpan="5"
-                            className="text-center py-4 text-muted-custom"
-                          >
+                          <td colSpan="5" className="text-center py-4 text-muted-custom">
                             No user found
                           </td>
                         </tr>

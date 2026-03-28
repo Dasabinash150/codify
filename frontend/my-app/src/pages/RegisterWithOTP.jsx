@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import axios from "axios";
 import "bootstrap/dist/css/bootstrap.min.css";
-import API from "../api";
+import API from "../services/api";
 
 function Register() {
   const [formData, setFormData] = useState({

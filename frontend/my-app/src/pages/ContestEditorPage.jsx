@@ -2,13 +2,11 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useNavigate, useParams } from "react-router-dom";
 import { Button, Form, Spinner } from "react-bootstrap";
 import Editor from "@monaco-editor/react";
-import axios from "axios";
 import useContestSocket from "../hooks/useContestSocket";
+import API from "../services/api";
 import "../styles/ContestEditorPage.css";
 import "../styles/global.css";
 import "../styles/variables.css";
-
-const API = import.meta.env.VITE_API_BASE_URL;
 
 const editorLanguageMap = {
   javascript: "javascript",
@@ -102,7 +100,7 @@ function ContestEditorPage() {
     }
 
     if (msg.event === "participant_count_update") {
-      console.log("Participants:", msg.data.participant_count);
+      console.log("Participants:", msg.data?.participant_count);
     }
   });
 
@@ -314,15 +312,15 @@ function ContestEditorPage() {
       setLoading(true);
       setError("");
 
-      const contestRes = await axios.get(`${API}/api/contests/${id}/`);
+      const contestRes = await API.get(`/contests/${id}/`);
       const contest = contestRes.data;
 
       const contestProblems = contest.problems || [];
       const problemIds = contestProblems.map((item) => item.problem_id);
 
       const [problemResponses, testcaseResponse] = await Promise.all([
-        Promise.all(problemIds.map((pid) => axios.get(`${API}/api/problems/${pid}/`))),
-        axios.get(`${API}/api/testcases/`),
+        Promise.all(problemIds.map((pid) => API.get(`/problems/${pid}/`))),
+        API.get("/testcases/"),
       ]);
 
       const problemDetails = problemResponses.map((res) => res.data);
@@ -398,9 +396,9 @@ function ContestEditorPage() {
 
       const initialSelectedIdFromDraft =
         savedDraft?.selectedProblemId &&
-          enrichedProblems.some(
-            (problem) => Number(problem.id) === Number(savedDraft.selectedProblemId)
-          )
+        enrichedProblems.some(
+          (problem) => Number(problem.id) === Number(savedDraft.selectedProblemId)
+        )
           ? Number(savedDraft.selectedProblemId)
           : null;
 
@@ -438,8 +436,8 @@ function ContestEditorPage() {
       console.error("Contest editor load error:", err.response?.data || err.message);
       setError(
         err.response?.data?.detail ||
-        err.response?.data?.error ||
-        "Failed to load contest editor."
+          err.response?.data?.error ||
+          "Failed to load contest editor."
       );
     } finally {
       setLoading(false);
@@ -643,7 +641,7 @@ function ContestEditorPage() {
       setRunLoading(true);
       setBottomTab("testcase");
 
-      const res = await axios.post(`${API}/api/run-code/`, {
+      const res = await API.post("/run-code/", {
         problem_id: selectedProblem.id,
         source_code: currentCode,
         language_id: judge0LanguageMap[language],
@@ -693,20 +691,12 @@ function ContestEditorPage() {
       setSubmitLoading(true);
       setBottomTab("result");
 
-      const res = await axios.post(
-        `${API}/api/submit-code/`,
-        {
-          problem_id: selectedProblem.id,
-          contest_id: Number(id),
-          source_code: sourceCode,
-          language,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      const res = await API.post("/submit-code/", {
+        problem_id: selectedProblem.id,
+        contest_id: Number(id),
+        source_code: sourceCode,
+        language,
+      });
 
       const submissionId = res.data.submission_id;
       const taskId = res.data.task_id;
@@ -755,8 +745,8 @@ function ContestEditorPage() {
 
       alert(
         err.response?.data?.error ||
-        err.response?.data?.detail ||
-        "Code submit failed"
+          err.response?.data?.detail ||
+          "Code submit failed"
       );
     }
   };
@@ -787,18 +777,10 @@ function ContestEditorPage() {
 
       setSubmitLoading(true);
 
-      const res = await axios.post(
-        `${API}/api/submit-contest/`,
-        {
-          contest_id: id,
-          answers,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      const res = await API.post("/submit-contest/", {
+        contest_id: id,
+        answers,
+      });
 
       const resultMap = {};
       (res.data.results || []).forEach((item) => {
@@ -823,8 +805,8 @@ function ContestEditorPage() {
 
       alert(
         err.response?.data?.error ||
-        err.response?.data?.detail ||
-        "Contest submit failed"
+          err.response?.data?.detail ||
+          "Contest submit failed"
       );
     } finally {
       setSubmitLoading(false);
@@ -937,8 +919,9 @@ function ContestEditorPage() {
               {problemList.map((problem, index) => (
                 <button
                   key={problem.id}
-                  className={`editor-problem-tab ${selectedProblem.id === problem.id ? "active" : ""
-                    }`}
+                  className={`editor-problem-tab ${
+                    selectedProblem.id === problem.id ? "active" : ""
+                  }`}
                   onClick={() => handleProblemChange(problem)}
                 >
                   {index + 1}. {problem.title}

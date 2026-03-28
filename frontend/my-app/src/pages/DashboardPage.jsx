@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import axios from "axios";
 import {
   Container,
   Row,
@@ -24,22 +23,8 @@ import {
 } from "react-bootstrap-icons";
 
 import Navbar from "../components/Navbar";
+import API from "../services/api";
 import "../styles/DashboardPage.css";
-
-const API_BASE =
-  import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000/api";
-
-const api = axios.create({
-  baseURL: API_BASE,
-});
-
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("access");
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
 
 function DashboardPage() {
   const navigate = useNavigate();
@@ -59,10 +44,10 @@ function DashboardPage() {
         setError("");
 
         const requests = [
-          api.get("/api/user/profile/").catch(() => ({ data: null })),
-          api.get("/api/submissions/").catch(() => ({ data: [] })),
-          api.get("/api/contests/").catch(() => ({ data: [] })),
-          api.get("/api/problems/").catch(() => ({ data: [] })),
+          API.get("/user/profile/").catch(() => ({ data: null })),
+          API.get("/submissions/").catch(() => ({ data: [] })),
+          API.get("/contests/").catch(() => ({ data: [] })),
+          API.get("/problems/").catch(() => ({ data: [] })),
         ];
 
         const [profileRes, submissionsRes, contestsRes, problemsRes] =
@@ -380,27 +365,21 @@ function DashboardPage() {
                     <Col md={4}>
                       <div className="mini-box h-100">
                         <h6 className="mb-1">Easy</h6>
-                        <p className="mb-0 text-muted-custom">
-                          {easySolved} solved
-                        </p>
+                        <p className="mb-0 text-muted-custom">{easySolved} solved</p>
                       </div>
                     </Col>
 
                     <Col md={4}>
                       <div className="mini-box h-100">
                         <h6 className="mb-1">Medium</h6>
-                        <p className="mb-0 text-muted-custom">
-                          {mediumSolved} solved
-                        </p>
+                        <p className="mb-0 text-muted-custom">{mediumSolved} solved</p>
                       </div>
                     </Col>
 
                     <Col md={4}>
                       <div className="mini-box h-100">
                         <h6 className="mb-1">Hard</h6>
-                        <p className="mb-0 text-muted-custom">
-                          {hardSolved} solved
-                        </p>
+                        <p className="mb-0 text-muted-custom">{hardSolved} solved</p>
                       </div>
                     </Col>
                   </Row>
@@ -447,9 +426,7 @@ function DashboardPage() {
                                 </span>
                               </td>
                               <td className="text-muted-custom">
-                                {formatTimeAgo(
-                                  item.created_at || item.submitted_at
-                                )}
+                                {formatTimeAgo(item.created_at || item.submitted_at)}
                               </td>
                             </tr>
                           ))
@@ -485,9 +462,7 @@ function DashboardPage() {
                         ? Math.min(
                             100,
                             Math.round(
-                              ((profile.daily_solved || 0) /
-                                profile.daily_target) *
-                                100
+                              ((profile.daily_solved || 0) / profile.daily_target) * 100
                             )
                           )
                         : 0
@@ -512,9 +487,7 @@ function DashboardPage() {
                   <div className="achievement-item mb-3">
                     <CheckCircleFill className="achievement-icon fs-4 flex-shrink-0" />
                     <div>
-                      <h6 className="fw-bold mb-1">
-                        {profile?.streak || 0} Day Streak
-                      </h6>
+                      <h6 className="fw-bold mb-1">{profile?.streak || 0} Day Streak</h6>
                       <p className="mb-0 text-muted-custom">
                         Keep solving daily to maintain your streak.
                       </p>
