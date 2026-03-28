@@ -20,7 +20,7 @@ function Navbar() {
     }
 
     if (token) {
-      API.get("/api/user/profile/", {
+      API.get("/user/profile/", {
         headers: {
           Authorization: `Bearer ${token}`,
         },

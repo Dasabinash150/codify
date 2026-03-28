@@ -145,6 +145,24 @@ function ProblemEditorPage() {
     return value || "Unknown";
   };
 
+  const getErrorMessage = (err, fallback) => {
+    const data = err?.response?.data;
+    if (!data) return fallback;
+
+    if (typeof data === "string") return data;
+    if (typeof data?.detail === "string") return data.detail;
+    if (typeof data?.error === "string") return data.error;
+    if (typeof data?.message === "string") return data.message;
+
+    const firstKey = Object.keys(data)[0];
+    const firstValue = data[firstKey];
+
+    if (Array.isArray(firstValue)) return firstValue[0];
+    if (typeof firstValue === "string") return firstValue;
+
+    return fallback;
+  };
+
   const examples = useMemo(() => {
     return testCases
       .filter((tc) => tc.is_sample || tc.sample || tc.isSample)
@@ -184,10 +202,10 @@ function ProblemEditorPage() {
           getProblemTestCases(id),
         ]);
 
-        const loadedProblem = problemRes.data;
-        const loadedTestCases = Array.isArray(testCaseRes.data)
+        const loadedProblem = problemRes?.data || null;
+        const loadedTestCases = Array.isArray(testCaseRes?.data)
           ? testCaseRes.data
-          : testCaseRes.data?.results || [];
+          : testCaseRes?.data?.results || [];
 
         setProblem(loadedProblem);
         setTestCases(loadedTestCases);
@@ -200,7 +218,7 @@ function ProblemEditorPage() {
           console.error("Draft parse error:", e);
         }
 
-        if (savedDraft?.codeStore) {
+        if (savedDraft?.codeStore && typeof savedDraft.codeStore === "object") {
           setCodeStore((prev) => ({
             ...prev,
             ...savedDraft.codeStore,
@@ -229,7 +247,7 @@ function ProblemEditorPage() {
         hydratedRef.current = true;
       } catch (err) {
         console.error("Problem editor load error:", err);
-        setError("Failed to load problem.");
+        setError(getErrorMessage(err, "Failed to load problem."));
       } finally {
         setLoading(false);
       }
@@ -363,7 +381,7 @@ function ProblemEditorPage() {
         problem_id: Number(id),
       });
 
-      const data = res.data || {};
+      const data = res?.data || {};
 
       if (Array.isArray(data.results)) {
         setRunSummary({
@@ -390,11 +408,7 @@ function ProblemEditorPage() {
       }
     } catch (err) {
       console.error("RUN ERROR:", err);
-      alert(
-        err?.response?.data?.detail ||
-          err?.response?.data?.error ||
-          "Run failed"
-      );
+      alert(getErrorMessage(err, "Run failed"));
     } finally {
       setRunLoading(false);
     }
@@ -411,7 +425,7 @@ function ProblemEditorPage() {
         language_id: judge0LanguageMap[language],
       });
 
-      const data = res.data || {};
+      const data = res?.data || {};
 
       setSubmitResult({
         title: problem?.title || "Problem",
@@ -429,11 +443,16 @@ function ProblemEditorPage() {
       clearDraft();
     } catch (err) {
       console.error("Submit error:", err);
-      alert(
-        err?.response?.data?.detail ||
-          err?.response?.data?.error ||
-          "Submit failed"
-      );
+
+      if (err?.response?.status === 401) {
+        alert("Session expired. Please login again.");
+        localStorage.removeItem("access");
+        localStorage.removeItem("refresh");
+        navigate("/login");
+        return;
+      }
+
+      alert(getErrorMessage(err, "Submit failed"));
     } finally {
       setSubmitLoading(false);
     }
