@@ -7,6 +7,7 @@ from .views import (
     SubmitCodeView,
     submission_status,
     task_status,
+    contest_join_status
 )
 
 urlpatterns = [
@@ -15,6 +16,8 @@ urlpatterns = [
     path("leaderboard/<int:contest_id>/", leaderboard, name="contest-leaderboard"),
     path("contests/<int:contest_id>/join/", join_contest, name="join-contest"),
 
+    
+    path("contests/<int:contest_id>/join-status/", contest_join_status),
     path("submit-code/", SubmitCodeView.as_view(), name="submit-code"),
     path("submission-status/<int:submission_id>/", submission_status, name="submission-status"),
     path("task-status/<str:task_id>/", task_status, name="task-status"),
