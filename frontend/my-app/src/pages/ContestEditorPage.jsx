@@ -96,6 +96,16 @@ function ContestEditorPage() {
   const [leftPanelWidth, setLeftPanelWidth] = useState(45);
   const [bottomPanelHeight, setBottomPanelHeight] = useState(240);
 
+  useContestSocket(id, (msg) => {
+    if (msg.event === "submission_update") {
+      console.log("Submission update:", msg.data);
+    }
+
+    if (msg.event === "participant_count_update") {
+      console.log("Participants:", msg.data.participant_count);
+    }
+  });
+
   const selectedProblem = useMemo(() => {
     if (!problemList.length) return null;
     return (
@@ -388,9 +398,9 @@ function ContestEditorPage() {
 
       const initialSelectedIdFromDraft =
         savedDraft?.selectedProblemId &&
-        enrichedProblems.some(
-          (problem) => Number(problem.id) === Number(savedDraft.selectedProblemId)
-        )
+          enrichedProblems.some(
+            (problem) => Number(problem.id) === Number(savedDraft.selectedProblemId)
+          )
           ? Number(savedDraft.selectedProblemId)
           : null;
 
@@ -428,8 +438,8 @@ function ContestEditorPage() {
       console.error("Contest editor load error:", err.response?.data || err.message);
       setError(
         err.response?.data?.detail ||
-          err.response?.data?.error ||
-          "Failed to load contest editor."
+        err.response?.data?.error ||
+        "Failed to load contest editor."
       );
     } finally {
       setLoading(false);
@@ -745,8 +755,8 @@ function ContestEditorPage() {
 
       alert(
         err.response?.data?.error ||
-          err.response?.data?.detail ||
-          "Code submit failed"
+        err.response?.data?.detail ||
+        "Code submit failed"
       );
     }
   };
@@ -813,8 +823,8 @@ function ContestEditorPage() {
 
       alert(
         err.response?.data?.error ||
-          err.response?.data?.detail ||
-          "Contest submit failed"
+        err.response?.data?.detail ||
+        "Contest submit failed"
       );
     } finally {
       setSubmitLoading(false);
@@ -927,9 +937,8 @@ function ContestEditorPage() {
               {problemList.map((problem, index) => (
                 <button
                   key={problem.id}
-                  className={`editor-problem-tab ${
-                    selectedProblem.id === problem.id ? "active" : ""
-                  }`}
+                  className={`editor-problem-tab ${selectedProblem.id === problem.id ? "active" : ""
+                    }`}
                   onClick={() => handleProblemChange(problem)}
                 >
                   {index + 1}. {problem.title}

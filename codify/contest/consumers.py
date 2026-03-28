@@ -25,7 +25,10 @@ class ContestConsumer(AsyncWebsocketConsumer):
 
         print("WebSocket disconnected")
 
-    async def leaderboard_event(self, event):
+    async def broadcast_event(self, event):
         await self.send(
-            text_data=json.dumps(event["data"])
+            text_data=json.dumps({
+                "event": event["event"],
+                "data": event["data"],
+            })
         )
