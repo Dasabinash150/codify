@@ -39,42 +39,38 @@ class ProblemViewSet(viewsets.ModelViewSet):
 
 
 class TestCaseViewSet(viewsets.ModelViewSet):
-
+    queryset = TestCase.objects.all()
     serializer_class = TestCaseSerializer
     permission_classes = [AdminWriteOnly]
 
     def get_queryset(self):
-
         queryset = TestCase.objects.all().order_by("id")
-
         problem_id = self.request.query_params.get("problem")
 
         if problem_id:
             queryset = queryset.filter(problem_id=problem_id)
 
-        # Admin sees all testcases
-        if self.request.user.is_staff:
+        if self.request.user.is_authenticated and self.request.user.is_staff:
             return queryset
 
-        # Normal users cannot see hidden testcases
         return queryset.filter(is_hidden=False)
 
 
 class SubmissionViewSet(viewsets.ModelViewSet):
-
+    queryset = Submission.objects.all()
     serializer_class = SubmissionSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
 
     def get_queryset(self):
-
         user = self.request.user
 
-        # Admin can see everything
         if user.is_staff:
             return Submission.objects.all().order_by("-submitted_at")
 
-        # Users see only their own submissions
-        return Submission.objects.filter(user=user).order_by("-submitted_at")
+        if user.is_authenticated:
+            return Submission.objects.filter(user=user).order_by("-submitted_at")
+
+        return Submission.objects.none()
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
