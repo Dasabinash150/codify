@@ -1,8 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
-import axios from "axios";
 import {
   Alert,
-  Badge,
   Card,
   Col,
   Container,
@@ -10,26 +8,10 @@ import {
   Row,
   Spinner,
   Table,
-  Button,
 } from "react-bootstrap";
-import { Link } from "react-router-dom";
 import Navbar from "../components/Navbar";
+import API from "../services/api";
 import "../styles/SubmissionsPage.css";
-
-const API_BASE =
-  import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000/api";
-
-const api = axios.create({
-  baseURL: API_BASE,
-});
-
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("access");
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
 
 function SubmissionsPage() {
   const [loading, setLoading] = useState(true);
@@ -48,8 +30,8 @@ function SubmissionsPage() {
         setPageError("");
 
         const [submissionsRes, problemsRes] = await Promise.all([
-          api.get("/api/submissions/").catch(() => ({ data: [] })),
-          api.get("/api/problems/").catch(() => ({ data: [] })),
+          API.get("/submissions/").catch(() => ({ data: [] })),
+          API.get("/problems/").catch(() => ({ data: [] })),
         ]);
 
         const submissionsData = Array.isArray(submissionsRes?.data)
@@ -86,12 +68,14 @@ function SubmissionsPage() {
         statusRaw === "AC"
           ? "Accepted"
           : statusRaw === "WA"
-            ? "Wrong Answer"
-            : statusRaw === "TLE"
-              ? "Time Limit Exceeded"
-              : statusRaw === "RE"
-                ? "Runtime Error"
-                : statusRaw;
+          ? "Wrong Answer"
+          : statusRaw === "TLE"
+          ? "Time Limit Exceeded"
+          : statusRaw === "RE"
+          ? "Runtime Error"
+          : statusRaw === "CE"
+          ? "Compilation Error"
+          : statusRaw;
 
       const problem =
         item.problem_title ||
@@ -114,15 +98,12 @@ function SubmissionsPage() {
         runtime: item.runtime || item.execution_time || "-",
         createdAt: item.created_at || item.submitted_at || null,
         memory: item.memory || item.memory_used || "-",
-        code: item.code || item.source_code || "",
       };
     });
   }, [submissions, problems]);
 
   const languages = useMemo(() => {
-    return [...new Set(normalizedSubmissions.map((item) => item.language))].filter(
-      Boolean
-    );
+    return [...new Set(normalizedSubmissions.map((item) => item.language))].filter(Boolean);
   }, [normalizedSubmissions]);
 
   const filteredSubmissions = useMemo(() => {
@@ -179,6 +160,10 @@ function SubmissionsPage() {
         label: "Runtime Error",
         class: "status-pill status-runtime",
       },
+      "compilation error": {
+        label: "Compilation Error",
+        class: "status-pill status-default",
+      },
       pending: {
         label: "Pending",
         class: "status-pill status-default",
@@ -197,7 +182,7 @@ function SubmissionsPage() {
     <>
       <Navbar />
 
-      <div className="submissions-page py-4">
+      <div className="submissions-page py-4 page-theme">
         <Container>
           {pageError && (
             <Alert variant="danger" className="mb-4">
@@ -205,18 +190,18 @@ function SubmissionsPage() {
             </Alert>
           )}
 
-          <Card className="submissions-card submissions-hero border-0 mb-4">
+          <Card className="submissions-card submissions-hero border-0 mb-4 card-theme">
             <Card.Body className="p-4">
               <h2 className="submissions-title mb-2 fw-bold">My Submissions</h2>
-              <p className="submissions-subtitle mb-0">
-                Review your recent runs, accepted solutions, and failed attempts.
+              <p className="submissions-subtitle mb-0 text-muted-custom">
+                Review your accepted solutions, failed attempts, and recent activity.
               </p>
             </Card.Body>
           </Card>
 
           <Row className="g-4 mb-4">
             <Col md={6} xl={3}>
-              <Card className="submissions-card summary-card border-0 h-100">
+              <Card className="submissions-card summary-card border-0 h-100 card-theme">
                 <Card.Body>
                   <p className="summary-label mb-2">Total</p>
                   <h3 className="summary-value mb-0">{summary.total}</h3>
@@ -225,7 +210,7 @@ function SubmissionsPage() {
             </Col>
 
             <Col md={6} xl={3}>
-              <Card className="submissions-card summary-card border-0 h-100">
+              <Card className="submissions-card summary-card border-0 h-100 card-theme">
                 <Card.Body>
                   <p className="summary-label mb-2">Accepted</p>
                   <h3 className="summary-value mb-0">{summary.accepted}</h3>
@@ -234,7 +219,7 @@ function SubmissionsPage() {
             </Col>
 
             <Col md={6} xl={3}>
-              <Card className="submissions-card summary-card border-0 h-100">
+              <Card className="submissions-card summary-card border-0 h-100 card-theme">
                 <Card.Body>
                   <p className="summary-label mb-2">Wrong Answer</p>
                   <h3 className="summary-value mb-0">{summary.wrong}</h3>
@@ -243,7 +228,7 @@ function SubmissionsPage() {
             </Col>
 
             <Col md={6} xl={3}>
-              <Card className="submissions-card summary-card border-0 h-100">
+              <Card className="submissions-card summary-card border-0 h-100 card-theme">
                 <Card.Body>
                   <p className="summary-label mb-2">TLE</p>
                   <h3 className="summary-value mb-0">{summary.tle}</h3>
@@ -252,7 +237,7 @@ function SubmissionsPage() {
             </Col>
           </Row>
 
-          <Card className="submissions-card border-0 mb-4">
+          <Card className="submissions-card border-0 mb-4 card-theme">
             <Card.Body>
               <Row className="g-3">
                 <Col md={4}>
@@ -276,6 +261,7 @@ function SubmissionsPage() {
                     <option value="Wrong Answer">Wrong Answer</option>
                     <option value="Time Limit Exceeded">Time Limit Exceeded</option>
                     <option value="Runtime Error">Runtime Error</option>
+                    <option value="Compilation Error">Compilation Error</option>
                   </Form.Select>
                 </Col>
 
@@ -297,7 +283,7 @@ function SubmissionsPage() {
             </Card.Body>
           </Card>
 
-          <Card className="submissions-card border-0 theme-card">
+          <Card className="submissions-card border-0 theme-card card-theme">
             <Card.Body>
               {loading ? (
                 <div className="text-center py-5">
@@ -314,7 +300,6 @@ function SubmissionsPage() {
                         <th>Status</th>
                         <th>Runtime</th>
                         <th>Submitted</th>
-                        {/* <th>Action</th> */}
                       </tr>
                     </thead>
                     <tbody>
@@ -327,25 +312,11 @@ function SubmissionsPage() {
                             <td>{getStatusBadge(item.status)}</td>
                             <td>{item.runtime}</td>
                             <td>{formatDateTime(item.createdAt)}</td>
-                            {/* <td>
-                              {item.rawProblemId ? (
-                                <Button
-                                  as={Link}
-                                  to={`/problems/${item.rawProblemId}`}
-                                  size="sm"
-                                  className="theme-outline-btn"
-                                >
-                                  Open Problem
-                                </Button>
-                              ) : (
-                                <span className="text-muted-custom">N/A</span>
-                              )}
-                            </td> */}
                           </tr>
                         ))
                       ) : (
                         <tr>
-                          <td colSpan="7" className="text-center py-5 text-muted-custom">
+                          <td colSpan="6" className="text-center py-5 text-muted-custom">
                             No submissions found
                           </td>
                         </tr>
@@ -364,7 +335,7 @@ function SubmissionsPage() {
 
 function formatDateTime(dateString) {
   if (!dateString) return "N/A";
-  return new Date(dateString).toLocaleString();
+  return new Date(dateString).toLocaleString("en-IN");
 }
 
 export default SubmissionsPage;

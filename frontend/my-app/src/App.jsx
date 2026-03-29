@@ -17,6 +17,8 @@ import ProblemEditorPage from "./pages/ProblemEditorPage";
 
 import ProtectedRoute from "./components/ProtectedRoute";
 
+import NotFoundPage from "./pages/NotFoundPage";
+
 function App() {
   return (
     <Routes>
@@ -75,6 +77,8 @@ function App() {
           </ProtectedRoute>
         }
       />
+
+      <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );
 }

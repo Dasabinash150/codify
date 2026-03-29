@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Button, Form, Spinner } from "react-bootstrap";
+import { Button, Form, Spinner, Table, Badge } from "react-bootstrap";
 import Editor from "@monaco-editor/react";
 import useContestSocket from "../hooks/useContestSocket";
 import API from "../services/api";
@@ -80,11 +80,13 @@ function ContestEditorPage() {
   const [runResults, setRunResults] = useState({});
   const [submitResults, setSubmitResults] = useState({});
   const [submissionMeta, setSubmissionMeta] = useState({});
+  const [submissionHistory, setSubmissionHistory] = useState([]);
 
   const [codeStore, setCodeStore] = useState({});
   const [loading, setLoading] = useState(true);
   const [runLoading, setRunLoading] = useState(false);
   const [submitLoading, setSubmitLoading] = useState(false);
+  const [historyLoading, setHistoryLoading] = useState(false);
   const [error, setError] = useState("");
 
   const [contestTime, setContestTime] = useState(0);
@@ -92,15 +94,46 @@ function ContestEditorPage() {
   const [problemTimeMap, setProblemTimeMap] = useState({});
   const [submittedProblemIds, setSubmittedProblemIds] = useState({});
   const [leftPanelWidth, setLeftPanelWidth] = useState(45);
-  const [bottomPanelHeight, setBottomPanelHeight] = useState(240);
+  const [bottomPanelHeight, setBottomPanelHeight] = useState(260);
+
+  const isDarkTheme =
+    typeof document !== "undefined" &&
+    document.documentElement.getAttribute("data-theme") === "dark";
 
   useContestSocket(id, (msg) => {
     if (msg.event === "submission_update") {
-      console.log("Submission update:", msg.data);
-    }
+      const data = msg.data || {};
+      const msgProblemId = Number(data.problem_id);
 
-    if (msg.event === "participant_count_update") {
-      console.log("Participants:", msg.data?.participant_count);
+      if (msgProblemId) {
+        setSubmissionMeta((prev) => ({
+          ...prev,
+          [msgProblemId]: {
+            submission_id: data.submission_id || prev[msgProblemId]?.submission_id || "N/A",
+            task_id: data.task_id || prev[msgProblemId]?.task_id || "N/A",
+            status: data.status || prev[msgProblemId]?.status || "PENDING",
+            runtime: data.runtime ?? prev[msgProblemId]?.runtime ?? 0,
+            score: data.score ?? prev[msgProblemId]?.score ?? 0,
+          },
+        }));
+
+        setSubmitResults((prev) => ({
+          ...prev,
+          [msgProblemId]: {
+            problem_id: msgProblemId,
+            title:
+              problemList.find((p) => Number(p.id) === msgProblemId)?.title || "Problem",
+            status: data.status || "PENDING",
+            passed: data.passed ?? false,
+            score: data.score ?? 0,
+            runtime: data.runtime ?? 0,
+            passed_testcases: data.passed_testcases ?? 0,
+            total_testcases: data.total_testcases ?? 0,
+          },
+        }));
+      }
+
+      loadSubmissionHistory();
     }
   });
 
@@ -160,6 +193,11 @@ function ContestEditorPage() {
     return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(
       s
     ).padStart(2, "0")}`;
+  };
+
+  const formatDateTime = (value) => {
+    if (!value) return "N/A";
+    return new Date(value).toLocaleString("en-IN");
   };
 
   const buildCodeStore = (problems) => {
@@ -276,6 +314,16 @@ function ContestEditorPage() {
     return value || "Unknown";
   };
 
+  const getVerdictBadge = (status) => {
+    const value = String(status || "").toUpperCase();
+    if (value === "AC" || value === "ACCEPTED") return <Badge bg="success">Accepted</Badge>;
+    if (value === "WA") return <Badge bg="danger">Wrong Answer</Badge>;
+    if (value === "TLE") return <Badge bg="warning" text="dark">TLE</Badge>;
+    if (value === "RE") return <Badge bg="secondary">Runtime Error</Badge>;
+    if (value === "CE") return <Badge bg="dark">Compilation Error</Badge>;
+    return <Badge bg="info">Pending</Badge>;
+  };
+
   const normalizeProblemData = (problem, contestProblem, allTestcases, solvedMap) => {
     const problemTestcases = allTestcases.filter(
       (tc) => Number(tc.problem) === Number(problem.id)
@@ -306,6 +354,37 @@ function ContestEditorPage() {
       testcaseObjects: problemTestcases,
     };
   };
+
+  const loadSubmissionHistory = useCallback(async () => {
+    try {
+      setHistoryLoading(true);
+      const res = await API.get("/submissions/");
+      const items = Array.isArray(res.data) ? res.data : res.data?.results || [];
+
+      const filtered = items
+        .filter((item) => {
+          const matchesContest =
+            String(item.contest_id || item.contest?.id || "") === String(id);
+          const matchesProblem = selectedProblem
+            ? String(item.problem_id || item.problem?.id || item.problem || "") ===
+            String(selectedProblem.id)
+            : true;
+          return matchesContest && matchesProblem;
+        })
+        .sort(
+          (a, b) =>
+            new Date(b.created_at || b.submitted_at || 0) -
+            new Date(a.created_at || a.submitted_at || 0)
+        );
+
+      setSubmissionHistory(filtered);
+    } catch (err) {
+      console.error("Submission history load error:", err?.response?.data || err.message);
+      setSubmissionHistory([]);
+    } finally {
+      setHistoryLoading(false);
+    }
+  }, [id, selectedProblem]);
 
   const initializeContest = async () => {
     try {
@@ -396,9 +475,9 @@ function ContestEditorPage() {
 
       const initialSelectedIdFromDraft =
         savedDraft?.selectedProblemId &&
-        enrichedProblems.some(
-          (problem) => Number(problem.id) === Number(savedDraft.selectedProblemId)
-        )
+          enrichedProblems.some(
+            (problem) => Number(problem.id) === Number(savedDraft.selectedProblemId)
+          )
           ? Number(savedDraft.selectedProblemId)
           : null;
 
@@ -421,7 +500,7 @@ function ContestEditorPage() {
           : "python"
       );
       setLeftPanelWidth(clamp(Number(savedDraft?.leftPanelWidth) || 45, 28, 72));
-      setBottomPanelHeight(clamp(Number(savedDraft?.bottomPanelHeight) || 240, 160, 500));
+      setBottomPanelHeight(clamp(Number(savedDraft?.bottomPanelHeight) || 260, 180, 520));
 
       if (contest.end_time) {
         const remainingSeconds = Math.max(
@@ -436,8 +515,8 @@ function ContestEditorPage() {
       console.error("Contest editor load error:", err.response?.data || err.message);
       setError(
         err.response?.data?.detail ||
-          err.response?.data?.error ||
-          "Failed to load contest editor."
+        err.response?.data?.error ||
+        "Failed to load contest editor."
       );
     } finally {
       setLoading(false);
@@ -447,6 +526,12 @@ function ContestEditorPage() {
   useEffect(() => {
     initializeContest();
   }, [id]);
+
+  useEffect(() => {
+    if (selectedProblem?.id) {
+      loadSubmissionHistory();
+    }
+  }, [selectedProblem?.id, loadSubmissionHistory]);
 
   useEffect(() => {
     if (!isDraftHydratedRef.current || loading || !problemList.length) return;
@@ -540,7 +625,7 @@ function ContestEditorPage() {
       if (dragStateRef.current.type === "vertical" && rightPanelRef.current) {
         const rect = rightPanelRef.current.getBoundingClientRect();
         const maxHeight = Math.max(220, rect.height - 140);
-        const nextHeight = clamp(rect.bottom - event.clientY, 160, maxHeight);
+        const nextHeight = clamp(rect.bottom - event.clientY, 180, maxHeight);
         setBottomPanelHeight(nextHeight);
       }
     };
@@ -732,6 +817,7 @@ function ContestEditorPage() {
       }));
 
       clearProblemDraft(selectedProblem.id);
+      loadSubmissionHistory();
     } catch (err) {
       console.error("Submit error:", err.response?.data || err.message);
       setSubmitLoading(false);
@@ -745,9 +831,11 @@ function ContestEditorPage() {
 
       alert(
         err.response?.data?.error ||
-          err.response?.data?.detail ||
-          "Code submit failed"
+        err.response?.data?.detail ||
+        "Code submit failed"
       );
+    } finally {
+      setSubmitLoading(false);
     }
   };
 
@@ -805,8 +893,8 @@ function ContestEditorPage() {
 
       alert(
         err.response?.data?.error ||
-          err.response?.data?.detail ||
-          "Contest submit failed"
+        err.response?.data?.detail ||
+        "Contest submit failed"
       );
     } finally {
       setSubmitLoading(false);
@@ -815,10 +903,10 @@ function ContestEditorPage() {
 
   if (loading) {
     return (
-      <div className="contest-editor-layout d-flex align-items-center justify-content-center">
-        <div className="text-center text-light">
+      <div className="contest-editor-layout editor-page-theme d-flex align-items-center justify-content-center">
+        <div className="text-center">
           <Spinner animation="border" className="mb-3" />
-          <div>Loading contest editor...</div>
+          <div className="text-muted-custom">Loading contest editor...</div>
         </div>
       </div>
     );
@@ -826,11 +914,16 @@ function ContestEditorPage() {
 
   if (error) {
     return (
-      <div className="contest-editor-layout d-flex align-items-center justify-content-center">
-        <div className="text-center text-light">
-          <h5 className="mb-2">Failed to load editor</h5>
-          <p className="mb-3">{error}</p>
-          <Button onClick={initializeContest}>Retry</Button>
+      <div className="contest-editor-layout editor-page-theme d-flex align-items-center justify-content-center px-3">
+        <div
+          className="card card-theme border-0 shadow-sm rounded-4"
+          style={{ maxWidth: "560px", width: "100%" }}
+        >
+          <div className="card-body p-4 text-center">
+            <h5 className="mb-2">Failed to load editor</h5>
+            <p className="text-muted-custom mb-3">{error}</p>
+            <Button onClick={initializeContest}>Retry</Button>
+          </div>
         </div>
       </div>
     );
@@ -838,8 +931,8 @@ function ContestEditorPage() {
 
   if (!selectedProblem) {
     return (
-      <div className="contest-editor-layout d-flex align-items-center justify-content-center">
-        <div className="text-center text-light">No problem found for this contest.</div>
+      <div className="contest-editor-layout editor-page-theme d-flex align-items-center justify-content-center">
+        <div className="text-center text-muted-custom">No problem found for this contest.</div>
       </div>
     );
   }
@@ -851,56 +944,38 @@ function ContestEditorPage() {
   const contestTitle = contestInfo?.name || "Contest";
   const contestStatus = contestInfo?.status || "Live";
 
+
   return (
-    <div className="contest-editor-layout">
-      <div className="editor-topbar d-flex align-items-center justify-content-between px-3 border-bottom bg-dark text-light">
-        <div className="d-flex align-items-center gap-3">
+    <div className="contest-editor-layout editor-page-theme">
+      <div className="editor-topbar editor-topbar-theme d-flex align-items-center justify-content-between px-3 border-bottom">
+        <div className="d-flex align-items-center gap-3 flex-wrap">
           <button
             type="button"
             onClick={handleBackToProblems}
-            className="btn btn-link text-decoration-none text-light small p-0"
+            className="btn btn-link text-decoration-none small p-0 editor-link-btn"
           >
             ← Problem List
           </button>
 
-          <div className="vr"></div>
+          <div className="vr" />
 
           <span className="fw-semibold small">{contestTitle}</span>
 
           <span className="badge bg-success">{contestStatus}</span>
-
           <span className="badge bg-warning text-dark">{formatTime(contestTime)}</span>
-
-          <span className="badge bg-secondary">
-            This Problem: {formatTime(activeTime)}
-          </span>
+          <span className="badge bg-secondary">This Problem: {formatTime(activeTime)}</span>
         </div>
 
-        <div className="d-flex gap-2">
-          <Button
-            size="sm"
-            variant="outline-light"
-            onClick={handleRun}
-            disabled={runLoading}
-          >
+        <div className="d-flex gap-2 flex-wrap">
+          <Button size="sm" variant="outline-secondary" onClick={handleRun} disabled={runLoading}>
             {runLoading ? "Running..." : "Run"}
           </Button>
 
-          <Button
-            size="sm"
-            variant="primary"
-            onClick={handleSubmit}
-            disabled={submitLoading || !problemList.length}
-          >
+          <Button size="sm" variant="primary" onClick={handleSubmit} disabled={submitLoading || !problemList.length}>
             {submitLoading ? "Submitting..." : "Submit Problem"}
           </Button>
 
-          <Button
-            size="sm"
-            variant="success"
-            onClick={handleFinishContest}
-            disabled={submitLoading || !problemList.length}
-          >
+          <Button size="sm" variant="success" onClick={handleFinishContest} disabled={submitLoading || !problemList.length}>
             Finish Contest
           </Button>
         </div>
@@ -919,9 +994,7 @@ function ContestEditorPage() {
               {problemList.map((problem, index) => (
                 <button
                   key={problem.id}
-                  className={`editor-problem-tab ${
-                    selectedProblem.id === problem.id ? "active" : ""
-                  }`}
+                  className={`editor-problem-tab ${selectedProblem.id === problem.id ? "active" : ""}`}
                   onClick={() => handleProblemChange(problem)}
                 >
                   {index + 1}. {problem.title}
@@ -938,9 +1011,7 @@ function ContestEditorPage() {
             </div>
 
             <div className="editor-problem-badges">
-              <span
-                className={`editor-pill ${getDifficultyClass(selectedProblem.difficulty)}`}
-              >
+              <span className={`editor-pill ${getDifficultyClass(selectedProblem.difficulty)}`}>
                 {selectedProblem.difficulty}
               </span>
 
@@ -1054,7 +1125,7 @@ function ContestEditorPage() {
           ref={rightPanelRef}
           style={{
             display: "grid",
-            gridTemplateRows: `48px minmax(0, 1fr) 8px ${bottomPanelHeight}px`,
+            gridTemplateRows: `52px minmax(0, 1fr) 8px ${bottomPanelHeight}px`,
           }}
         >
           <div className="editor-code-header">
@@ -1082,7 +1153,7 @@ function ContestEditorPage() {
               language={editorLanguageMap[language]}
               value={currentCode}
               onChange={handleEditorChange}
-              theme="vs-dark"
+              theme={isDarkTheme ? "vs-dark" : "light"}
               options={{
                 minimap: { enabled: false },
                 fontSize: 15,
@@ -1117,6 +1188,13 @@ function ContestEditorPage() {
                 onClick={() => setBottomTab("result")}
               >
                 Test Result
+              </button>
+
+              <button
+                className={`editor-bottom-tab ${bottomTab === "history" ? "active" : ""}`}
+                onClick={() => setBottomTab("history")}
+              >
+                Submission History
               </button>
             </div>
 
@@ -1187,6 +1265,50 @@ Submission ID: ${selectedSubmissionMeta?.submission_id || "N/A"}
 Task Status: ${selectedSubmissionMeta?.status || "N/A"}`
                       : "Submission result will appear here."}
                   </pre>
+                </div>
+              )}
+
+              {bottomTab === "history" && (
+                <div className="editor-output-card editor-output-card-full">
+                  <div className="d-flex justify-content-between align-items-center mb-3">
+                    <div className="editor-output-heading mb-0">Submission History</div>
+                    <Button size="sm" variant="outline-secondary" onClick={loadSubmissionHistory}>
+                      Refresh
+                    </Button>
+                  </div>
+
+                  {historyLoading ? (
+                    <div className="py-4 text-center">
+                      <Spinner animation="border" size="sm" />
+                    </div>
+                  ) : submissionHistory.length > 0 ? (
+                    <div className="table-responsive">
+                      <Table striped hover responsive className="align-middle mb-0 theme-table">
+                        <thead>
+                          <tr>
+                            <th>ID</th>
+                            <th>Status</th>
+                            <th>Language</th>
+                            <th>Runtime</th>
+                            <th>When</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {submissionHistory.map((item) => (
+                            <tr key={item.id}>
+                              <td>#{item.id}</td>
+                              <td>{getVerdictBadge(item.status)}</td>
+                              <td>{item.language || "N/A"}</td>
+                              <td>{item.runtime ?? "-"}</td>
+                              <td>{formatDateTime(item.created_at || item.submitted_at)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </Table>
+                    </div>
+                  ) : (
+                    <div className="text-muted-custom">No submissions yet for this problem.</div>
+                  )}
                 </div>
               )}
             </div>
