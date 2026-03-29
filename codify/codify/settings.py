@@ -23,6 +23,9 @@ if env_file.exists():
     print("Loaded env file:", env_file)
 
 
+
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
+
 # -----------------------------------------
 # SECURITY
 # -----------------------------------------
