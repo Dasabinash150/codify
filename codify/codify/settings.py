@@ -199,7 +199,12 @@ CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
 
-CELERY_TIMEZONE = "Asia/Kolkata"
+
+TIME_ZONE = os.getenv("TIME_ZONE", "Asia/Kolkata")
+USE_TZ = True
+
+CELERY_TIMEZONE = TIME_ZONE
+CELERY_ENABLE_UTC = False
 
 
 # -----------------------------------------
