@@ -1,12 +1,5 @@
-import API from "./api";
+import api from "./api";
 
-export const getContests = () => API.get("/contests/");
-
-export const getContestById = (id) =>
-  API.get(`/contests/${id}/`);
-
-export const joinContest = (id) =>
-  API.post(`/contests/${id}/join/`);
-
-export const getLeaderboard = (id) =>
-  API.get(`/leaderboard/${id}/`);
+export const getContests = () => api.get("/contests/");
+export const getContestById = (id) => api.get(`/contests/${id}/`);
+export const joinContest = (id) => api.post(`/contests/${id}/join/`);
