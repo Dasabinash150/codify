@@ -1,9 +1,10 @@
-# judge/services.py
 import requests
 from django.conf import settings
 
 
-JUDGE0_SUBMIT_URL = f"{settings.JUDGE0_BASE_URL}/submissions?base64_encoded=false&wait=true"
+JUDGE0_SUBMIT_URL = (
+    f"{settings.JUDGE0_BASE_URL}/submissions?base64_encoded=false&wait=true"
+)
 
 
 def normalize_output(text):
@@ -45,13 +46,13 @@ def run_code_with_judge0(source_code, language_id, stdin=""):
     except Exception:
         return {
             "success": False,
-            "error": f"Judge0 invalid response: {response.text}"
+            "error": f"Judge0 invalid response: {response.text}",
         }
 
     if response.status_code >= 400:
         return {
             "success": False,
-            "error": f"Judge0 error {response.status_code}: {data}"
+            "error": f"Judge0 error {response.status_code}: {data}",
         }
 
     return {
@@ -60,15 +61,58 @@ def run_code_with_judge0(source_code, language_id, stdin=""):
     }
 
 
+def run_single_testcase(source_code, language_id, stdin=""):
+    result = run_code_with_judge0(
+        source_code=source_code,
+        language_id=language_id,
+        stdin=stdin,
+    )
+
+    if not result["success"]:
+        raise Exception(result["error"])
+
+    return result["data"]
+
+
+def get_submission_status(result):
+    """
+    Returns:
+        ("OK", "")
+        ("CE", "Compilation Error")
+        ("RE", "<runtime error>")
+        ("TLE", "Time Limit Exceeded")
+        ("WA", "Wrong Answer")  # normally output compare handles this outside
+    """
+    compile_output = result.get("compile_output")
+    stderr = result.get("stderr")
+    status_obj = result.get("status", {}) or {}
+    status_id = status_obj.get("id")
+    status_desc = status_obj.get("description", "Unknown")
+
+    if compile_output:
+        return "CE", compile_output
+
+    if status_id == 5:
+        return "TLE", status_desc
+
+    if stderr:
+        return "RE", stderr
+
+    if status_id in [6, 13]:
+        return "CE", status_desc
+
+    if status_id in [7, 8, 9, 10, 11, 12, 14]:
+        return "RE", status_desc
+
+    return "OK", ""
+
+
 def judge_problem_submission(problem, source_code, language_id, use_sample=False):
     """
     use_sample=True  -> only sample testcases, return testcase details
     use_sample=False -> full judge, hide testcase details except summary
     """
 
-    # Assumption:
-    # TestCase model has:
-    #   problem, input_data, expected_output, is_sample
     testcases = problem.testcases.all().order_by("id")
 
     if use_sample:
@@ -78,7 +122,7 @@ def judge_problem_submission(problem, source_code, language_id, use_sample=False
     passed = 0
     testcase_results = []
     final_status = "AC"
-    runtime = None
+    runtime = 0.0
 
     if total == 0:
         return {
@@ -86,7 +130,7 @@ def judge_problem_submission(problem, source_code, language_id, use_sample=False
             "message": "No testcases found for this problem.",
             "passed_count": 0,
             "total_count": 0,
-            "runtime": None,
+            "runtime": 0.0,
             "testcase_results": [],
         }
 
@@ -113,10 +157,13 @@ def judge_problem_submission(problem, source_code, language_id, use_sample=False
         stderr = judge_data.get("stderr")
         compile_output = judge_data.get("compile_output")
         time_taken = judge_data.get("time")
-        status_obj = judge_data.get("status", {})
+        status_obj = judge_data.get("status", {}) or {}
         judge_status = status_obj.get("description", "Unknown")
 
-        runtime = time_taken
+        try:
+            runtime += float(time_taken or 0)
+        except Exception:
+            pass
 
         if compile_output:
             final_status = "CE"
@@ -160,7 +207,6 @@ def judge_problem_submission(problem, source_code, language_id, use_sample=False
             })
 
         if not is_passed and not use_sample:
-            # stop early for hidden judge
             break
 
     if final_status == "AC" and passed != total:
