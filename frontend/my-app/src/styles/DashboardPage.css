@@ -1,10 +1,44 @@
-
 .dashboard-page {
   min-height: 100vh;
 }
 
+.dashboard-card,
+.dashboard-card .card-body,
+.dashboard-hero,
+.dashboard-hero .card-body {
+  color: var(--text-main);
+}
+
+.dashboard-card h1,
+.dashboard-card h2,
+.dashboard-card h3,
+.dashboard-card h4,
+.dashboard-card h5,
+.dashboard-card h6,
+.dashboard-hero h1,
+.dashboard-hero h2,
+.dashboard-hero h3,
+.dashboard-hero h4,
+.dashboard-hero h5,
+.dashboard-hero h6 {
+  color: var(--text-main);
+}
+
+.dashboard-card p,
+.dashboard-card span,
+.dashboard-card div,
+.dashboard-hero p,
+.dashboard-hero span,
+.dashboard-hero div {
+  color: inherit;
+}
+
 .dashboard-hero {
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.22), rgba(59, 130, 246, 0.12));
+  background: linear-gradient(
+    135deg,
+    rgba(var(--primary-rgb), 0.18),
+    rgba(var(--primary-rgb), 0.08)
+  );
   border: 1px solid var(--border-color);
   border-radius: 24px;
   padding: 32px;
@@ -12,7 +46,7 @@
 }
 
 .dashboard-label {
-  color: var(--primary-light);
+  color: var(--primary);
   font-weight: 600;
   letter-spacing: 0.5px;
 }
@@ -24,15 +58,15 @@
 }
 
 .dashboard-subtitle {
-  color: var(--text-soft);
+  color: var(--text-muted);
   max-width: 700px;
 }
 
 .dashboard-card {
-  background: rgba(17, 24, 39, 0.9);
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
   border-radius: 20px;
-  color: var(--text-main);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+  box-shadow: var(--shadow-soft);
 }
 
 .stat-card .card-body {
@@ -40,49 +74,67 @@
 }
 
 .stat-icon {
-  width: 48px;
-  height: 48px;
-  background: rgba(99, 102, 241, 0.14);
-  color: var(--primary-light);
-  border-radius: 14px;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: var(--icon-bg);
+  color: var(--icon-color);
+}
+
+.theme-icon {
+  color: var(--icon-color) !important;
+  fill: currentColor;
+  stroke: currentColor;
 }
 
 .stat-title,
-.progress-label,
-.small-muted,
-.contest-item p,
-.achievement-item p {
-  color: var(--text-soft);
+.progress-label {
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  font-weight: 500;
 }
 
 .stat-value {
   font-size: 1.8rem;
   font-weight: 700;
   margin-bottom: 6px;
+  color: var(--text-main);
 }
 
 .stat-extra {
   font-size: 0.9rem;
-  color: var(--text-soft);
+  color: var(--text-muted);
 }
 
 .section-title {
-  font-weight: 600;
+  font-weight: 700;
   color: var(--text-main);
+}
+
+.level-badge {
+  background: var(--tag-bg) !important;
+  color: var(--tag-text) !important;
+  border: 1px solid var(--border-color);
+  font-weight: 600;
+}
+
+.progress-value {
+  color: var(--text-main);
+  font-weight: 600;
 }
 
 .custom-progress {
   height: 10px;
-  background-color: #243041;
+  background-color: var(--bg-soft);
   border-radius: 999px;
   overflow: hidden;
 }
 
 .custom-progress .progress-bar {
-  background: linear-gradient(90deg, var(--primary), var(--primary-light));
+  background: linear-gradient(90deg, var(--primary), var(--primary-hover));
 }
 
 .mini-box {
@@ -95,6 +147,7 @@
 .mini-box h6 {
   color: var(--text-main);
   margin-bottom: 6px;
+  font-weight: 700;
 }
 
 .goal-circle {
@@ -102,7 +155,11 @@
   height: 140px;
   margin: auto;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(99, 102, 241, 0.2), rgba(99, 102, 241, 0.08));
+  background: radial-gradient(
+    circle,
+    rgba(var(--primary-rgb), 0.18),
+    rgba(var(--primary-rgb), 0.06)
+  );
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -113,6 +170,7 @@
 .goal-circle h3 {
   margin: 0;
   font-weight: 700;
+  color: var(--text-main);
 }
 
 .achievement-item,
@@ -132,18 +190,22 @@
 }
 
 .achievement-icon {
-  color: var(--primary-light);
-  font-size: 1.25rem;
+  color: var(--icon-color);
   margin-top: 2px;
 }
 
 .dashboard-table {
   color: var(--text-main);
+  --bs-table-bg: transparent;
+  --bs-table-color: var(--text-main);
+  --bs-table-border-color: var(--border-color);
+  --bs-table-hover-bg: rgba(var(--primary-rgb), 0.06);
+  --bs-table-hover-color: var(--text-main);
 }
 
 .dashboard-table thead th {
   border-bottom: 1px solid var(--border-color);
-  color: var(--text-soft);
+  color: var(--text-muted);
   font-weight: 600;
   background: transparent;
 }
@@ -153,28 +215,91 @@
   background: transparent;
 }
 
-.table-link {
-  color: var(--primary-light);
+.table-link,
+.dashboard-link-btn {
+  color: var(--primary) !important;
   text-decoration: none;
-  font-weight: 500;
+  font-weight: 600;
+}
+
+.table-link:hover,
+.dashboard-link-btn:hover {
+  color: var(--primary-hover) !important;
 }
 
 .dashboard-btn {
   background: var(--primary);
-  border: none;
+  border: 1px solid var(--primary);
+  color: #fff;
   border-radius: 12px;
   padding: 10px 18px;
   font-weight: 600;
 }
 
-.dashboard-btn:hover {
-  background: var(--primary-light);
+.dashboard-btn:hover,
+.dashboard-btn:focus {
+  background: var(--primary-hover);
+  border-color: var(--primary-hover);
+  color: #fff;
 }
 
 .dashboard-btn-outline {
+  background: transparent;
+  color: var(--text-main);
+  border: 1px solid var(--border-color);
   border-radius: 12px;
   padding: 10px 18px;
   font-weight: 600;
+}
+
+.dashboard-btn-outline:hover,
+.dashboard-btn-outline:focus {
+  background: var(--bg-soft);
+  color: var(--text-main);
+  border-color: var(--border-color);
+}
+
+.status-badge,
+.contest-type-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 8px 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+.status-badge.accepted {
+  background: var(--solved-bg);
+  color: var(--solved-text);
+  border-color: var(--solved-bg);
+}
+
+.status-badge.wrong {
+  background: var(--hard-bg);
+  color: var(--hard-text);
+  border-color: var(--hard-bg);
+}
+
+.status-badge.default {
+  background: var(--unsolved-bg);
+  color: var(--unsolved-text);
+  border-color: var(--unsolved-bg);
+}
+
+.contest-type-badge.rated {
+  background: var(--medium-bg);
+  color: var(--medium-text);
+  border-color: var(--medium-bg);
+}
+
+.contest-type-badge.practice {
+  background: var(--attempted-bg);
+  color: var(--attempted-text);
+  border-color: var(--attempted-bg);
 }
 
 @media (max-width: 991px) {

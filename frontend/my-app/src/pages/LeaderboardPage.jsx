@@ -11,11 +11,10 @@ import {
   Spinner,
   Alert,
 } from "react-bootstrap";
-import axios from "axios";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
-
-const API = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
+import useContestSocket from "../hooks/useContestSocket";
+import API from "../services/api";
 
 function LeaderboardPage() {
   const { id } = useParams();
@@ -24,20 +23,12 @@ function LeaderboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    fetchLeaderboard();
-  }, [id]);
-
   const fetchLeaderboard = async () => {
     try {
       setLoading(true);
       setError("");
 
-      const token = localStorage.getItem("access");
-
-      const response = await axios.get(`${API}/api/leaderboard/${id}/`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
+      const response = await API.get(`/leaderboard/${id}/`);
 
       const rawData = Array.isArray(response.data)
         ? response.data
@@ -55,7 +46,7 @@ function LeaderboardPage() {
         score: item.score ?? 0,
         submissions: item.submissions ?? 0,
         time: item.time || item.total_time || "00:00:00",
-        rank: index + 1,
+        rank: item.rank ?? index + 1,
       }));
 
       setLeaders(ranked);
@@ -66,6 +57,18 @@ function LeaderboardPage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (id) {
+      fetchLeaderboard();
+    }
+  }, [id]);
+
+  useContestSocket(id, (msg) => {
+    if (msg.event === "leaderboard_update") {
+      fetchLeaderboard();
+    }
+  });
 
   const filteredUsers = useMemo(() => {
     return leaders.filter((u) =>
@@ -115,19 +118,19 @@ function LeaderboardPage() {
               <Row className="g-3 mb-4">
                 {topThree.map((user, index) => (
                   <Col md={4} key={user.id}>
-                    <Card className={`leaderboard-top-card h-100 top-card-${index + 1}`}>
+                    <Card
+                      className={`leaderboard-top-card h-100 top-card-${index + 1}`}
+                    >
                       <Card.Body>
                         <div className="leaderboard-top-rank">
                           {index === 0
                             ? "🥇 Rank 1"
                             : index === 1
-                              ? "🥈 Rank 2"
-                              : "🥉 Rank 3"}
+                            ? "🥈 Rank 2"
+                            : "🥉 Rank 3"}
                         </div>
 
-                        <h5 className="leaderboard-top-name mb-3">
-                          {user.user_name}
-                        </h5>
+                        <h5 className="leaderboard-top-name mb-3">{user.user_name}</h5>
 
                         <div className="leaderboard-top-meta d-flex flex-column gap-2">
                           <span>Score: {user.score}</span>
@@ -142,7 +145,11 @@ function LeaderboardPage() {
 
               <Card className="leaderboard-table-card">
                 <Card.Body className="p-0">
-                  <Table responsive hover className="leaderboard-table mb-0 align-middle">
+                  <Table
+                    responsive
+                    hover
+                    className="leaderboard-table mb-0 align-middle"
+                  >
                     <thead className="fw-bold fs-5">
                       <tr>
                         <th>Rank</th>
@@ -158,8 +165,9 @@ function LeaderboardPage() {
                           <tr key={user.id}>
                             <td>
                               <span
-                                className={`rank-pill rank-${user.rank <= 3 ? user.rank : "other"
-                                  }`}
+                                className={`rank-pill rank-${
+                                  user.rank <= 3 ? user.rank : "other"
+                                }`}
                               >
                                 #{user.rank}
                               </span>

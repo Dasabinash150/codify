@@ -1,109 +1,222 @@
-from contest.models import TestCase
-from .models import SubmissionResult
-from .executor import submit_to_judge0, get_result_from_judge0
-from .utils import compare_output
+import requests
+from django.conf import settings
 
 
-def map_judge0_status(result_data):
-    status_id = result_data["status"]["id"]
-
-    if status_id == 3:
-        return "SUCCESS"   # Accepted by executor, compare manually
-    elif status_id in [4]:
-        return "WA"
-    elif status_id in [5]:
-        return "TLE"
-    elif status_id in [6, 7, 8, 9, 10, 11, 12]:
-        return "RTE"
-    elif status_id == 13:
-        return "ERROR"
-    else:
-        return "ERROR"
+JUDGE0_SUBMIT_URL = (
+    f"{settings.JUDGE0_BASE_URL}/submissions?base64_encoded=false&wait=true"
+)
 
 
-def judge_submission(submission):
-    testcases = TestCase.objects.filter(problem=submission.problem)
-    submission.total_testcases = testcases.count()
-    submission.passed_testcases = 0
-    submission.verdict = "PENDING"
-    submission.save()
+def normalize_output(text):
+    if text is None:
+        return ""
+    return str(text).strip()
 
-    final_verdict = "AC"
 
-    for index, tc in enumerate(testcases, start=1):
+def compare_output(actual, expected):
+    return normalize_output(actual) == normalize_output(expected)
+
+
+def run_code_with_judge0(source_code, language_id, stdin=""):
+    headers = {
+        "Content-Type": "application/json",
+    }
+
+    if getattr(settings, "RAPIDAPI_KEY", None):
+        headers["X-RapidAPI-Key"] = settings.RAPIDAPI_KEY
+
+    if getattr(settings, "RAPIDAPI_HOST", None):
+        headers["X-RapidAPI-Host"] = settings.RAPIDAPI_HOST
+
+    payload = {
+        "source_code": source_code,
+        "language_id": language_id,
+        "stdin": stdin,
+    }
+
+    response = requests.post(
+        JUDGE0_SUBMIT_URL,
+        json=payload,
+        headers=headers,
+        timeout=30,
+    )
+
+    try:
+        data = response.json()
+    except Exception:
+        return {
+            "success": False,
+            "error": f"Judge0 invalid response: {response.text}",
+        }
+
+    if response.status_code >= 400:
+        return {
+            "success": False,
+            "error": f"Judge0 error {response.status_code}: {data}",
+        }
+
+    return {
+        "success": True,
+        "data": data,
+    }
+
+
+def run_single_testcase(source_code, language_id, stdin=""):
+    result = run_code_with_judge0(
+        source_code=source_code,
+        language_id=language_id,
+        stdin=stdin,
+    )
+
+    if not result["success"]:
+        raise Exception(result["error"])
+
+    return result["data"]
+
+
+def get_submission_status(result):
+    """
+    Returns:
+        ("OK", "")
+        ("CE", "Compilation Error")
+        ("RE", "<runtime error>")
+        ("TLE", "Time Limit Exceeded")
+        ("WA", "Wrong Answer")  # normally output compare handles this outside
+    """
+    compile_output = result.get("compile_output")
+    stderr = result.get("stderr")
+    status_obj = result.get("status", {}) or {}
+    status_id = status_obj.get("id")
+    status_desc = status_obj.get("description", "Unknown")
+
+    if compile_output:
+        return "CE", compile_output
+
+    if status_id == 5:
+        return "TLE", status_desc
+
+    if stderr:
+        return "RE", stderr
+
+    if status_id in [6, 13]:
+        return "CE", status_desc
+
+    if status_id in [7, 8, 9, 10, 11, 12, 14]:
+        return "RE", status_desc
+
+    return "OK", ""
+
+
+def judge_problem_submission(problem, source_code, language_id, use_sample=False):
+    """
+    use_sample=True  -> only sample testcases, return testcase details
+    use_sample=False -> full judge, hide testcase details except summary
+    """
+
+    testcases = problem.testcases.all().order_by("id")
+
+    if use_sample:
+        testcases = testcases.filter(is_sample=True)
+
+    total = testcases.count()
+    passed = 0
+    testcase_results = []
+    final_status = "AC"
+    runtime = 0.0
+
+    if total == 0:
+        return {
+            "status": "ERROR",
+            "message": "No testcases found for this problem.",
+            "passed_count": 0,
+            "total_count": 0,
+            "runtime": 0.0,
+            "testcase_results": [],
+        }
+
+    for tc in testcases:
+        result = run_code_with_judge0(
+            source_code=source_code,
+            language_id=language_id,
+            stdin=tc.input_data or "",
+        )
+
+        if not result["success"]:
+            return {
+                "status": "ERROR",
+                "message": result["error"],
+                "passed_count": passed,
+                "total_count": total,
+                "runtime": runtime,
+                "testcase_results": testcase_results if use_sample else [],
+            }
+
+        judge_data = result["data"]
+
+        stdout = judge_data.get("stdout")
+        stderr = judge_data.get("stderr")
+        compile_output = judge_data.get("compile_output")
+        time_taken = judge_data.get("time")
+        status_obj = judge_data.get("status", {}) or {}
+        judge_status = status_obj.get("description", "Unknown")
+
         try:
-            token = submit_to_judge0(
-                code=submission.code,
-                language=submission.language,
-                stdin=tc.input_data
-            )
+            runtime += float(time_taken or 0)
+        except Exception:
+            pass
 
-            result_data = get_result_from_judge0(token)
+        if compile_output:
+            final_status = "CE"
+            if use_sample:
+                testcase_results.append({
+                    "input": tc.input_data,
+                    "expected_output": tc.expected_output,
+                    "actual_output": compile_output,
+                    "passed": False,
+                    "judge_status": "Compilation Error",
+                })
+            break
 
-            executor_status = map_judge0_status(result_data)
-            stdout = result_data.get("stdout") or ""
-            stderr = result_data.get("stderr") or ""
-            compile_output = result_data.get("compile_output") or ""
-            execution_time = float(result_data.get("time") or 0)
+        if stderr:
+            final_status = "RE"
+            if use_sample:
+                testcase_results.append({
+                    "input": tc.input_data,
+                    "expected_output": tc.expected_output,
+                    "actual_output": stderr,
+                    "passed": False,
+                    "judge_status": judge_status,
+                })
+            break
 
-            if compile_output:
-                status = "CE"
-                actual_output = compile_output
-                final_verdict = "CE"
+        is_passed = compare_output(stdout, tc.expected_output)
 
-            elif executor_status == "TLE":
-                status = "TLE"
-                actual_output = stderr or "Time limit exceeded"
-                if final_verdict == "AC":
-                    final_verdict = "TLE"
+        if is_passed:
+            passed += 1
+        else:
+            if final_status == "AC":
+                final_status = "WA"
 
-            elif executor_status == "RTE":
-                status = "RTE"
-                actual_output = stderr or "Runtime error"
-                if final_verdict == "AC":
-                    final_verdict = "RTE"
+        if use_sample:
+            testcase_results.append({
+                "input": tc.input_data,
+                "expected_output": tc.expected_output,
+                "actual_output": stdout,
+                "passed": is_passed,
+                "judge_status": judge_status,
+            })
 
-            elif executor_status == "ERROR":
-                status = "ERROR"
-                actual_output = stderr or "System error"
-                if final_verdict == "AC":
-                    final_verdict = "ERROR"
+        if not is_passed and not use_sample:
+            break
 
-            else:
-                if compare_output(stdout, tc.expected_output):
-                    status = "AC"
-                    actual_output = stdout
-                    submission.passed_testcases += 1
-                else:
-                    status = "WA"
-                    actual_output = stdout
-                    if final_verdict == "AC":
-                        final_verdict = "WA"
+    if final_status == "AC" and passed != total:
+        final_status = "WA"
 
-            SubmissionResult.objects.create(
-                submission=submission,
-                testcase_number=index,
-                status=status,
-                input_data=tc.input_data if tc.is_sample else None,
-                expected_output=tc.expected_output if tc.is_sample else None,
-                actual_output=actual_output if tc.is_sample else None,
-                execution_time=execution_time
-            )
-
-        except Exception as e:
-            SubmissionResult.objects.create(
-                submission=submission,
-                testcase_number=index,
-                status="ERROR",
-                input_data=tc.input_data if tc.is_sample else None,
-                expected_output=tc.expected_output if tc.is_sample else None,
-                actual_output=str(e),
-                execution_time=0
-            )
-            if final_verdict == "AC":
-                final_verdict = "ERROR"
-
-    submission.verdict = final_verdict
-    submission.save()
-
-    return submission
+    return {
+        "status": final_status,
+        "message": "Judging completed",
+        "passed_count": passed,
+        "total_count": total,
+        "runtime": runtime,
+        "testcase_results": testcase_results if use_sample else [],
+    }

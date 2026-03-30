@@ -1,136 +1,193 @@
-import requests
 from celery import shared_task
-from django.conf import settings
+from django.utils import timezone
 
-from .models import Submission
-from contest.models import TestCase
+from contest.models import Submission, Leaderboard
+from .services import judge_problem_submission
+from .websocket import broadcast_submission_update, broadcast_leaderboard
 
 
-def get_language_id(language):
-    mapping = {
-        "python": 71,
-        "c": 50,
-        "cpp": 54,
-        "java": 62,
+def rebuild_contest_leaderboard(contest):
+    submissions = (
+        Submission.objects.filter(contest=contest)
+        .select_related("user", "problem")
+        .order_by("submitted_at", "id")
+    )
+
+    best_by_user_problem = {}
+
+    for sub in submissions:
+        key = (sub.user_id, sub.problem_id)
+        existing = best_by_user_problem.get(key)
+
+        if existing is None:
+            best_by_user_problem[key] = sub
+            continue
+
+        if existing.status != "AC" and sub.status == "AC":
+            best_by_user_problem[key] = sub
+            continue
+
+        if existing.status == "AC" and sub.status == "AC":
+            if sub.submitted_at < existing.submitted_at:
+                best_by_user_problem[key] = sub
+
+    leaderboard_data = {}
+
+    for (_, _), sub in best_by_user_problem.items():
+        user_id = sub.user_id
+
+        if user_id not in leaderboard_data:
+            leaderboard_data[user_id] = {
+                "user": sub.user,
+                "score": 0,
+                "solved": 0,
+                "penalty": 0,
+            }
+
+        if sub.status == "AC":
+            leaderboard_data[user_id]["score"] += sub.problem.points
+            leaderboard_data[user_id]["solved"] += 1
+
+            if contest.start_time and sub.submitted_at:
+                delta = sub.submitted_at - contest.start_time
+                penalty_minutes = max(int(delta.total_seconds() // 60), 0)
+                leaderboard_data[user_id]["penalty"] += penalty_minutes
+
+    existing_rows = {
+        row.user_id: row
+        for row in Leaderboard.objects.filter(contest=contest)
     }
-    return mapping.get(language)
 
+    rows_to_create = []
+    rows_to_update = []
 
-def normalize_output(text):
-    return "\n".join(line.rstrip() for line in text.strip().splitlines())
+    for user_id, data in leaderboard_data.items():
+        row = existing_rows.get(user_id)
+
+        if row:
+            row.score = data["score"]
+            row.solved = data["solved"]
+            row.penalty = data["penalty"]
+            row.last_updated = timezone.now()
+            rows_to_update.append(row)
+        else:
+            rows_to_create.append(
+                Leaderboard(
+                    contest=contest,
+                    user=data["user"],
+                    score=data["score"],
+                    solved=data["solved"],
+                    penalty=data["penalty"],
+                    last_updated=timezone.now(),
+                )
+            )
+
+    if rows_to_create:
+        Leaderboard.objects.bulk_create(rows_to_create)
+
+    if rows_to_update:
+        Leaderboard.objects.bulk_update(
+            rows_to_update,
+            ["score", "solved", "penalty", "last_updated"],
+        )
+
+    valid_user_ids = set(leaderboard_data.keys())
+    Leaderboard.objects.filter(contest=contest).exclude(
+        user_id__in=valid_user_ids
+    ).delete()
+
+    ranked_rows = list(
+        Leaderboard.objects.filter(contest=contest).order_by(
+            "-score",
+            "-solved",
+            "penalty",
+            "last_updated",
+            "id",
+        )
+    )
+
+    changed_rank_rows = []
+    for index, row in enumerate(ranked_rows, start=1):
+        if row.rank != index:
+            row.rank = index
+            changed_rank_rows.append(row)
+
+    if changed_rank_rows:
+        Leaderboard.objects.bulk_update(changed_rank_rows, ["rank"])
 
 
 @shared_task
-def evaluate_submission(submission_id):
+def judge_submission(submission_id):
     try:
-        submission = Submission.objects.get(id=submission_id)
+        submission = Submission.objects.select_related(
+            "problem", "contest", "user"
+        ).get(id=submission_id)
     except Submission.DoesNotExist:
-        return
+        return {"error": "Submission not found"}
 
-    submission.status = "RUNNING"
-    submission.save()
+    problem = submission.problem
+    contest = submission.contest
 
-    testcases = TestCase.objects.filter(problem=submission.problem)
-    total = testcases.count()
-    passed = 0
-    final_status = "ACCEPTED"
+    language_map = {
+        "python": 71,
+        "javascript": 63,
+        "java": 62,
+        "cpp": 54,
+        "c++": 54,
+        "c": 50,
+    }
 
-    language_id = get_language_id(submission.language)
+    language_id = language_map.get((submission.language or "python").lower(), 71)
 
-    if not language_id:
-        submission.status = "FAILED"
-        submission.total_count = total
-        submission.save()
-        return
-
-    for testcase in testcases:
-        payload = {
-            "source_code": submission.source_code,
-            "language_id": language_id,
-            "stdin": testcase.input_data,
-            "expected_output": testcase.expected_output,
-        }
-
-        try:
-            response = requests.post(
-                f"{settings.JUDGE0_BASE_URL}/submissions?base64_encoded=false&wait=true",
-                json=payload,
-                timeout=20
-            )
-            result = response.json()
-        except Exception:
-            final_status = "FAILED"
-            break
-
-        judge_status = result.get("status", {}).get("description", "")
-
-        stdout = result.get("stdout") or ""
-        stderr = result.get("stderr") or ""
-        compile_output = result.get("compile_output") or ""
-
-        if judge_status == "Accepted":
-            actual = normalize_output(stdout)
-            expected = normalize_output(testcase.expected_output)
-            if actual == expected:
-                passed += 1
-            else:
-                final_status = "WRONG_ANSWER"
-                break
-
-        elif "Compilation Error" in judge_status:
-            final_status = "COMPILATION_ERROR"
-            break
-
-        elif "Runtime Error" in judge_status:
-            final_status = "RUNTIME_ERROR"
-            break
-
-        else:
-            if compile_output:
-                final_status = "COMPILATION_ERROR"
-            elif stderr:
-                final_status = "RUNTIME_ERROR"
-            else:
-                final_status = "FAILED"
-            break
-
-    if passed == total and total > 0:
-        final_status = "ACCEPTED"
-
-    submission.passed_count = passed
-    submission.total_count = total
-    submission.status = final_status
-    submission.save()
-
-    if final_status == "ACCEPTED":
-        update_leaderboard_for_submission(submission.id)
-
-
-def update_leaderboard_for_submission(submission_id):
-    from leaderboard.models import LeaderboardEntry
-    from contests.models import ContestProblem
-
-    try:
-        submission = Submission.objects.get(id=submission_id)
-    except Submission.DoesNotExist:
-        return
-
-    contest_problem = ContestProblem.objects.filter(problem=submission.problem).first()
-    if not contest_problem or not submission.user:
-        return
-
-    contest = contest_problem.contest
-
-    entry, created = LeaderboardEntry.objects.get_or_create(
-        contest=contest,
-        user=submission.user,
-        defaults={
-            "solved_count": 0,
-            "score": 0,
-            "penalty": 0,
-        }
+    judge_result = judge_problem_submission(
+        problem=problem,
+        source_code=submission.code,
+        language_id=language_id,
+        use_sample=False,
     )
 
-    entry.solved_count += 1
-    entry.score += 100
-    entry.save()
+    final_status = judge_result["status"]
+    passed_count = judge_result["passed_count"]
+    total_testcases = judge_result["total_count"]
+    total_runtime = judge_result.get("runtime") or 0.0
+
+    score = problem.points if final_status == "AC" else 0
+
+    if final_status == "ERROR":
+        final_status = "RE"
+        score = 0
+
+    submission.status = final_status
+    submission.score = score
+    submission.runtime = total_runtime
+    submission.save(update_fields=["status", "score", "runtime"])
+
+    if contest:
+        rebuild_contest_leaderboard(contest)
+
+        broadcast_submission_update(
+            contest.id,
+            {
+                "submission_id": submission.id,
+                "problem_id": problem.id,
+                "status": submission.status,
+                "runtime": submission.runtime,
+                "score": submission.score,
+                "submitted_at": submission.submitted_at.isoformat()
+                if submission.submitted_at
+                else None,
+                "passed_testcases": passed_count,
+                "total_testcases": total_testcases,
+            },
+        )
+
+        broadcast_leaderboard(contest.id)
+
+    return {
+        "submission_id": submission.id,
+        "status": submission.status,
+        "score": submission.score,
+        "runtime": submission.runtime,
+        "passed_testcases": passed_count,
+        "total_testcases": total_testcases,
+    }

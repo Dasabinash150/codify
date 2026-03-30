@@ -1,0 +1,316 @@
+from django.utils import timezone
+from datetime import timedelta
+from django.contrib.auth import get_user_model
+
+from contest.models import (
+    Problem,
+    TestCase,
+    Contest,
+    ContestProblem,
+    ContestRegistration,
+    Submission,
+    Leaderboard,
+)
+
+User = get_user_model()
+
+# -----------------------------
+# 1. Create 3 users
+# -----------------------------
+users_data = [
+    {"email": "student1@example.com", "name": "Student One", "password": "Test@1234", "tc": True},
+    {"email": "student2@example.com", "name": "Student Two", "password": "Test@1234", "tc": True},
+    {"email": "student3@example.com", "name": "Student Three", "password": "Test@1234", "tc": True},
+]
+
+created_users = []
+
+for u in users_data:
+    user, created = User.objects.get_or_create(
+        email=u["email"],
+        defaults={
+            "name": u["name"],
+            "tc": u["tc"],
+        }
+    )
+    if created:
+        user.set_password(u["password"])
+        user.save()
+    created_users.append(user)
+
+print("Users ready:", [u.email for u in created_users])
+
+
+# -----------------------------
+# 2. Create 5 problems
+# -----------------------------
+problems_data = [
+    {
+        "title": "Two Sum",
+        "description": "Find indices of two numbers such that they add up to the target.",
+        "difficulty": "easy",
+        "constraints": "2 <= n <= 10^4",
+        "tags": "array,hashmap",
+        "points": 100,
+    },
+    {
+        "title": "Reverse String",
+        "description": "Reverse the given string.",
+        "difficulty": "easy",
+        "constraints": "1 <= len(s) <= 10^5",
+        "tags": "string",
+        "points": 100,
+    },
+    {
+        "title": "Palindrome Check",
+        "description": "Check whether a string is a palindrome.",
+        "difficulty": "easy",
+        "constraints": "1 <= len(s) <= 10^5",
+        "tags": "string,two-pointers",
+        "points": 100,
+    },
+    {
+        "title": "Factorial Number",
+        "description": "Return factorial of a given number.",
+        "difficulty": "medium",
+        "constraints": "0 <= n <= 20",
+        "tags": "math,recursion",
+        "points": 150,
+    },
+    {
+        "title": "Maximum in Array",
+        "description": "Find the maximum element in an array.",
+        "difficulty": "easy",
+        "constraints": "1 <= n <= 10^5",
+        "tags": "array",
+        "points": 100,
+    },
+]
+
+created_problems = []
+
+for p in problems_data:
+    problem, _ = Problem.objects.get_or_create(
+        title=p["title"],
+        defaults={
+            "description": p["description"],
+            "difficulty": p["difficulty"],
+            "constraints": p["constraints"],
+            "tags": p["tags"],
+            "points": p["points"],
+        }
+    )
+    created_problems.append(problem)
+
+print("Problems ready:", [p.title for p in created_problems])
+
+
+# -----------------------------
+# 3. Create 20 testcases
+#    4 testcases per problem
+# -----------------------------
+testcases_map = {
+    "Two Sum": [
+        {"input": "nums = [2,7,11,15]\ntarget = 9", "expected_output": "[0,1]", "is_sample": True},
+        {"input": "nums = [3,2,4]\ntarget = 6", "expected_output": "[1,2]", "is_sample": True},
+        {"input": "nums = [3,3]\ntarget = 6", "expected_output": "[0,1]", "is_sample": False},
+        {"input": "nums = [1,5,8,10]\ntarget = 13", "expected_output": "[1,2]", "is_sample": False},
+    ],
+    "Reverse String": [
+        {"input": "hello", "expected_output": "olleh", "is_sample": True},
+        {"input": "python", "expected_output": "nohtyp", "is_sample": True},
+        {"input": "abcd", "expected_output": "dcba", "is_sample": False},
+        {"input": "jitcoder", "expected_output": "redoctij", "is_sample": False},
+    ],
+    "Palindrome Check": [
+        {"input": "madam", "expected_output": "True", "is_sample": True},
+        {"input": "racecar", "expected_output": "True", "is_sample": True},
+        {"input": "hello", "expected_output": "False", "is_sample": False},
+        {"input": "abba", "expected_output": "True", "is_sample": False},
+    ],
+    "Factorial Number": [
+        {"input": "5", "expected_output": "120", "is_sample": True},
+        {"input": "0", "expected_output": "1", "is_sample": True},
+        {"input": "3", "expected_output": "6", "is_sample": False},
+        {"input": "7", "expected_output": "5040", "is_sample": False},
+    ],
+    "Maximum in Array": [
+        {"input": "1 2 3 4 5", "expected_output": "5", "is_sample": True},
+        {"input": "10 8 6 4 2", "expected_output": "10", "is_sample": True},
+        {"input": "-1 -5 -3 -4", "expected_output": "-1", "is_sample": False},
+        {"input": "7 7 7 7", "expected_output": "7", "is_sample": False},
+    ],
+}
+
+for problem in created_problems:
+    existing_count = TestCase.objects.filter(problem=problem).count()
+    if existing_count == 0:
+        for tc in testcases_map[problem.title]:
+            TestCase.objects.create(
+                problem=problem,
+                input=tc["input"],
+                expected_output=tc["expected_output"],
+                is_sample=tc["is_sample"]
+            )
+
+print("Testcases inserted.")
+
+
+# -----------------------------
+# 4. Create 1 contest
+# -----------------------------
+contest_name = "Sample Coding Contest"
+contest, created = Contest.objects.get_or_create(
+    name=contest_name,
+    defaults={
+        "description": "A sample contest for testing JitCoder platform.",
+        "start_time": timezone.now(),
+        "end_time": timezone.now() + timedelta(hours=2),
+    }
+)
+
+if not created:
+    contest.description = "A sample contest for testing JitCoder platform."
+    contest.start_time = timezone.now()
+    contest.end_time = timezone.now() + timedelta(hours=2)
+    contest.save()
+
+print("Contest ready:", contest.name)
+
+
+# -----------------------------
+# 5. Link problems to contest
+# -----------------------------
+for index, problem in enumerate(created_problems, start=1):
+    ContestProblem.objects.get_or_create(
+        contest=contest,
+        problem=problem,
+        defaults={"order": index}
+    )
+
+print("Contest problems linked.")
+
+
+# -----------------------------
+# 6. Register users in contest
+# -----------------------------
+for user in created_users:
+    ContestRegistration.objects.get_or_create(
+        contest=contest,
+        user=user
+    )
+
+print("Users registered in contest.")
+
+
+# -----------------------------
+# 7. Create sample submissions
+# -----------------------------
+submission_samples = [
+    {
+        "user": created_users[0],
+        "problem": created_problems[0],
+        "code": "print('[0,1]')",
+        "language": "python",
+        "status": "AC",
+        "runtime": 0.12,
+        "score": 100,
+    },
+    {
+        "user": created_users[0],
+        "problem": created_problems[1],
+        "code": "print(input()[::-1])",
+        "language": "python",
+        "status": "AC",
+        "runtime": 0.10,
+        "score": 100,
+    },
+    {
+        "user": created_users[1],
+        "problem": created_problems[0],
+        "code": "print('[1,2]')",
+        "language": "python",
+        "status": "WA",
+        "runtime": 0.15,
+        "score": 20,
+    },
+    {
+        "user": created_users[1],
+        "problem": created_problems[2],
+        "code": "s=input();print(str(s==s[::-1]))",
+        "language": "python",
+        "status": "AC",
+        "runtime": 0.11,
+        "score": 100,
+    },
+    {
+        "user": created_users[2],
+        "problem": created_problems[3],
+        "code": "n=int(input());f=1\nfor i in range(1,n+1): f*=i\nprint(f)",
+        "language": "python",
+        "status": "AC",
+        "runtime": 0.13,
+        "score": 150,
+    },
+    {
+        "user": created_users[2],
+        "problem": created_problems[4],
+        "code": "arr=list(map(int,input().split()));print(max(arr))",
+        "language": "python",
+        "status": "AC",
+        "runtime": 0.09,
+        "score": 100,
+    },
+]
+
+for s in submission_samples:
+    Submission.objects.get_or_create(
+        user=s["user"],
+        problem=s["problem"],
+        contest=contest,
+        code=s["code"],
+        language=s["language"],
+        defaults={
+            "status": s["status"],
+            "runtime": s["runtime"],
+            "score": s["score"],
+        }
+    )
+
+print("Sample submissions created.")
+
+
+# -----------------------------
+# 8. Create leaderboard
+# -----------------------------
+leaderboard_data = [
+    {"user": created_users[2], "score": 250, "solved": 2, "penalty": 15, "rank": 1},
+    {"user": created_users[0], "score": 200, "solved": 2, "penalty": 20, "rank": 2},
+    {"user": created_users[1], "score": 120, "solved": 1, "penalty": 35, "rank": 3},
+]
+
+for row in leaderboard_data:
+    Leaderboard.objects.update_or_create(
+        contest=contest,
+        user=row["user"],
+        defaults={
+            "score": row["score"],
+            "solved": row["solved"],
+            "penalty": row["penalty"],
+            "rank": row["rank"],
+        }
+    )
+
+print("Leaderboard ready.")
+
+
+# -----------------------------
+# 9. Final output
+# -----------------------------
+print("\n=== DONE SUCCESSFULLY ===")
+print("Contest ID:", contest.id)
+print("Problems:", Problem.objects.count())
+print("TestCases:", TestCase.objects.count())
+print("Registrations:", ContestRegistration.objects.filter(contest=contest).count())
+print("Submissions:", Submission.objects.filter(contest=contest).count())
+print("Leaderboard entries:", Leaderboard.objects.filter(contest=contest).count())

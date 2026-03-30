@@ -1,20 +1,9 @@
-/* body {
+body {
   background: var(--bg-main);
   color: var(--text-main);
-  transition: background 0.3s ease, color 0.3s ease;
-}
-
-a {
-  text-decoration: none;
-}
-
-.text-muted-custom {
-  color: var(--text-muted) !important;
-} */
- body {
-  background: var(--bg-main);
-  color: var(--text-main);
-  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+  transition: background-color 0.25s ease, color 0.25s ease;
 }
 
 a {
@@ -29,6 +18,32 @@ a {
 .table,
 .form-control,
 .form-select,
-.btn {
-  transition: background-color 0.25s ease, color 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+.btn,
+.badge,
+.progress {
+  transition:
+    background-color 0.25s ease,
+    color 0.25s ease,
+    border-color 0.25s ease,
+    box-shadow 0.25s ease;
+}
+
+.page-theme {
+  background: var(--bg-main);
+  color: var(--text-main);
+  min-height: 100vh;
+}
+
+.card-theme {
+  background: var(--bg-card);
+  color: var(--text-main);
+  border: 1px solid var(--border-color) !important;
+}
+
+.theme-table {
+  --bs-table-bg: transparent;
+  --bs-table-color: var(--text-main);
+  --bs-table-border-color: var(--border-color);
+  --bs-table-hover-bg: rgba(var(--primary-rgb), 0.05);
+  --bs-table-hover-color: var(--text-main);
 }

@@ -1,7 +1,7 @@
 import { Link, useNavigate } from "react-router-dom";
 import React, { useEffect, useRef, useState } from "react";
 import ThemeToggle from "./ThemeToggle";
-import API from "../api";
+import API from "../services/api";
 import "../styles/navbar.css";
 
 function Navbar() {
@@ -20,7 +20,7 @@ function Navbar() {
     }
 
     if (token) {
-      API.get("/api/user/profile/", {
+      API.get("/user/profile/", {
         headers: {
           Authorization: `Bearer ${token}`,
         },

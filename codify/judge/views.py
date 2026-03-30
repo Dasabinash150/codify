@@ -1,16 +1,18 @@
-import os
-import requests
-
 from django.db import transaction
 from django.utils import timezone
 
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework import status
+from rest_framework.views import APIView
+
+from celery.result import AsyncResult
+
+from judge.services import judge_problem_submission
 
 from contest.models import (
     Problem,
-    TestCase,
     Submission,
     Contest,
     ContestProblem,
@@ -18,88 +20,129 @@ from contest.models import (
     ContestRegistration,
 )
 
-
-JUDGE0_BASE_URL = os.getenv(
-    "JUDGE0_BASE_URL",
-    "https://judge0-ce.p.rapidapi.com/submissions?base64_encoded=false&wait=true",
+from .websocket import (
+    broadcast_leaderboard,
+    broadcast_submission_update,
+    broadcast_participant_count,
 )
-RAPIDAPI_KEY = os.getenv("RAPIDAPI_KEY", "")
-RAPIDAPI_HOST = os.getenv("RAPIDAPI_HOST", "judge0-ce.p.rapidapi.com")
-
-print("JUDGE0:", JUDGE0_BASE_URL)
-print("KEY:", RAPIDAPI_KEY)
-def compare_output(actual, expected):
-    actual = "\n".join(line.rstrip() for line in (actual or "").strip().splitlines())
-    expected = "\n".join(line.rstrip() for line in (expected or "").strip().splitlines())
-    return actual == expected
 
 
-def get_submission_status(result):
-    stderr = (result.get("stderr") or "").strip()
-    compile_output = (result.get("compile_output") or "").strip()
-    status_desc = ((result.get("status") or {}).get("description") or "").strip()
-
-    if compile_output:
-        return "CE", {
-            "stderr": stderr,
-            "compile_output": compile_output,
-            "status": status_desc,
-        }
-
-    if stderr:
-        return "RE", {
-            "stderr": stderr,
-            "compile_output": compile_output,
-            "status": status_desc,
-        }
-
-    if status_desc.lower() in {"time limit exceeded"}:
-        return "TLE", {
-            "stderr": stderr,
-            "compile_output": compile_output,
-            "status": status_desc,
-        }
-
-    return "OK", {
-        "stderr": stderr,
-        "compile_output": compile_output,
-        "status": status_desc,
-    }
-
-
-def run_single_testcase(source_code, language_id, stdin):
-    if not RAPIDAPI_KEY:
-        raise Exception("Judge0 API key is missing. Set RAPIDAPI_KEY in environment variables.")
-
-    headers = {
-        "content-type": "application/json",
-        "X-RapidAPI-Key": RAPIDAPI_KEY,
-        "X-RapidAPI-Host": RAPIDAPI_HOST,
-    }
-
-    payload = {
-        "source_code": source_code,
-        "language_id": language_id,
-        "stdin": stdin,
-    }
-
-    response = requests.post(
-        JUDGE0_BASE_URL,
-        json=payload,
-        headers=headers,
-        timeout=30,
+def get_user_display_name(user):
+    return (
+        getattr(user, "username", None)
+        or getattr(user, "user_name", None)
+        or getattr(user, "email", None)
+        or getattr(user, "name", None)
+        or str(user)
     )
 
-    try:
-        response.raise_for_status()
-    except requests.exceptions.HTTPError:
-        try:
-            error_body = response.json()
-        except Exception:
-            error_body = response.text
-        raise Exception(f"Judge0 error {response.status_code}: {error_body}")
 
-    return response.json()
+def rebuild_contest_leaderboard(contest):
+    submissions = (
+        Submission.objects.filter(contest=contest)
+        .select_related("user", "problem")
+        .order_by("submitted_at", "id")
+    )
+
+    best_by_user_problem = {}
+
+    for sub in submissions:
+        key = (sub.user_id, sub.problem_id)
+        existing = best_by_user_problem.get(key)
+
+        if existing is None:
+            best_by_user_problem[key] = sub
+            continue
+
+        if existing.status != "AC" and sub.status == "AC":
+            best_by_user_problem[key] = sub
+            continue
+
+        if existing.status == "AC" and sub.status == "AC":
+            if sub.submitted_at < existing.submitted_at:
+                best_by_user_problem[key] = sub
+            continue
+
+    leaderboard_data = {}
+
+    for (_, _), sub in best_by_user_problem.items():
+        user_id = sub.user_id
+
+        if user_id not in leaderboard_data:
+            leaderboard_data[user_id] = {
+                "user": sub.user,
+                "score": 0,
+                "solved": 0,
+                "penalty": 0,
+            }
+
+        if sub.status == "AC":
+            leaderboard_data[user_id]["score"] += sub.problem.points
+            leaderboard_data[user_id]["solved"] += 1
+
+            if contest.start_time and sub.submitted_at:
+                delta = sub.submitted_at - contest.start_time
+                penalty_minutes = max(int(delta.total_seconds() // 60), 0)
+                leaderboard_data[user_id]["penalty"] += penalty_minutes
+
+    existing_rows = {
+        row.user_id: row
+        for row in Leaderboard.objects.filter(contest=contest)
+    }
+
+    rows_to_create = []
+    rows_to_update = []
+
+    for user_id, data in leaderboard_data.items():
+        row = existing_rows.get(user_id)
+
+        if row:
+            row.score = data["score"]
+            row.solved = data["solved"]
+            row.penalty = data["penalty"]
+            row.last_updated = timezone.now()
+            rows_to_update.append(row)
+        else:
+            rows_to_create.append(
+                Leaderboard(
+                    contest=contest,
+                    user=data["user"],
+                    score=data["score"],
+                    solved=data["solved"],
+                    penalty=data["penalty"],
+                )
+            )
+
+    if rows_to_create:
+        Leaderboard.objects.bulk_create(rows_to_create)
+
+    if rows_to_update:
+        Leaderboard.objects.bulk_update(
+            rows_to_update,
+            ["score", "solved", "penalty", "last_updated"],
+        )
+
+    valid_user_ids = set(leaderboard_data.keys())
+    Leaderboard.objects.filter(contest=contest).exclude(user_id__in=valid_user_ids).delete()
+
+    ranked_rows = list(
+        Leaderboard.objects.filter(contest=contest).order_by(
+            "-score",
+            "-solved",
+            "penalty",
+            "last_updated",
+            "id",
+        )
+    )
+
+    changed_rank_rows = []
+    for index, row in enumerate(ranked_rows, start=1):
+        if row.rank != index:
+            row.rank = index
+            changed_rank_rows.append(row)
+
+    if changed_rank_rows:
+        Leaderboard.objects.bulk_update(changed_rank_rows, ["rank"])
 
 
 @api_view(["POST"])
@@ -111,65 +154,31 @@ def run_code(request):
     if not problem_id or not source_code or not language_id:
         return Response(
             {"error": "problem_id, source_code and language_id are required"},
-            status=400,
+            status=status.HTTP_400_BAD_REQUEST,
         )
 
     try:
         problem = Problem.objects.get(id=problem_id)
     except Problem.DoesNotExist:
-        return Response({"error": "Problem not found"}, status=404)
-
-    testcases = TestCase.objects.filter(problem=problem).order_by("id")
-
-    if not testcases.exists():
-        return Response({"error": "No testcases found for this problem"}, status=404)
-
-    results = []
-    passed = 0
-
-    for i, tc in enumerate(testcases, start=1):
-        try:
-            res = run_single_testcase(source_code, language_id, tc.input)
-        except Exception as e:
-            return Response({"error": str(e)}, status=500)
-
-        output = (res.get("stdout") or "").strip()
-        verdict, details = get_submission_status(res)
-
-        if verdict in {"CE", "RE", "TLE"}:
-            return Response(
-                {
-                    "error": "Code execution failed",
-                    "details": details,
-                },
-                status=400,
-            )
-
-        expected = (tc.expected_output or "").strip()
-        is_passed = compare_output(output, tc.expected_output)
-
-        if is_passed:
-            passed += 1
-
-        results.append(
-            {
-                "testcase": i,
-                "expected_output": expected,
-                "actual_output": output,
-                "passed": is_passed,
-            }
+        return Response(
+            {"error": "Problem not found"},
+            status=status.HTTP_404_NOT_FOUND,
         )
 
-    return Response(
-        {
-            "passed": passed,
-            "total": len(results),
-            "results": results,
-            "message": "Run code API working"
-        },
-        status=200,
-
+    result = judge_problem_submission(
+        problem=problem,
+        source_code=source_code,
+        language_id=language_id,
+        use_sample=True,
     )
+
+    http_status = (
+        status.HTTP_200_OK
+        if result["status"] != "ERROR"
+        else status.HTTP_400_BAD_REQUEST
+    )
+
+    return Response(result, status=http_status)
 
 
 @api_view(["POST"])
@@ -180,36 +189,52 @@ def submit_contest(request):
     answers = request.data.get("answers") or request.data.get("submissions") or []
 
     if not contest_id:
-        return Response({"error": "contest_id is required"}, status=400)
+        return Response(
+            {"error": "contest_id is required"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
 
     if not isinstance(answers, list) or not answers:
-        return Response({"error": "answers must be a non-empty list"}, status=400)
+        return Response(
+            {"error": "answers must be a non-empty list"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
 
     try:
         contest = Contest.objects.get(id=contest_id)
     except Contest.DoesNotExist:
-        return Response({"error": "Contest not found"}, status=404)
+        return Response(
+            {"error": "Contest not found"},
+            status=status.HTTP_404_NOT_FOUND,
+        )
 
     user = request.user
 
     if contest.status == "Upcoming":
-        return Response({"error": "Contest has not started yet"}, status=400)
+        return Response(
+            {"error": "Contest has not started yet"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
 
     if contest.status == "Ended":
-        return Response({"error": "Contest has already ended"}, status=400)
+        return Response(
+            {"error": "Contest has already ended"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
 
     if not ContestRegistration.objects.filter(contest=contest, user=user).exists():
-        return Response({"error": "You must join the contest before submitting"}, status=403)
+        return Response(
+            {"error": "You must join the contest before submitting"},
+            status=status.HTTP_403_FORBIDDEN,
+        )
 
-    total_score = 0
-    solved_count = 0
     submission_results = []
 
     for ans in answers:
         problem_id = ans.get("problem_id")
         source_code = (ans.get("source_code") or ans.get("code") or "").strip()
         language_id = ans.get("language_id")
-        language_name = ans.get("language", "python")
+        language_name = (ans.get("language") or "python").lower()
 
         if not problem_id:
             submission_results.append(
@@ -220,6 +245,7 @@ def submit_contest(request):
                     "passed_testcases": 0,
                     "total_testcases": 0,
                     "score": 0,
+                    "status": "ERROR",
                     "error": "problem_id is required",
                 }
             )
@@ -234,6 +260,7 @@ def submit_contest(request):
                     "passed_testcases": 0,
                     "total_testcases": 0,
                     "score": 0,
+                    "status": "ERROR",
                     "error": "source_code is required",
                 }
             )
@@ -248,15 +275,17 @@ def submit_contest(request):
                     "passed_testcases": 0,
                     "total_testcases": 0,
                     "score": 0,
+                    "status": "ERROR",
                     "error": "language_id is required",
                 }
             )
             continue
 
-        contest_problem = ContestProblem.objects.filter(
-            contest=contest,
-            problem_id=problem_id,
-        ).select_related("problem").first()
+        contest_problem = (
+            ContestProblem.objects.filter(contest=contest, problem_id=problem_id)
+            .select_related("problem")
+            .first()
+        )
 
         if not contest_problem:
             submission_results.append(
@@ -267,64 +296,26 @@ def submit_contest(request):
                     "passed_testcases": 0,
                     "total_testcases": 0,
                     "score": 0,
+                    "status": "ERROR",
                     "error": "Problem does not belong to this contest",
                 }
             )
             continue
 
         problem = contest_problem.problem
-        testcases = TestCase.objects.filter(problem=problem).order_by("id")
 
-        if not testcases.exists():
-            submission_results.append(
-                {
-                    "problem_id": problem.id,
-                    "title": problem.title,
-                    "passed": False,
-                    "passed_testcases": 0,
-                    "total_testcases": 0,
-                    "score": 0,
-                    "error": "No testcases found for this problem",
-                }
-            )
-            continue
+        judge_result = judge_problem_submission(
+            problem=problem,
+            source_code=source_code,
+            language_id=language_id,
+            use_sample=False,
+        )
 
-        passed_count = 0
-        total_testcases = testcases.count()
-        all_passed = True
-        final_status = "AC"
-
-        for tc in testcases:
-            try:
-                result = run_single_testcase(source_code, language_id, tc.input)
-            except Exception as e:
-                return Response(
-                    {"error": f"Judge0 execution failed: {str(e)}"},
-                    status=500,
-                )
-
-            actual_output = (result.get("stdout") or "").strip()
-            verdict, details = get_submission_status(result)
-
-            if verdict != "OK":
-                all_passed = False
-                final_status = verdict
-                break
-
-            ok = compare_output(actual_output, tc.expected_output)
-
-            if ok:
-                passed_count += 1
-            else:
-                all_passed = False
-                final_status = "WA"
-
+        passed_count = judge_result["passed_count"]
+        total_testcases = judge_result["total_count"]
+        final_status = judge_result["status"]
+        all_passed = final_status == "AC"
         score = problem.points if all_passed else 0
-
-        if all_passed:
-            solved_count += 1
-
-        total_score += score
 
         Submission.objects.create(
             user=user,
@@ -333,7 +324,7 @@ def submit_contest(request):
             code=source_code,
             language=language_name,
             status=final_status,
-            runtime=0.0,
+            runtime=judge_result.get("runtime") or 0.0,
             score=score,
         )
 
@@ -349,32 +340,24 @@ def submit_contest(request):
             }
         )
 
-    leaderboard_obj, _ = Leaderboard.objects.get_or_create(
-        contest=contest,
-        user=user,
+    rebuild_contest_leaderboard(contest)
+
+    my_row = Leaderboard.objects.filter(contest=contest, user=user).first()
+    total_score = my_row.score if my_row else 0
+    solved_count = my_row.solved if my_row else 0
+
+    broadcast_leaderboard(contest.id)
+
+    broadcast_submission_update(
+        contest.id,
+        {
+            "contest_id": contest.id,
+            "user": get_user_display_name(user),
+            "type": "contest_submit",
+            "total_score": total_score,
+            "solved_count": solved_count,
+        },
     )
-
-    leaderboard_obj.score = total_score
-    leaderboard_obj.solved = solved_count
-    leaderboard_obj.last_updated = timezone.now()
-    leaderboard_obj.save()
-
-    leaders = Leaderboard.objects.filter(contest=contest).order_by(
-        "-score",
-        "-solved",
-        "penalty",
-        "last_updated",
-        "id",
-    )
-
-    leaderboard_updates = []
-    for index, lb in enumerate(leaders, start=1):
-        if lb.rank != index:
-            lb.rank = index
-            leaderboard_updates.append(lb)
-
-    if leaderboard_updates:
-        Leaderboard.objects.bulk_update(leaderboard_updates, ["rank"])
 
     return Response(
         {
@@ -383,12 +366,22 @@ def submit_contest(request):
             "solved_count": solved_count,
             "results": submission_results,
         },
-        status=200,
+        status=status.HTTP_200_OK,
     )
 
 
 @api_view(["GET"])
 def leaderboard(request, contest_id):
+    try:
+        contest = Contest.objects.get(id=contest_id)
+    except Contest.DoesNotExist:
+        return Response(
+            {"error": "Contest not found"},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    rebuild_contest_leaderboard(contest)
+
     rows = (
         Leaderboard.objects.filter(contest_id=contest_id)
         .select_related("user")
@@ -400,13 +393,7 @@ def leaderboard(request, contest_id):
         result.append(
             {
                 "rank": row.rank,
-                "user_name": (
-                    getattr(row.user, "username", None)
-                    or getattr(row.user, "user_name", None)
-                    or getattr(row.user, "email", None)
-                    or getattr(row.user, "name", None)
-                    or str(row.user)
-                ),
+                "user_name": get_user_display_name(row.user),
                 "score": row.score,
                 "solved": row.solved,
                 "penalty": row.penalty,
@@ -414,7 +401,7 @@ def leaderboard(request, contest_id):
             }
         )
 
-    return Response(result, status=200)
+    return Response(result, status=status.HTTP_200_OK)
 
 
 @api_view(["POST"])
@@ -423,18 +410,221 @@ def join_contest(request, contest_id):
     try:
         contest = Contest.objects.get(id=contest_id)
     except Contest.DoesNotExist:
-        return Response({"error": "Contest not found"}, status=404)
+        return Response(
+            {"error": "Contest not found"},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    if contest.status == "Ended":
+        return Response(
+            {"error": "Contest already ended"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
 
     registration, created = ContestRegistration.objects.get_or_create(
         contest=contest,
         user=request.user,
     )
 
+    participants_count = contest.registrations.count()
+
+    broadcast_participant_count(contest.id, participants_count)
+
     return Response(
         {
             "joined": True,
             "created": created,
-            "participants_count": contest.registrations.count(),
+            "participants_count": participants_count,
+            "joined_at": registration.joined_at,
         },
-        status=200,
+        status=status.HTTP_200_OK,
+    )
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def contest_join_status(request, contest_id):
+    joined = ContestRegistration.objects.filter(
+        contest_id=contest_id,
+        user=request.user,
+    ).exists()
+
+    return Response(
+        {
+            "contest_id": contest_id,
+            "joined": joined,
+        },
+        status=status.HTTP_200_OK,
+    )
+
+
+class SubmitCodeView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        problem_id = request.data.get("problem_id")
+        source_code = request.data.get("source_code")
+        language_id = request.data.get("language_id")
+        contest_id = request.data.get("contest_id")
+        language_name = (request.data.get("language") or "python").lower()
+
+        if not problem_id or not source_code or not language_id:
+            return Response(
+                {"error": "problem_id, source_code, language_id required"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            problem = Problem.objects.get(id=problem_id)
+        except Problem.DoesNotExist:
+            return Response(
+                {"error": "Problem not found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        contest = None
+        if contest_id:
+            try:
+                contest = Contest.objects.get(id=contest_id)
+            except Contest.DoesNotExist:
+                return Response(
+                    {"error": "Contest not found"},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+
+            if contest.status == "Upcoming":
+                return Response(
+                    {"error": "Contest has not started yet"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            if contest.status == "Ended":
+                return Response(
+                    {"error": "Contest has already ended"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            if not ContestRegistration.objects.filter(
+                contest=contest,
+                user=request.user,
+            ).exists():
+                return Response(
+                    {"error": "You must join the contest before submitting"},
+                    status=status.HTTP_403_FORBIDDEN,
+                )
+
+            if not ContestProblem.objects.filter(
+                contest=contest,
+                problem_id=problem_id,
+            ).exists():
+                return Response(
+                    {"error": "Problem does not belong to this contest"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+        judge_result = judge_problem_submission(
+            problem=problem,
+            source_code=source_code,
+            language_id=language_id,
+            use_sample=False,
+        )
+
+        final_status = judge_result["status"]
+        score = problem.points if (contest and final_status == "AC") else 0
+
+        submission = Submission.objects.create(
+            user=request.user,
+            problem=problem,
+            contest=contest,
+            code=source_code,
+            language=language_name,
+            status=final_status,
+            runtime=judge_result.get("runtime") or 0.0,
+            score=score,
+        )
+
+        if contest and submission.status != "PENDING":
+            rebuild_contest_leaderboard(contest)
+
+            broadcast_submission_update(
+                contest.id,
+                {
+                    "submission_id": submission.id,
+                    "problem_id": submission.problem_id,
+                    "status": submission.status,
+                    "runtime": submission.runtime,
+                    "score": submission.score,
+                    "submitted_at": submission.submitted_at.isoformat()
+                    if getattr(submission, "submitted_at", None)
+                    else None,
+                },
+            )
+            broadcast_leaderboard(contest.id)
+
+        return Response(
+            {
+                "submission_id": submission.id,
+                "status": judge_result["status"],
+                "passed": judge_result["passed_count"],
+                "total": judge_result["total_count"],
+                "runtime": judge_result["runtime"],
+                "score": submission.score,
+            },
+            status=status.HTTP_201_CREATED,
+        )
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def submission_status(request, submission_id):
+    try:
+        submission = Submission.objects.get(id=submission_id, user=request.user)
+    except Submission.DoesNotExist:
+        return Response(
+            {"error": "Submission not found"},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    if submission.contest_id and submission.status != "PENDING":
+        rebuild_contest_leaderboard(submission.contest)
+
+        broadcast_submission_update(
+            submission.contest_id,
+            {
+                "submission_id": submission.id,
+                "problem_id": submission.problem_id,
+                "status": submission.status,
+                "runtime": submission.runtime,
+                "score": submission.score,
+                "submitted_at": submission.submitted_at.isoformat()
+                if submission.submitted_at
+                else None,
+            },
+        )
+        broadcast_leaderboard(submission.contest_id)
+
+    return Response(
+        {
+            "submission_id": submission.id,
+            "status": submission.status,
+            "runtime": submission.runtime,
+            "score": submission.score,
+            "submitted_at": submission.submitted_at,
+        },
+        status=status.HTTP_200_OK,
+    )
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def task_status(request, task_id):
+    result = AsyncResult(task_id)
+
+    return Response(
+        {
+            "task_id": task_id,
+            "state": result.state,
+            "result": result.result if result.ready() else None,
+        },
+        status=status.HTTP_200_OK,
     )

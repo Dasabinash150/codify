@@ -11,8 +11,8 @@ class ProblemAdmin(admin.ModelAdmin):
 
 @admin.register(TestCase)
 class TestCaseAdmin(admin.ModelAdmin):
-    list_display = ("id", "problem", "is_sample")
-    search_fields = ("problem__title",)
+    list_display = ("problem", "is_sample", "is_hidden")
+    list_filter = ("is_sample", "is_hidden")
 
 
 @admin.register(Submission)

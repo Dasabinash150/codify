@@ -35,14 +35,15 @@ class TestCase(models.Model):
     )
     input = models.TextField()
     expected_output = models.TextField()
+
     is_sample = models.BooleanField(default=False)
+    is_hidden = models.BooleanField(default=True)   # NEW FIELD
 
     class Meta:
         ordering = ["id"]
 
     def __str__(self):
         return f"TestCase - {self.problem.title}"
-
 
 class Contest(models.Model):
     name = models.CharField(max_length=255)

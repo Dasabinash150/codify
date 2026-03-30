@@ -1,0 +1,1437 @@
+
+[
+{
+  "model": "sessions.session",
+  "pk": "6a3t1w3v0i0xho04vv9jdr61yb9vjtz0",
+  "fields": {
+    "session_data": ".eJxVjMsOwiAUBf-FtSG0wKW4dO83NPcBUjWQ9LEy_rs26UK3Z2bOS424rWXcljSPk6iz6tTpdyPkR6o7kDvWW9Pc6jpPpHdFH3TR1ybpeTncv4OCS_nWwBGSFwqdxRhJrPPeY4gOmS0OATJATz0a0w-SSJgsmM75HCAGl416fwDjQjer:1w4Lzm:nyz-bgs_MNpChbwCn18C7OhFBKppSda10XUJqaZwFIg",
+    "expire_date": "2026-04-05T16:49:46.904Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "6d35nrzp74ysmut2420oe2m56qxd4vj2",
+  "fields": {
+    "session_data": ".eJxVjMsOwiAUBf-FtSG0wKW4dO83NPcBUjWQ9LEy_rs26UK3Z2bOS424rWXcljSPk6iz6tTpdyPkR6o7kDvWW9Pc6jpPpHdFH3TR1ybpeTncv4OCS_nWwBGSFwqdxRhJrPPeY4gOmS0OATJATz0a0w-SSJgsmM75HCAGl416fwDjQjer:1w4hmB:aH6TeMWo9ipyDqUQgqiM3wKEvu59bjyVV2qiDyKlz-M",
+    "expire_date": "2026-04-06T16:05:11.823Z"
+  }
+},
+{
+  "model": "account.user",
+  "pk": 1,
+  "fields": {
+    "password": "pbkdf2_sha256$1000000$wnXq9glNapP2cw9MjLXlLS$iPe7IDIbzvi/1F3b96f+8PfYU2LH+fCRb+rqEGUyN9k=",
+    "last_login": "2026-03-23T16:05:11.805Z",
+    "email": "admin@gmail.com",
+    "name": "Admin",
+    "tc": true,
+    "is_active": true,
+    "is_admin": true,
+    "created_at": "2026-03-21T05:17:51.521Z",
+    "updated_at": "2026-03-21T05:17:51.549Z"
+  }
+},
+{
+  "model": "account.user",
+  "pk": 2,
+  "fields": {
+    "password": "",
+    "last_login": null,
+    "email": "das.15122003@gmail.com",
+    "name": "Abinash Das",
+    "tc": true,
+    "is_active": true,
+    "is_admin": false,
+    "created_at": "2026-03-21T05:46:22.454Z",
+    "updated_at": "2026-03-21T05:46:22.456Z"
+  }
+},
+{
+  "model": "account.user",
+  "pk": 3,
+  "fields": {
+    "password": "",
+    "last_login": null,
+    "email": "learnandapply150@gmail.com",
+    "name": "Learn And Apply",
+    "tc": true,
+    "is_active": true,
+    "is_admin": false,
+    "created_at": "2026-03-22T05:41:05.805Z",
+    "updated_at": "2026-03-22T05:41:05.805Z"
+  }
+},
+{
+  "model": "account.user",
+  "pk": 4,
+  "fields": {
+    "password": "pbkdf2_sha256$1000000$uDb0s7cq6qvolrzMz4SJTn$ps023BXiJ/KXR07DV19EmVpVMs0evIynM/r4PQAabjA=",
+    "last_login": null,
+    "email": "dasabinash150@gmail.com",
+    "name": "Abinash Das",
+    "tc": true,
+    "is_active": true,
+    "is_admin": false,
+    "created_at": "2026-03-23T16:40:52.077Z",
+    "updated_at": "2026-03-23T16:40:52.077Z"
+  }
+},
+{
+  "model": "account.user",
+  "pk": 5,
+  "fields": {
+    "password": "",
+    "last_login": null,
+    "email": "dasabinash1807@gmail.com",
+    "name": "ABINASH DAS",
+    "tc": true,
+    "is_active": true,
+    "is_admin": false,
+    "created_at": "2026-03-24T17:36:18.296Z",
+    "updated_at": "2026-03-24T17:36:18.310Z"
+  }
+},
+{
+  "model": "account.user",
+  "pk": 6,
+  "fields": {
+    "password": "pbkdf2_sha256$1000000$kh0sB9RbECBjmTERbMTzmT$xJbVrO/BCiKsV3BWjU9AqIqiLgHJVnDa0NRQebZfHCw=",
+    "last_login": null,
+    "email": "student1@example.com",
+    "name": "Student One",
+    "tc": true,
+    "is_active": true,
+    "is_admin": false,
+    "created_at": "2026-03-26T16:17:30.173Z",
+    "updated_at": "2026-03-26T16:17:30.591Z"
+  }
+},
+{
+  "model": "account.user",
+  "pk": 7,
+  "fields": {
+    "password": "pbkdf2_sha256$1000000$Tnn8WxuHr1UbhPW6QPtXDF$qAMT+2Qokbf45AquEgAjNqMpFVq8iTtFey8sZdk/0Q0=",
+    "last_login": null,
+    "email": "student2@example.com",
+    "name": "Student Two",
+    "tc": true,
+    "is_active": true,
+    "is_admin": false,
+    "created_at": "2026-03-26T16:17:30.624Z",
+    "updated_at": "2026-03-26T16:17:31.010Z"
+  }
+},
+{
+  "model": "account.user",
+  "pk": 8,
+  "fields": {
+    "password": "pbkdf2_sha256$1000000$jGdVOu7ZsA92mIc1XYEOqM$ew1pI4VNVcMyzOkLX8MXG0+sS4W80gHRFZbz7tiIuRI=",
+    "last_login": null,
+    "email": "student3@example.com",
+    "name": "Student Three",
+    "tc": true,
+    "is_active": true,
+    "is_admin": false,
+    "created_at": "2026-03-26T16:17:31.026Z",
+    "updated_at": "2026-03-26T16:17:31.419Z"
+  }
+},
+{
+  "model": "contest.problem",
+  "pk": 1,
+  "fields": {
+    "title": "Two Sum",
+    "description": "Given an array of integers nums and an integer target, return the indices of the two numbers such that they add up to target.\r\n\r\nYou may assume that each input would have exactly one solution, and you may not use the same element twice.\r\n\r\nExample:\r\n\r\nInput\r\n\r\nnums = [2,7,11,15]\r\ntarget = 9\r\n\r\nOutput\r\n\r\n[0,1]",
+    "difficulty": "easy",
+    "constraints": "2 <= nums.length <= 10^4\r\n-10^9 <= nums[i] <= 10^9\r\n-10^9 <= target <= 10^9",
+    "tags": "array, hash-table",
+    "points": 100,
+    "created_at": "2026-03-22T16:56:52.872Z",
+    "updated_at": "2026-03-22T16:56:52.872Z"
+  }
+},
+{
+  "model": "contest.problem",
+  "pk": 2,
+  "fields": {
+    "title": "Reverse String",
+    "description": "Write a function that reverses a string.\r\n\r\nThe input string is given as an array of characters.\r\n\r\nExample\r\n\r\nInput\r\n\r\nhello\r\n\r\nOutput\r\n\r\nolleh",
+    "difficulty": "easy",
+    "constraints": "1 <= s.length <= 10^5",
+    "tags": "string",
+    "points": 100,
+    "created_at": "2026-03-22T16:57:33.905Z",
+    "updated_at": "2026-03-22T16:57:33.905Z"
+  }
+},
+{
+  "model": "contest.problem",
+  "pk": 3,
+  "fields": {
+    "title": "Palindrome Check",
+    "description": "Check whether a string is a palindrome.",
+    "difficulty": "easy",
+    "constraints": "1 <= len(s) <= 10^5",
+    "tags": "string,two-pointers",
+    "points": 100,
+    "created_at": "2026-03-26T16:17:31.466Z",
+    "updated_at": "2026-03-26T16:17:31.466Z"
+  }
+},
+{
+  "model": "contest.problem",
+  "pk": 4,
+  "fields": {
+    "title": "Factorial Number",
+    "description": "Return factorial of a given number.",
+    "difficulty": "medium",
+    "constraints": "0 <= n <= 20",
+    "tags": "math,recursion",
+    "points": 150,
+    "created_at": "2026-03-26T16:17:31.483Z",
+    "updated_at": "2026-03-26T16:17:31.483Z"
+  }
+},
+{
+  "model": "contest.problem",
+  "pk": 5,
+  "fields": {
+    "title": "Maximum in Array",
+    "description": "Find the maximum element in an array.",
+    "difficulty": "easy",
+    "constraints": "1 <= n <= 10^5",
+    "tags": "array",
+    "points": 100,
+    "created_at": "2026-03-26T16:17:31.499Z",
+    "updated_at": "2026-03-26T16:17:31.499Z"
+  }
+},
+{
+  "model": "contest.problem",
+  "pk": 6,
+  "fields": {
+    "title": "Count Vowels",
+    "description": "Count vowels in a string.",
+    "difficulty": "easy",
+    "constraints": "1 <= len(s) <= 10^5",
+    "tags": "string",
+    "points": 100,
+    "created_at": "2026-03-26T16:39:51.698Z",
+    "updated_at": "2026-03-26T16:39:51.698Z"
+  }
+},
+{
+  "model": "contest.testcase",
+  "pk": 1,
+  "fields": {
+    "problem": 1,
+    "input": "nums = [2,7,11,15]\r\ntarget = 9",
+    "expected_output": "[0,1]",
+    "is_sample": true
+  }
+},
+{
+  "model": "contest.testcase",
+  "pk": 2,
+  "fields": {
+    "problem": 1,
+    "input": "nums = [3,2,4]\r\ntarget = 6",
+    "expected_output": "[1,2]",
+    "is_sample": false
+  }
+},
+{
+  "model": "contest.testcase",
+  "pk": 3,
+  "fields": {
+    "problem": 2,
+    "input": "hello",
+    "expected_output": "olleh",
+    "is_sample": false
+  }
+},
+{
+  "model": "contest.testcase",
+  "pk": 4,
+  "fields": {
+    "problem": 3,
+    "input": "madam",
+    "expected_output": "True",
+    "is_sample": true
+  }
+},
+{
+  "model": "contest.testcase",
+  "pk": 5,
+  "fields": {
+    "problem": 3,
+    "input": "racecar",
+    "expected_output": "True",
+    "is_sample": true
+  }
+},
+{
+  "model": "contest.testcase",
+  "pk": 6,
+  "fields": {
+    "problem": 3,
+    "input": "hello",
+    "expected_output": "False",
+    "is_sample": false
+  }
+},
+{
+  "model": "contest.testcase",
+  "pk": 7,
+  "fields": {
+    "problem": 3,
+    "input": "abba",
+    "expected_output": "True",
+    "is_sample": false
+  }
+},
+{
+  "model": "contest.testcase",
+  "pk": 8,
+  "fields": {
+    "problem": 4,
+    "input": "5",
+    "expected_output": "120",
+    "is_sample": true
+  }
+},
+{
+  "model": "contest.testcase",
+  "pk": 9,
+  "fields": {
+    "problem": 4,
+    "input": "0",
+    "expected_output": "1",
+    "is_sample": true
+  }
+},
+{
+  "model": "contest.testcase",
+  "pk": 10,
+  "fields": {
+    "problem": 4,
+    "input": "3",
+    "expected_output": "6",
+    "is_sample": false
+  }
+},
+{
+  "model": "contest.testcase",
+  "pk": 11,
+  "fields": {
+    "problem": 4,
+    "input": "7",
+    "expected_output": "5040",
+    "is_sample": false
+  }
+},
+{
+  "model": "contest.testcase",
+  "pk": 12,
+  "fields": {
+    "problem": 5,
+    "input": "1 2 3 4 5",
+    "expected_output": "5",
+    "is_sample": true
+  }
+},
+{
+  "model": "contest.testcase",
+  "pk": 13,
+  "fields": {
+    "problem": 5,
+    "input": "10 8 6 4 2",
+    "expected_output": "10",
+    "is_sample": true
+  }
+},
+{
+  "model": "contest.testcase",
+  "pk": 14,
+  "fields": {
+    "problem": 5,
+    "input": "-1 -5 -3 -4",
+    "expected_output": "-1",
+    "is_sample": false
+  }
+},
+{
+  "model": "contest.testcase",
+  "pk": 15,
+  "fields": {
+    "problem": 5,
+    "input": "7 7 7 7",
+    "expected_output": "7",
+    "is_sample": false
+  }
+},
+{
+  "model": "contest.testcase",
+  "pk": 16,
+  "fields": {
+    "problem": 6,
+    "input": "hello",
+    "expected_output": "2",
+    "is_sample": true
+  }
+},
+{
+  "model": "contest.testcase",
+  "pk": 17,
+  "fields": {
+    "problem": 6,
+    "input": "python",
+    "expected_output": "1",
+    "is_sample": true
+  }
+},
+{
+  "model": "contest.testcase",
+  "pk": 18,
+  "fields": {
+    "problem": 6,
+    "input": "aeiou",
+    "expected_output": "5",
+    "is_sample": false
+  }
+},
+{
+  "model": "contest.contest",
+  "pk": 1,
+  "fields": {
+    "name": "Beginner Coding Challenge",
+    "description": "This contest is designed for beginners to practice basic programming problems like arrays, strings, and searching algorithms.",
+    "start_time": "2026-03-24T17:37:40Z",
+    "end_time": "2026-03-27T00:00:00Z",
+    "created_at": "2026-03-22T17:03:39.380Z"
+  }
+},
+{
+  "model": "contest.contest",
+  "pk": 2,
+  "fields": {
+    "name": "Algorithm Master Contest",
+    "description": "This contest focuses on intermediate algorithmic challenges including stack problems, dynamic programming, and optimization techniques.",
+    "start_time": "2026-03-23T17:53:54Z",
+    "end_time": "2026-03-24T12:00:00Z",
+    "created_at": "2026-03-22T17:04:24.267Z"
+  }
+},
+{
+  "model": "contest.contest",
+  "pk": 3,
+  "fields": {
+    "name": "Sample Coding Contest",
+    "description": "Sample contest for testing coding platform flow.",
+    "start_time": "2026-03-26T16:31:02.872Z",
+    "end_time": "2026-03-26T18:31:02.872Z",
+    "created_at": "2026-03-26T16:17:31.705Z"
+  }
+},
+{
+  "model": "contest.contest",
+  "pk": 4,
+  "fields": {
+    "name": "Python Fundamentals Challenge 2026",
+    "description": "Basic Python coding contest for beginners.",
+    "start_time": "2026-03-26T16:39:51.662Z",
+    "end_time": "2026-03-26T18:39:51.662Z",
+    "created_at": "2026-03-26T16:39:51.664Z"
+  }
+},
+{
+  "model": "contest.contest",
+  "pk": 5,
+  "fields": {
+    "name": "DSA Sprint Challenge 2026",
+    "description": "Array and searching based coding contest.",
+    "start_time": "2026-03-27T16:39:51.683Z",
+    "end_time": "2026-03-27T18:39:51.683Z",
+    "created_at": "2026-03-26T16:39:51.683Z"
+  }
+},
+{
+  "model": "contest.contest",
+  "pk": 6,
+  "fields": {
+    "name": "SQL Analytics Contest 2026",
+    "description": "Database and logic oriented contest.",
+    "start_time": "2026-03-28T16:39:51.696Z",
+    "end_time": "2026-03-28T18:39:51.696Z",
+    "created_at": "2026-03-26T16:39:51.696Z"
+  }
+},
+{
+  "model": "contest.contestproblem",
+  "pk": 1,
+  "fields": {
+    "contest": 1,
+    "problem": 1,
+    "order": 1
+  }
+},
+{
+  "model": "contest.contestproblem",
+  "pk": 2,
+  "fields": {
+    "contest": 1,
+    "problem": 2,
+    "order": 2
+  }
+},
+{
+  "model": "contest.contestproblem",
+  "pk": 3,
+  "fields": {
+    "contest": 2,
+    "problem": 2,
+    "order": 1
+  }
+},
+{
+  "model": "contest.contestproblem",
+  "pk": 4,
+  "fields": {
+    "contest": 3,
+    "problem": 1,
+    "order": 1
+  }
+},
+{
+  "model": "contest.contestproblem",
+  "pk": 5,
+  "fields": {
+    "contest": 3,
+    "problem": 2,
+    "order": 2
+  }
+},
+{
+  "model": "contest.contestproblem",
+  "pk": 6,
+  "fields": {
+    "contest": 3,
+    "problem": 3,
+    "order": 3
+  }
+},
+{
+  "model": "contest.contestproblem",
+  "pk": 7,
+  "fields": {
+    "contest": 3,
+    "problem": 4,
+    "order": 4
+  }
+},
+{
+  "model": "contest.contestproblem",
+  "pk": 8,
+  "fields": {
+    "contest": 3,
+    "problem": 5,
+    "order": 5
+  }
+},
+{
+  "model": "contest.contestproblem",
+  "pk": 9,
+  "fields": {
+    "contest": 4,
+    "problem": 2,
+    "order": 1
+  }
+},
+{
+  "model": "contest.contestproblem",
+  "pk": 10,
+  "fields": {
+    "contest": 4,
+    "problem": 4,
+    "order": 2
+  }
+},
+{
+  "model": "contest.contestproblem",
+  "pk": 11,
+  "fields": {
+    "contest": 5,
+    "problem": 1,
+    "order": 1
+  }
+},
+{
+  "model": "contest.contestproblem",
+  "pk": 12,
+  "fields": {
+    "contest": 5,
+    "problem": 5,
+    "order": 2
+  }
+},
+{
+  "model": "contest.contestproblem",
+  "pk": 13,
+  "fields": {
+    "contest": 6,
+    "problem": 3,
+    "order": 1
+  }
+},
+{
+  "model": "contest.contestproblem",
+  "pk": 14,
+  "fields": {
+    "contest": 6,
+    "problem": 6,
+    "order": 2
+  }
+},
+{
+  "model": "contest.contestregistration",
+  "pk": 1,
+  "fields": {
+    "contest": 1,
+    "user": 3,
+    "joined_at": "2026-03-22T19:29:53.591Z"
+  }
+},
+{
+  "model": "contest.contestregistration",
+  "pk": 2,
+  "fields": {
+    "contest": 2,
+    "user": 3,
+    "joined_at": "2026-03-22T19:33:20.408Z"
+  }
+},
+{
+  "model": "contest.contestregistration",
+  "pk": 3,
+  "fields": {
+    "contest": 1,
+    "user": 1,
+    "joined_at": "2026-03-23T16:37:00.228Z"
+  }
+},
+{
+  "model": "contest.contestregistration",
+  "pk": 4,
+  "fields": {
+    "contest": 1,
+    "user": 4,
+    "joined_at": "2026-03-23T16:41:26.284Z"
+  }
+},
+{
+  "model": "contest.contestregistration",
+  "pk": 5,
+  "fields": {
+    "contest": 2,
+    "user": 4,
+    "joined_at": "2026-03-23T16:42:58.441Z"
+  }
+},
+{
+  "model": "contest.contestregistration",
+  "pk": 6,
+  "fields": {
+    "contest": 1,
+    "user": 5,
+    "joined_at": "2026-03-24T17:36:39.324Z"
+  }
+},
+{
+  "model": "contest.contestregistration",
+  "pk": 7,
+  "fields": {
+    "contest": 3,
+    "user": 6,
+    "joined_at": "2026-03-26T16:17:31.806Z"
+  }
+},
+{
+  "model": "contest.contestregistration",
+  "pk": 8,
+  "fields": {
+    "contest": 3,
+    "user": 7,
+    "joined_at": "2026-03-26T16:17:31.816Z"
+  }
+},
+{
+  "model": "contest.contestregistration",
+  "pk": 9,
+  "fields": {
+    "contest": 3,
+    "user": 8,
+    "joined_at": "2026-03-26T16:17:31.831Z"
+  }
+},
+{
+  "model": "contest.contestregistration",
+  "pk": 10,
+  "fields": {
+    "contest": 4,
+    "user": 6,
+    "joined_at": "2026-03-26T16:39:51.674Z"
+  }
+},
+{
+  "model": "contest.contestregistration",
+  "pk": 11,
+  "fields": {
+    "contest": 4,
+    "user": 7,
+    "joined_at": "2026-03-26T16:39:51.676Z"
+  }
+},
+{
+  "model": "contest.contestregistration",
+  "pk": 12,
+  "fields": {
+    "contest": 4,
+    "user": 8,
+    "joined_at": "2026-03-26T16:39:51.677Z"
+  }
+},
+{
+  "model": "contest.contestregistration",
+  "pk": 13,
+  "fields": {
+    "contest": 5,
+    "user": 6,
+    "joined_at": "2026-03-26T16:39:51.690Z"
+  }
+},
+{
+  "model": "contest.contestregistration",
+  "pk": 14,
+  "fields": {
+    "contest": 5,
+    "user": 7,
+    "joined_at": "2026-03-26T16:39:51.690Z"
+  }
+},
+{
+  "model": "contest.contestregistration",
+  "pk": 15,
+  "fields": {
+    "contest": 5,
+    "user": 8,
+    "joined_at": "2026-03-26T16:39:51.690Z"
+  }
+},
+{
+  "model": "contest.contestregistration",
+  "pk": 16,
+  "fields": {
+    "contest": 6,
+    "user": 6,
+    "joined_at": "2026-03-26T16:39:51.702Z"
+  }
+},
+{
+  "model": "contest.contestregistration",
+  "pk": 17,
+  "fields": {
+    "contest": 6,
+    "user": 7,
+    "joined_at": "2026-03-26T16:39:51.703Z"
+  }
+},
+{
+  "model": "contest.contestregistration",
+  "pk": 18,
+  "fields": {
+    "contest": 6,
+    "user": 8,
+    "joined_at": "2026-03-26T16:39:51.704Z"
+  }
+},
+{
+  "model": "contest.contestregistration",
+  "pk": 19,
+  "fields": {
+    "contest": 4,
+    "user": 1,
+    "joined_at": "2026-03-26T16:40:32.069Z"
+  }
+},
+{
+  "model": "contest.submission",
+  "pk": 1,
+  "fields": {
+    "user": 4,
+    "problem": 2,
+    "contest": 2,
+    "code": "s = input()\nprint(s[::-1])",
+    "language": "python",
+    "status": "AC",
+    "runtime": 0.0,
+    "score": 100,
+    "submitted_at": "2026-03-23T18:33:07.535Z"
+  }
+},
+{
+  "model": "contest.submission",
+  "pk": 2,
+  "fields": {
+    "user": 5,
+    "problem": 2,
+    "contest": 1,
+    "code": "s = input()\nprint(s[::-1])",
+    "language": "python",
+    "status": "PENDING",
+    "runtime": 0.0,
+    "score": 0,
+    "submitted_at": "2026-03-24T17:42:50.823Z"
+  }
+},
+{
+  "model": "contest.submission",
+  "pk": 3,
+  "fields": {
+    "user": 5,
+    "problem": 1,
+    "contest": 1,
+    "code": "nums = [2,7,11,15]\ntarget = 9\n\nseen = {}\n\nfor i, num in enumerate(nums):\n    diff = target - num\n    if diff in seen:\n        print([seen[diff], i])\n        break\n    seen[num] = i",
+    "language": "python",
+    "status": "WA",
+    "runtime": 0.0,
+    "score": 0,
+    "submitted_at": "2026-03-24T17:44:30.934Z"
+  }
+},
+{
+  "model": "contest.submission",
+  "pk": 4,
+  "fields": {
+    "user": 5,
+    "problem": 2,
+    "contest": 1,
+    "code": "s = input()\nprint(s[::-1])",
+    "language": "python",
+    "status": "AC",
+    "runtime": 0.0,
+    "score": 100,
+    "submitted_at": "2026-03-24T17:44:32.043Z"
+  }
+},
+{
+  "model": "contest.submission",
+  "pk": 5,
+  "fields": {
+    "user": 5,
+    "problem": 1,
+    "contest": 1,
+    "code": "nums = [2,7,11,15]\ntarget = 9\n\nseen = {}\n\nfor i, num in enumerate(nums):\n    diff = target - num\n    if diff in seen:\n        print([seen[diff], i])\n        break\n    seen[num] = i",
+    "language": "python",
+    "status": "PENDING",
+    "runtime": 0.0,
+    "score": 0,
+    "submitted_at": "2026-03-24T17:48:10.472Z"
+  }
+},
+{
+  "model": "contest.submission",
+  "pk": 6,
+  "fields": {
+    "user": 5,
+    "problem": 2,
+    "contest": 1,
+    "code": "s = input()\nprint(s[::-1])",
+    "language": "python",
+    "status": "PENDING",
+    "runtime": 0.0,
+    "score": 0,
+    "submitted_at": "2026-03-24T17:49:34.691Z"
+  }
+},
+{
+  "model": "contest.submission",
+  "pk": 7,
+  "fields": {
+    "user": 5,
+    "problem": 1,
+    "contest": 1,
+    "code": "nums = [2,7,11,15]\ntarget = 9\n\nseen = {}\n\nfor i, num in enumerate(nums):\n    diff = target - num\n    if diff in seen:\n        print([seen[diff], i])\n        break\n    seen[num] = i",
+    "language": "python",
+    "status": "WA",
+    "runtime": 0.011,
+    "score": 0,
+    "submitted_at": "2026-03-24T18:42:57.040Z"
+  }
+},
+{
+  "model": "contest.submission",
+  "pk": 8,
+  "fields": {
+    "user": 4,
+    "problem": 1,
+    "contest": 1,
+    "code": "def solve():\n    # Write your code here\n    pass\n\nsolve()",
+    "language": "python",
+    "status": "WA",
+    "runtime": 0.012,
+    "score": 0,
+    "submitted_at": "2026-03-25T17:52:21.931Z"
+  }
+},
+{
+  "model": "contest.submission",
+  "pk": 9,
+  "fields": {
+    "user": 4,
+    "problem": 1,
+    "contest": 1,
+    "code": "def solve():\n    # Write your code here\n    pass\n\nsolve()",
+    "language": "python",
+    "status": "WA",
+    "runtime": 0.0,
+    "score": 0,
+    "submitted_at": "2026-03-25T17:53:13.157Z"
+  }
+},
+{
+  "model": "contest.submission",
+  "pk": 10,
+  "fields": {
+    "user": 4,
+    "problem": 2,
+    "contest": 1,
+    "code": "def solve():\n    # Write your code here\n    pass\n\nsolve()",
+    "language": "python",
+    "status": "WA",
+    "runtime": 0.0,
+    "score": 0,
+    "submitted_at": "2026-03-25T17:53:14.273Z"
+  }
+},
+{
+  "model": "contest.submission",
+  "pk": 11,
+  "fields": {
+    "user": 1,
+    "problem": 2,
+    "contest": null,
+    "code": "def solve():\n    # write your code here\n    pass\n\nsolve()\n",
+    "language": "python",
+    "status": "PENDING",
+    "runtime": 0.0,
+    "score": 0,
+    "submitted_at": "2026-03-26T16:07:08.193Z"
+  }
+},
+{
+  "model": "contest.submission",
+  "pk": 12,
+  "fields": {
+    "user": 1,
+    "problem": 1,
+    "contest": 1,
+    "code": "def solve():\n    # Write your code here\n    pass\n\nsolve()",
+    "language": "python",
+    "status": "WA",
+    "runtime": 0.0,
+    "score": 0,
+    "submitted_at": "2026-03-26T16:08:19.768Z"
+  }
+},
+{
+  "model": "contest.submission",
+  "pk": 13,
+  "fields": {
+    "user": 1,
+    "problem": 2,
+    "contest": 1,
+    "code": "def solve():\n    # Write your code here\n    pass\n\nsolve()",
+    "language": "python",
+    "status": "WA",
+    "runtime": 0.0,
+    "score": 0,
+    "submitted_at": "2026-03-26T16:08:21.110Z"
+  }
+},
+{
+  "model": "contest.submission",
+  "pk": 14,
+  "fields": {
+    "user": 6,
+    "problem": 1,
+    "contest": 3,
+    "code": "print('[0,1]')",
+    "language": "python",
+    "status": "AC",
+    "runtime": 0.12,
+    "score": 100,
+    "submitted_at": "2026-03-26T16:17:31.946Z"
+  }
+},
+{
+  "model": "contest.submission",
+  "pk": 15,
+  "fields": {
+    "user": 6,
+    "problem": 2,
+    "contest": 3,
+    "code": "print(input()[::-1])",
+    "language": "python",
+    "status": "AC",
+    "runtime": 0.1,
+    "score": 100,
+    "submitted_at": "2026-03-26T16:17:31.963Z"
+  }
+},
+{
+  "model": "contest.submission",
+  "pk": 16,
+  "fields": {
+    "user": 7,
+    "problem": 1,
+    "contest": 3,
+    "code": "print('[1,2]')",
+    "language": "python",
+    "status": "WA",
+    "runtime": 0.15,
+    "score": 20,
+    "submitted_at": "2026-03-26T16:17:31.978Z"
+  }
+},
+{
+  "model": "contest.submission",
+  "pk": 17,
+  "fields": {
+    "user": 7,
+    "problem": 3,
+    "contest": 3,
+    "code": "s=input();print(str(s==s[::-1]))",
+    "language": "python",
+    "status": "AC",
+    "runtime": 0.11,
+    "score": 100,
+    "submitted_at": "2026-03-26T16:17:31.991Z"
+  }
+},
+{
+  "model": "contest.submission",
+  "pk": 18,
+  "fields": {
+    "user": 8,
+    "problem": 4,
+    "contest": 3,
+    "code": "n=int(input());f=1\nfor i in range(1,n+1): f*=i\nprint(f)",
+    "language": "python",
+    "status": "AC",
+    "runtime": 0.13,
+    "score": 150,
+    "submitted_at": "2026-03-26T16:17:32.006Z"
+  }
+},
+{
+  "model": "contest.submission",
+  "pk": 19,
+  "fields": {
+    "user": 8,
+    "problem": 5,
+    "contest": 3,
+    "code": "arr=list(map(int,input().split()));print(max(arr))",
+    "language": "python",
+    "status": "AC",
+    "runtime": 0.09,
+    "score": 100,
+    "submitted_at": "2026-03-26T16:17:32.019Z"
+  }
+},
+{
+  "model": "contest.submission",
+  "pk": 20,
+  "fields": {
+    "user": 7,
+    "problem": 3,
+    "contest": 3,
+    "code": "s=input(); print(str(s == s[::-1]))",
+    "language": "python",
+    "status": "AC",
+    "runtime": 0.11,
+    "score": 100,
+    "submitted_at": "2026-03-26T16:31:02.888Z"
+  }
+},
+{
+  "model": "contest.submission",
+  "pk": 21,
+  "fields": {
+    "user": 8,
+    "problem": 4,
+    "contest": 3,
+    "code": "n=int(input()); f=1\nfor i in range(1,n+1): f*=i\nprint(f)",
+    "language": "python",
+    "status": "AC",
+    "runtime": 0.13,
+    "score": 150,
+    "submitted_at": "2026-03-26T16:31:02.890Z"
+  }
+},
+{
+  "model": "contest.submission",
+  "pk": 22,
+  "fields": {
+    "user": 8,
+    "problem": 5,
+    "contest": 3,
+    "code": "arr=list(map(int,input().split())); print(max(arr))",
+    "language": "python",
+    "status": "AC",
+    "runtime": 0.09,
+    "score": 100,
+    "submitted_at": "2026-03-26T16:31:02.891Z"
+  }
+},
+{
+  "model": "contest.submission",
+  "pk": 23,
+  "fields": {
+    "user": 6,
+    "problem": 2,
+    "contest": 4,
+    "code": "print('sample output')",
+    "language": "python",
+    "status": "AC",
+    "runtime": 0.12,
+    "score": 100,
+    "submitted_at": "2026-03-26T16:39:51.683Z"
+  }
+},
+{
+  "model": "contest.submission",
+  "pk": 24,
+  "fields": {
+    "user": 7,
+    "problem": 4,
+    "contest": 4,
+    "code": "print('sample output')",
+    "language": "python",
+    "status": "WA",
+    "runtime": 0.12,
+    "score": 20,
+    "submitted_at": "2026-03-26T16:39:51.683Z"
+  }
+},
+{
+  "model": "contest.submission",
+  "pk": 25,
+  "fields": {
+    "user": 6,
+    "problem": 1,
+    "contest": 5,
+    "code": "print('sample output')",
+    "language": "python",
+    "status": "AC",
+    "runtime": 0.12,
+    "score": 100,
+    "submitted_at": "2026-03-26T16:39:51.695Z"
+  }
+},
+{
+  "model": "contest.submission",
+  "pk": 26,
+  "fields": {
+    "user": 7,
+    "problem": 5,
+    "contest": 5,
+    "code": "print('sample output')",
+    "language": "python",
+    "status": "WA",
+    "runtime": 0.12,
+    "score": 20,
+    "submitted_at": "2026-03-26T16:39:51.696Z"
+  }
+},
+{
+  "model": "contest.submission",
+  "pk": 27,
+  "fields": {
+    "user": 6,
+    "problem": 3,
+    "contest": 6,
+    "code": "print('sample output')",
+    "language": "python",
+    "status": "AC",
+    "runtime": 0.12,
+    "score": 100,
+    "submitted_at": "2026-03-26T16:39:51.707Z"
+  }
+},
+{
+  "model": "contest.submission",
+  "pk": 28,
+  "fields": {
+    "user": 7,
+    "problem": 6,
+    "contest": 6,
+    "code": "print('sample output')",
+    "language": "python",
+    "status": "WA",
+    "runtime": 0.12,
+    "score": 20,
+    "submitted_at": "2026-03-26T16:39:51.708Z"
+  }
+},
+{
+  "model": "contest.submission",
+  "pk": 29,
+  "fields": {
+    "user": 1,
+    "problem": 2,
+    "contest": 4,
+    "code": "def solve():\n    # Write your code here\n    pass\n\nsolve()",
+    "language": "python",
+    "status": "WA",
+    "runtime": 0.0,
+    "score": 0,
+    "submitted_at": "2026-03-26T16:41:01.078Z"
+  }
+},
+{
+  "model": "contest.submission",
+  "pk": 30,
+  "fields": {
+    "user": 1,
+    "problem": 4,
+    "contest": 4,
+    "code": "def solve():\n    # Write your code here\n    pass\n\nsolve()",
+    "language": "python",
+    "status": "WA",
+    "runtime": 0.0,
+    "score": 0,
+    "submitted_at": "2026-03-26T16:41:06.519Z"
+  }
+},
+{
+  "model": "contest.leaderboard",
+  "pk": 1,
+  "fields": {
+    "contest": 2,
+    "user": 4,
+    "score": 100,
+    "solved": 1,
+    "penalty": 0,
+    "rank": 1,
+    "last_updated": "2026-03-23T18:33:07.542Z"
+  }
+},
+{
+  "model": "contest.leaderboard",
+  "pk": 2,
+  "fields": {
+    "contest": 1,
+    "user": 5,
+    "score": 100,
+    "solved": 1,
+    "penalty": 0,
+    "rank": 1,
+    "last_updated": "2026-03-24T18:43:00.748Z"
+  }
+},
+{
+  "model": "contest.leaderboard",
+  "pk": 3,
+  "fields": {
+    "contest": 1,
+    "user": 4,
+    "score": 0,
+    "solved": 0,
+    "penalty": 0,
+    "rank": 2,
+    "last_updated": "2026-03-25T17:53:14.279Z"
+  }
+},
+{
+  "model": "contest.leaderboard",
+  "pk": 4,
+  "fields": {
+    "contest": 1,
+    "user": 1,
+    "score": 0,
+    "solved": 0,
+    "penalty": 0,
+    "rank": 3,
+    "last_updated": "2026-03-26T16:08:21.124Z"
+  }
+},
+{
+  "model": "contest.leaderboard",
+  "pk": 5,
+  "fields": {
+    "contest": 3,
+    "user": 8,
+    "score": 250,
+    "solved": 2,
+    "penalty": 15,
+    "rank": 1,
+    "last_updated": "2026-03-26T16:31:02.892Z"
+  }
+},
+{
+  "model": "contest.leaderboard",
+  "pk": 6,
+  "fields": {
+    "contest": 3,
+    "user": 6,
+    "score": 200,
+    "solved": 2,
+    "penalty": 20,
+    "rank": 2,
+    "last_updated": "2026-03-26T16:31:02.894Z"
+  }
+},
+{
+  "model": "contest.leaderboard",
+  "pk": 7,
+  "fields": {
+    "contest": 3,
+    "user": 7,
+    "score": 120,
+    "solved": 1,
+    "penalty": 35,
+    "rank": 3,
+    "last_updated": "2026-03-26T16:31:02.895Z"
+  }
+},
+{
+  "model": "contest.leaderboard",
+  "pk": 8,
+  "fields": {
+    "contest": 4,
+    "user": 6,
+    "score": 200,
+    "solved": 2,
+    "penalty": 15,
+    "rank": 1,
+    "last_updated": "2026-03-26T16:39:51.680Z"
+  }
+},
+{
+  "model": "contest.leaderboard",
+  "pk": 9,
+  "fields": {
+    "contest": 4,
+    "user": 7,
+    "score": 100,
+    "solved": 1,
+    "penalty": 25,
+    "rank": 2,
+    "last_updated": "2026-03-26T16:39:51.683Z"
+  }
+},
+{
+  "model": "contest.leaderboard",
+  "pk": 10,
+  "fields": {
+    "contest": 4,
+    "user": 8,
+    "score": 50,
+    "solved": 0,
+    "penalty": 40,
+    "rank": 3,
+    "last_updated": "2026-03-26T16:39:51.683Z"
+  }
+},
+{
+  "model": "contest.leaderboard",
+  "pk": 11,
+  "fields": {
+    "contest": 5,
+    "user": 6,
+    "score": 200,
+    "solved": 2,
+    "penalty": 15,
+    "rank": 1,
+    "last_updated": "2026-03-26T16:39:51.690Z"
+  }
+},
+{
+  "model": "contest.leaderboard",
+  "pk": 12,
+  "fields": {
+    "contest": 5,
+    "user": 7,
+    "score": 100,
+    "solved": 1,
+    "penalty": 25,
+    "rank": 2,
+    "last_updated": "2026-03-26T16:39:51.693Z"
+  }
+},
+{
+  "model": "contest.leaderboard",
+  "pk": 13,
+  "fields": {
+    "contest": 5,
+    "user": 8,
+    "score": 50,
+    "solved": 0,
+    "penalty": 40,
+    "rank": 3,
+    "last_updated": "2026-03-26T16:39:51.693Z"
+  }
+},
+{
+  "model": "contest.leaderboard",
+  "pk": 14,
+  "fields": {
+    "contest": 6,
+    "user": 6,
+    "score": 200,
+    "solved": 2,
+    "penalty": 15,
+    "rank": 1,
+    "last_updated": "2026-03-26T16:39:51.704Z"
+  }
+},
+{
+  "model": "contest.leaderboard",
+  "pk": 15,
+  "fields": {
+    "contest": 6,
+    "user": 7,
+    "score": 100,
+    "solved": 1,
+    "penalty": 25,
+    "rank": 2,
+    "last_updated": "2026-03-26T16:39:51.705Z"
+  }
+},
+{
+  "model": "contest.leaderboard",
+  "pk": 16,
+  "fields": {
+    "contest": 6,
+    "user": 8,
+    "score": 50,
+    "solved": 0,
+    "penalty": 40,
+    "rank": 3,
+    "last_updated": "2026-03-26T16:39:51.706Z"
+  }
+},
+{
+  "model": "contest.leaderboard",
+  "pk": 17,
+  "fields": {
+    "contest": 4,
+    "user": 1,
+    "score": 0,
+    "solved": 0,
+    "penalty": 0,
+    "rank": 4,
+    "last_updated": "2026-03-26T16:41:06.524Z"
+  }
+}
+]
