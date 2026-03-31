@@ -193,12 +193,14 @@ REDIS_URL = os.getenv("REDIS_URL", "redis://127.0.0.1:6379/0")
 # -----------------------------------------
 # CELERY
 # -----------------------------------------
-CELERY_BROKER_URL = REDIS_URL
-CELERY_RESULT_BACKEND = REDIS_URL
+CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", REDIS_URL)
+CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND", REDIS_URL)
 
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
+
+CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 
 
 TIME_ZONE = os.getenv("TIME_ZONE", "Asia/Kolkata")
@@ -206,7 +208,6 @@ USE_TZ = True
 
 CELERY_TIMEZONE = TIME_ZONE
 CELERY_ENABLE_UTC = False
-
 
 # -----------------------------------------
 # CHANNELS (WebSocket)
@@ -219,7 +220,6 @@ CHANNEL_LAYERS = {
         },
     },
 }
-
 
 # -----------------------------------------
 # CACHE

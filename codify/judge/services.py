@@ -138,7 +138,7 @@ def judge_problem_submission(problem, source_code, language_id, use_sample=False
         result = run_code_with_judge0(
             source_code=source_code,
             language_id=language_id,
-            stdin=tc.input_data or "",
+            stdin=tc.input or "",
         )
 
         if not result["success"]:
@@ -169,7 +169,7 @@ def judge_problem_submission(problem, source_code, language_id, use_sample=False
             final_status = "CE"
             if use_sample:
                 testcase_results.append({
-                    "input": tc.input_data,
+                    "input": tc.input,
                     "expected_output": tc.expected_output,
                     "actual_output": compile_output,
                     "passed": False,
@@ -181,7 +181,7 @@ def judge_problem_submission(problem, source_code, language_id, use_sample=False
             final_status = "RE"
             if use_sample:
                 testcase_results.append({
-                    "input": tc.input_data,
+                    "input": tc.input,
                     "expected_output": tc.expected_output,
                     "actual_output": stderr,
                     "passed": False,
@@ -199,7 +199,7 @@ def judge_problem_submission(problem, source_code, language_id, use_sample=False
 
         if use_sample:
             testcase_results.append({
-                "input": tc.input_data,
+                "input": tc.input,
                 "expected_output": tc.expected_output,
                 "actual_output": stdout,
                 "passed": is_passed,
