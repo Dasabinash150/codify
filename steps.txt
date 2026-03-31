@@ -189,3 +189,10 @@ for i, num in enumerate(nums):
         print([seen[diff], i])
         break
     seen[num] = i
+
+
+====================
+upstash-----     gQAAAAAAAQ0uAAIncDI1M2IyZWFiNGIyNWI0ZTI1YWVlMTdlMGE2MDMzMzk5MHAyNjg5MTA
+ggAAAAAAAQ0uAAIgcDI3S1C04jIRmVO9JZMkk5V_QjQ0NqZHMqjt59ZFsf2a6g  (readonly)
+
+redis-cli --tls -u redis://default:gQAAAAAAAQ0uAAIncDI1M2IyZWFiNGIyNWI0ZTI1YWVlMTdlMGE2MDMzMzk5MHAyNjg5MTA@literate-wallaby-68910.upstash.io:6379
