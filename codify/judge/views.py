@@ -1,5 +1,4 @@
 from django.db import transaction
-from django.utils import timezone
 
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
@@ -8,8 +7,6 @@ from rest_framework import status
 from rest_framework.views import APIView
 
 from celery.result import AsyncResult
-
-from judge.services import judge_problem_submission
 
 from contest.models import (
     Problem,
@@ -20,6 +17,7 @@ from contest.models import (
     ContestRegistration,
 )
 
+from .services import judge_problem_submission, rebuild_contest_leaderboard
 from .websocket import (
     broadcast_leaderboard,
     broadcast_submission_update,
@@ -35,114 +33,6 @@ def get_user_display_name(user):
         or getattr(user, "name", None)
         or str(user)
     )
-
-
-def rebuild_contest_leaderboard(contest):
-    submissions = (
-        Submission.objects.filter(contest=contest)
-        .select_related("user", "problem")
-        .order_by("submitted_at", "id")
-    )
-
-    best_by_user_problem = {}
-
-    for sub in submissions:
-        key = (sub.user_id, sub.problem_id)
-        existing = best_by_user_problem.get(key)
-
-        if existing is None:
-            best_by_user_problem[key] = sub
-            continue
-
-        if existing.status != "AC" and sub.status == "AC":
-            best_by_user_problem[key] = sub
-            continue
-
-        if existing.status == "AC" and sub.status == "AC":
-            if sub.submitted_at < existing.submitted_at:
-                best_by_user_problem[key] = sub
-            continue
-
-    leaderboard_data = {}
-
-    for (_, _), sub in best_by_user_problem.items():
-        user_id = sub.user_id
-
-        if user_id not in leaderboard_data:
-            leaderboard_data[user_id] = {
-                "user": sub.user,
-                "score": 0,
-                "solved": 0,
-                "penalty": 0,
-            }
-
-        if sub.status == "AC":
-            leaderboard_data[user_id]["score"] += sub.problem.points
-            leaderboard_data[user_id]["solved"] += 1
-
-            if contest.start_time and sub.submitted_at:
-                delta = sub.submitted_at - contest.start_time
-                penalty_minutes = max(int(delta.total_seconds() // 60), 0)
-                leaderboard_data[user_id]["penalty"] += penalty_minutes
-
-    existing_rows = {
-        row.user_id: row
-        for row in Leaderboard.objects.filter(contest=contest)
-    }
-
-    rows_to_create = []
-    rows_to_update = []
-
-    for user_id, data in leaderboard_data.items():
-        row = existing_rows.get(user_id)
-
-        if row:
-            row.score = data["score"]
-            row.solved = data["solved"]
-            row.penalty = data["penalty"]
-            row.last_updated = timezone.now()
-            rows_to_update.append(row)
-        else:
-            rows_to_create.append(
-                Leaderboard(
-                    contest=contest,
-                    user=data["user"],
-                    score=data["score"],
-                    solved=data["solved"],
-                    penalty=data["penalty"],
-                )
-            )
-
-    if rows_to_create:
-        Leaderboard.objects.bulk_create(rows_to_create)
-
-    if rows_to_update:
-        Leaderboard.objects.bulk_update(
-            rows_to_update,
-            ["score", "solved", "penalty", "last_updated"],
-        )
-
-    valid_user_ids = set(leaderboard_data.keys())
-    Leaderboard.objects.filter(contest=contest).exclude(user_id__in=valid_user_ids).delete()
-
-    ranked_rows = list(
-        Leaderboard.objects.filter(contest=contest).order_by(
-            "-score",
-            "-solved",
-            "penalty",
-            "last_updated",
-            "id",
-        )
-    )
-
-    changed_rank_rows = []
-    for index, row in enumerate(ranked_rows, start=1):
-        if row.rank != index:
-            row.rank = index
-            changed_rank_rows.append(row)
-
-    if changed_rank_rows:
-        Leaderboard.objects.bulk_update(changed_rank_rows, ["rank"])
 
 
 @api_view(["POST"])
@@ -165,6 +55,11 @@ def run_code(request):
             status=status.HTTP_404_NOT_FOUND,
         )
 
+    print("problem_id =", problem_id)
+    print("problem title =", problem.title)
+    print("all testcases =", problem.testcases.count())
+    print("sample testcases =", problem.testcases.filter(is_sample=True).count())
+
     result = judge_problem_submission(
         problem=problem,
         source_code=source_code,
@@ -172,13 +67,13 @@ def run_code(request):
         use_sample=True,
     )
 
-    http_status = (
-        status.HTTP_200_OK
-        if result["status"] != "ERROR"
-        else status.HTTP_400_BAD_REQUEST
-    )
+    if result["status"] == "ERROR":
+        return Response(
+            {"error": result.get("message", "Run failed")},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
 
-    return Response(result, status=http_status)
+    return Response(result, status=status.HTTP_200_OK)
 
 
 @api_view(["POST"])
@@ -237,48 +132,42 @@ def submit_contest(request):
         language_name = (ans.get("language") or "python").lower()
 
         if not problem_id:
-            submission_results.append(
-                {
-                    "problem_id": None,
-                    "title": "",
-                    "passed": False,
-                    "passed_testcases": 0,
-                    "total_testcases": 0,
-                    "score": 0,
-                    "status": "ERROR",
-                    "error": "problem_id is required",
-                }
-            )
+            submission_results.append({
+                "problem_id": None,
+                "title": "",
+                "passed": False,
+                "passed_testcases": 0,
+                "total_testcases": 0,
+                "score": 0,
+                "status": "ERROR",
+                "error": "problem_id is required",
+            })
             continue
 
         if not source_code:
-            submission_results.append(
-                {
-                    "problem_id": problem_id,
-                    "title": "",
-                    "passed": False,
-                    "passed_testcases": 0,
-                    "total_testcases": 0,
-                    "score": 0,
-                    "status": "ERROR",
-                    "error": "source_code is required",
-                }
-            )
+            submission_results.append({
+                "problem_id": problem_id,
+                "title": "",
+                "passed": False,
+                "passed_testcases": 0,
+                "total_testcases": 0,
+                "score": 0,
+                "status": "ERROR",
+                "error": "source_code is required",
+            })
             continue
 
         if not language_id:
-            submission_results.append(
-                {
-                    "problem_id": problem_id,
-                    "title": "",
-                    "passed": False,
-                    "passed_testcases": 0,
-                    "total_testcases": 0,
-                    "score": 0,
-                    "status": "ERROR",
-                    "error": "language_id is required",
-                }
-            )
+            submission_results.append({
+                "problem_id": problem_id,
+                "title": "",
+                "passed": False,
+                "passed_testcases": 0,
+                "total_testcases": 0,
+                "score": 0,
+                "status": "ERROR",
+                "error": "language_id is required",
+            })
             continue
 
         contest_problem = (
@@ -288,18 +177,16 @@ def submit_contest(request):
         )
 
         if not contest_problem:
-            submission_results.append(
-                {
-                    "problem_id": problem_id,
-                    "title": "",
-                    "passed": False,
-                    "passed_testcases": 0,
-                    "total_testcases": 0,
-                    "score": 0,
-                    "status": "ERROR",
-                    "error": "Problem does not belong to this contest",
-                }
-            )
+            submission_results.append({
+                "problem_id": problem_id,
+                "title": "",
+                "passed": False,
+                "passed_testcases": 0,
+                "total_testcases": 0,
+                "score": 0,
+                "status": "ERROR",
+                "error": "Problem does not belong to this contest",
+            })
             continue
 
         problem = contest_problem.problem
@@ -328,17 +215,15 @@ def submit_contest(request):
             score=score,
         )
 
-        submission_results.append(
-            {
-                "problem_id": problem.id,
-                "title": problem.title,
-                "passed": all_passed,
-                "passed_testcases": passed_count,
-                "total_testcases": total_testcases,
-                "score": score,
-                "status": final_status,
-            }
-        )
+        submission_results.append({
+            "problem_id": problem.id,
+            "title": problem.title,
+            "passed": all_passed,
+            "passed_testcases": passed_count,
+            "total_testcases": total_testcases,
+            "score": score,
+            "status": final_status,
+        })
 
     rebuild_contest_leaderboard(contest)
 
@@ -347,7 +232,6 @@ def submit_contest(request):
     solved_count = my_row.solved if my_row else 0
 
     broadcast_leaderboard(contest.id)
-
     broadcast_submission_update(
         contest.id,
         {
@@ -427,7 +311,6 @@ def join_contest(request, contest_id):
     )
 
     participants_count = contest.registrations.count()
-
     broadcast_participant_count(contest.id, participants_count)
 
     return Response(
@@ -530,6 +413,13 @@ class SubmitCodeView(APIView):
         )
 
         final_status = judge_result["status"]
+
+        if final_status == "ERROR":
+            return Response(
+                {"error": judge_result.get("message", "Submit failed")},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         score = problem.points if (contest and final_status == "AC") else 0
 
         submission = Submission.objects.create(
@@ -543,7 +433,7 @@ class SubmitCodeView(APIView):
             score=score,
         )
 
-        if contest and submission.status != "PENDING":
+        if contest:
             rebuild_contest_leaderboard(contest)
 
             broadcast_submission_update(
@@ -557,6 +447,8 @@ class SubmitCodeView(APIView):
                     "submitted_at": submission.submitted_at.isoformat()
                     if getattr(submission, "submitted_at", None)
                     else None,
+                    "passed_testcases": judge_result["passed_count"],
+                    "total_testcases": judge_result["total_count"],
                 },
             )
             broadcast_leaderboard(contest.id)

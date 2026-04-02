@@ -728,7 +728,7 @@ function ContestEditorPage() {
 
       const res = await API.post("/run-code/", {
         problem_id: selectedProblem.id,
-        source_code: currentCode,
+        source_code: currentCode || "",
         language_id: judge0LanguageMap[language],
         stdin: customInputMap[selectedProblem.id] || "",
       });
@@ -736,18 +736,22 @@ function ContestEditorPage() {
       setRunSummary((prev) => ({
         ...prev,
         [selectedProblem.id]: {
-          passed: res.data.passed,
-          total: res.data.total,
+          passed: res.data.passed_count || 0,
+          total: res.data.total_count || 0,
         },
       }));
 
       setRunResults((prev) => ({
         ...prev,
-        [selectedProblem.id]: res.data.results || [],
+        [selectedProblem.id]: res.data.testcase_results || [],
       }));
     } catch (err) {
       console.error("RUN ERROR:", err.response?.data || err.message);
-      alert(err.response?.data?.detail || err.response?.data?.error || "Run failed");
+      alert(
+        err.response?.data?.error ||
+        err.response?.data?.message ||
+        "Run failed"
+      );
     } finally {
       setRunLoading(false);
     }
@@ -780,6 +784,7 @@ function ContestEditorPage() {
         problem_id: selectedProblem.id,
         contest_id: Number(id),
         source_code: sourceCode,
+        language_id: judge0LanguageMap[language],
         language,
       });
 
@@ -1223,11 +1228,10 @@ function ContestEditorPage() {
                   {!!selectedRunResults.length && (
                     <div className="editor-output-card mt-3">
                       <div className="editor-output-heading">Detailed Results</div>
-
                       {selectedRunResults.map((item, index) => (
                         <div key={index} className="mb-3">
                           <div className={item.passed ? "text-success" : "text-danger"}>
-                            Test Case {item.testcase}: {item.passed ? "Passed" : "Failed"}
+                            Test Case {index + 1}: {item.passed ? "Passed" : "Failed"}
                           </div>
                           <pre className="editor-output-pre mb-2">
                             {`Expected:

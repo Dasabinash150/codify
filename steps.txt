@@ -193,6 +193,18 @@ for i, num in enumerate(nums):
 
 ====================
 upstash-----     gQAAAAAAAQ0uAAIncDI1M2IyZWFiNGIyNWI0ZTI1YWVlMTdlMGE2MDMzMzk5MHAyNjg5MTA
+
+
 ggAAAAAAAQ0uAAIgcDI3S1C04jIRmVO9JZMkk5V_QjQ0NqZHMqjt59ZFsf2a6g  (readonly)
 
 redis-cli --tls -u redis://default:gQAAAAAAAQ0uAAIncDI1M2IyZWFiNGIyNWI0ZTI1YWVlMTdlMGE2MDMzMzk5MHAyNjg5MTA@literate-wallaby-68910.upstash.io:6379
+
+
+
+n = int(input())
+fact = 1
+
+for i in range(2, n + 1):
+    fact *= i
+
+print(fact)
