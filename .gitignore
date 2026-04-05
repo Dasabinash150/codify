@@ -4,12 +4,13 @@
 __pycache__/
 *.py[cod]
 *.pyo
+*$py.class
 
 # Django database
 db.sqlite3
 db.sqlite3-journal
 
-# Static files
+# Django static/media
 staticfiles/
 media/
 
@@ -20,14 +21,13 @@ ENV/
 .venv/
 codifyenv/
 
-
 # Python build files
 build/
 dist/
 *.egg-info/
 .eggs/
 
-# Python cache
+# Python cache / testing
 .pytest_cache/
 .coverage
 .coverage.*
@@ -46,8 +46,18 @@ htmlcov/
 node_modules/
 dist/
 build/
+.vite/
+coverage/
 
+# npm / yarn logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# -------------------------
 # Logs
+# -------------------------
 *.log
 logs/
 
@@ -64,10 +74,29 @@ celerybeat.pid
 # -------------------------
 .vscode/
 .idea/
+*.swp
+*.swo
 
 # -------------------------
 # OS files
 # -------------------------
 .DS_Store
 Thumbs.db
+desktop.ini
 
+# -------------------------
+# Temporary files
+# -------------------------
+tmp/
+temp/
+
+# -------------------------
+# Docker (future use)
+# -------------------------
+docker-data/
+
+# -------------------------
+# Secrets
+# -------------------------
+secrets.json
+credentials.json
