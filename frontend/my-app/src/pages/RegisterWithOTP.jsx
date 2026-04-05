@@ -1,9 +1,12 @@
+// src/pages/RegisterWithOTP.jsx
 import React, { useState } from "react";
-import axios from "axios";
+import { Link, useNavigate } from "react-router-dom";
 import "bootstrap/dist/css/bootstrap.min.css";
 import API from "../services/api";
 
-function Register() {
+function RegisterWithOTP() {
+  const navigate = useNavigate();
+
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -21,6 +24,7 @@ function Register() {
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
+
     setFormData((prev) => ({
       ...prev,
       [name]: type === "checkbox" ? checked : value,
@@ -33,19 +37,22 @@ function Register() {
     if (!data) return "Something went wrong";
 
     if (typeof data === "string") return data;
-    if (data.message) return data.message;
-    if (data.msg) return data.msg;
-    if (data.error) return data.error;
+    if (typeof data?.detail === "string") return data.detail;
+    if (typeof data?.message === "string") return data.message;
+    if (typeof data?.msg === "string") return data.msg;
+    if (typeof data?.error === "string") return data.error;
 
-    if (data.errors) {
+    if (data?.errors) {
       const firstKey = Object.keys(data.errors)[0];
       const firstValue = data.errors[firstKey];
+
       if (Array.isArray(firstValue)) return firstValue[0];
       if (typeof firstValue === "string") return firstValue;
     }
 
     const firstKey = Object.keys(data)[0];
     const firstValue = data[firstKey];
+
     if (Array.isArray(firstValue)) return firstValue[0];
     if (typeof firstValue === "string") return firstValue;
 
@@ -53,32 +60,30 @@ function Register() {
   };
 
   const sendOtp = async () => {
+    const email = formData.email.trim().toLowerCase();
+
+    if (!email) {
+      setError("Please enter email first");
+      return;
+    }
+
     try {
       setLoadingOtp(true);
       setError("");
       setMsg("");
 
-      const email = formData.email.trim().toLowerCase();
-
-      if (!email) {
-        setError("Please enter email first");
-        return;
-      }
-
-      const res = await API.post("/api/user/send-otp/", {
-        email,
-      });
+      const res = await API.post("/user/send-otp/", { email });
 
       setFormData((prev) => ({
         ...prev,
         email,
       }));
 
-      setMsg(res.data.message || "OTP sent successfully");
+      setMsg(res?.data?.message || res?.data?.msg || "OTP sent successfully");
       setOtpSent(true);
     } catch (err) {
+      console.error("Send OTP Error:", err?.response?.data || err.message);
       setError(getErrorMessage(err));
-      console.log("Send OTP Error:", err.response?.data || err.message);
     } finally {
       setLoadingOtp(false);
     }
@@ -87,6 +92,16 @@ function Register() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    if (formData.password !== formData.password2) {
+      setError("Passwords do not match");
+      return;
+    }
+
+    if (!formData.otp.trim()) {
+      setError("Please enter OTP");
+      return;
+    }
+
     try {
       setLoadingRegister(true);
       setError("");
@@ -94,19 +109,22 @@ function Register() {
 
       const payload = {
         ...formData,
+        name: formData.name.trim(),
         email: formData.email.trim().toLowerCase(),
         otp: formData.otp.trim(),
       };
 
-      const res = await API.post(
-        "/api/user/registerotp/",
-        payload
-      );
+      const res = await API.post("/user/registerotp/", payload);
 
-      setMsg(res.data.msg || "Registration successful");
-      console.log("Token:", res.data.token);
+      setMsg(res?.data?.msg || res?.data?.message || "Registration successful");
 
-      localStorage.setItem("token", JSON.stringify(res.data.token));
+      const access = res?.data?.token?.access || res?.data?.access;
+      const refresh = res?.data?.token?.refresh || res?.data?.refresh;
+
+      if (access) localStorage.setItem("access", access);
+      if (refresh) localStorage.setItem("refresh", refresh);
+
+      localStorage.setItem("username", payload.name || payload.email);
 
       setFormData({
         name: "",
@@ -116,10 +134,15 @@ function Register() {
         tc: true,
         otp: "",
       });
+
       setOtpSent(false);
+
+      setTimeout(() => {
+        navigate("/login");
+      }, 1000);
     } catch (err) {
+      console.error("Register Error:", err?.response?.data || err.message);
       setError(getErrorMessage(err));
-      console.log("Register Error:", err.response?.data || err.message);
     } finally {
       setLoadingRegister(false);
     }
@@ -220,7 +243,7 @@ function Register() {
                     type="button"
                     className="btn btn-primary btn-lg"
                     onClick={sendOtp}
-                    disabled={loadingOtp || !formData.email}
+                    disabled={loadingOtp || !formData.email.trim()}
                   >
                     {loadingOtp ? "Sending OTP..." : "Send OTP"}
                   </button>
@@ -256,7 +279,7 @@ function Register() {
 
               <div className="text-center mt-4">
                 <small className="text-muted">
-                  Already have an account? <a href="/login">Login</a>
+                  Already have an account? <Link to="/login">Login</Link>
                 </small>
               </div>
             </div>
@@ -267,4 +290,4 @@ function Register() {
   );
 }
 
-export default Register;
+export default RegisterWithOTP;

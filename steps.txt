@@ -208,3 +208,12 @@ for i in range(2, n + 1):
     fact *= i
 
 print(fact)
+
+
+============== aws key =======================
+c:\Users\ABINASH DAS\Downloads\jitcoderkey.pem
+
+ssh -i "c:\Users\ABINASH DAS\Downloads\jitcoderkey.pem" ubuntu@98.93.180.201    ==== (Connect from Windows)
+
+codifyenv\scripts\activate   ----> Virtual env activate
+

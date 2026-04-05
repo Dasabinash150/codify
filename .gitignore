@@ -20,6 +20,7 @@ ENV/
 .venv/
 codifyenv/
 
+
 # Python build files
 build/
 dist/
@@ -69,3 +70,4 @@ celerybeat.pid
 # -------------------------
 .DS_Store
 Thumbs.db
+

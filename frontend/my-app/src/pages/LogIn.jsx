@@ -1,3 +1,4 @@
+// src/pages/LogIn.jsx
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
@@ -31,21 +32,25 @@ const Login = () => {
     if (typeof data?.detail === "string") return data.detail;
     if (typeof data?.message === "string") return data.message;
     if (typeof data?.error === "string") return data.error;
+    if (typeof data?.msg === "string") return data.msg;
 
     if (data?.errors) {
       if (typeof data.errors === "string") return data.errors;
+
       const firstKey = Object.keys(data.errors)[0];
       const firstValue = data.errors[firstKey];
+
       if (Array.isArray(firstValue)) return firstValue[0];
       if (typeof firstValue === "string") return firstValue;
     }
 
     const firstKey = Object.keys(data)[0];
     const firstValue = data[firstKey];
+
     if (Array.isArray(firstValue)) return firstValue[0];
     if (typeof firstValue === "string") return firstValue;
 
-    return "Invalid credentials";
+    return "Login failed";
   };
 
   const handleSubmit = async (e) => {
@@ -54,14 +59,20 @@ const Login = () => {
     setLoading(true);
 
     try {
-      const res = await API.post("/user/login/", formData);
+      const payload = {
+        email: formData.email.trim().toLowerCase(),
+        password: formData.password,
+      };
+
+      const res = await API.post("/user/login/", payload);
 
       const access = res?.data?.token?.access || res?.data?.access;
       const refresh = res?.data?.token?.refresh || res?.data?.refresh;
       const userName =
         res?.data?.user?.name ||
         res?.data?.user?.username ||
-        formData.email;
+        res?.data?.name ||
+        payload.email;
 
       if (!access || !refresh) {
         setError("Token not found in response");
@@ -137,8 +148,7 @@ const Login = () => {
                 </div>
 
                 <p className="text-center mt-3">
-                  Don’t have an account?{" "}
-                  <Link to="/register">Register here</Link>
+                  Don’t have an account? <Link to="/register">Register here</Link>
                 </p>
               </div>
             </div>
