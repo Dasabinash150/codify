@@ -19,6 +19,9 @@ import ProtectedRoute from "./components/ProtectedRoute";
 
 import NotFoundPage from "./pages/NotFoundPage";
 
+const savedTheme = localStorage.getItem("theme") || "dark";
+document.documentElement.setAttribute("data-theme", savedTheme);
+
 function App() {
   return (
     <Routes>

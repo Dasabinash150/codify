@@ -217,3 +217,7 @@ ssh -i "c:\Users\ABINASH DAS\Downloads\jitcoderkey.pem" ubuntu@98.93.180.201    
 
 codifyenv\scripts\activate   ----> Virtual env activate
 
+
+"C:\Users\ABINASH DAS\Downloads\jitcoderDocker.pem"
+ssh -i "C:\Users\ABINASH DAS\Downloads\jitcoderDocker.pem" ubuntu@44.212.90.253
+ssh -i "C:\Users\ABINASH DAS\Downloads\jitcoderDocker.pem" ubuntu@98.92.68.253

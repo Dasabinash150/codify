@@ -7,6 +7,8 @@ import API from "../services/api";
 import "../styles/ContestEditorPage.css";
 import "../styles/global.css";
 import "../styles/variables.css";
+import ThemeToggle from "./ThemeToggle";
+
 
 const editorLanguageMap = {
   javascript: "javascript",
@@ -52,6 +54,7 @@ public class Main {
 };
 
 const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
+
 
 function ContestEditorPage() {
   const { id, problemId } = useParams();
