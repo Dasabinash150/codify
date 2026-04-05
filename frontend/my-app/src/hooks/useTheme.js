@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 
 export default function useTheme() {
   const [theme, setTheme] = useState(() => {
+    if (typeof window === "undefined") return "dark";
     return localStorage.getItem("theme") || "dark";
   });
 
@@ -9,6 +10,21 @@ export default function useTheme() {
     document.documentElement.setAttribute("data-theme", theme);
     localStorage.setItem("theme", theme);
   }, [theme]);
+
+  useEffect(() => {
+    const observer = new MutationObserver(() => {
+      const currentTheme =
+        document.documentElement.getAttribute("data-theme") || "dark";
+      setTheme(currentTheme);
+    });
+
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["data-theme"],
+    });
+
+    return () => observer.disconnect();
+  }, []);
 
   const toggleTheme = () => {
     setTheme((prev) => (prev === "dark" ? "light" : "dark"));
@@ -18,5 +34,6 @@ export default function useTheme() {
     theme,
     isDarkTheme: theme === "dark",
     toggleTheme,
+    setTheme,
   };
 }
