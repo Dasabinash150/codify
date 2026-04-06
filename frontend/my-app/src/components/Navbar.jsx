@@ -170,6 +170,9 @@ function Navbar() {
                     <Link to="/problems" className="user-dropdown-item">
                       💻 Problems
                     </Link>
+                    <Link to="/leaderboard" className="user-dropdown-item">
+                      LeaderBoard
+                    </Link>
 
                     <hr className="m-1" />
 

@@ -19,6 +19,9 @@ import ProtectedRoute from "./components/ProtectedRoute";
 
 import NotFoundPage from "./pages/NotFoundPage";
 
+import GlobalLeaderboardPage from "./pages/GlobalLeaderboardPage";
+import ContestLeaderboardPage from "./pages/ContestLeaderboardPage";
+
 const savedTheme = localStorage.getItem("theme") || "dark";
 document.documentElement.setAttribute("data-theme", savedTheme);
 
@@ -60,7 +63,7 @@ function App() {
           </ProtectedRoute>
         }
       />
-      <Route path="/contest/:id/leaderboard" element={<LeaderboardPage />} />
+      {/* <Route path="/contest/:id/leaderboard" element={<LeaderboardPage />} /> */}
 
       {/* User Routes */}
       <Route
@@ -81,6 +84,8 @@ function App() {
         }
       />
 
+      <Route path="/leaderboard" element={<GlobalLeaderboardPage />} />
+      <Route path="/contest/:id/leaderboard" element={<ContestLeaderboardPage />} />
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );
