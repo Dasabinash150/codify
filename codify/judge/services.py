@@ -11,7 +11,7 @@ JUDGE0_BASE_URL = (getattr(settings, "JUDGE0_BASE_URL", "") or "").rstrip("/")
 if not JUDGE0_BASE_URL:
     raise ValueError("JUDGE0_BASE_URL is missing in settings/.env.local")
 
-JUDGE0_SUBMIT_URL = f"{JUDGE0_BASE_URL}/submissions?base64_encoded=false&wait=true"
+JUDGE0_SUBMIT_URL = f"{JUDGE0_BASE_URL}/submissions/?base64_encoded=false&wait=true"
 
 
 def normalize_output(text):

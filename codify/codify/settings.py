@@ -179,10 +179,10 @@ EMAIL_USE_TLS = True
 # -----------------------------------------
 # JUDGE0
 # -----------------------------------------
-
-JUDGE0_BASE_URL = os.getenv("JUDGE0_BASE_URL", "https://judge0-ce.p.rapidapi.com")
-RAPIDAPI_KEY = os.getenv("RAPIDAPI_KEY")
-RAPIDAPI_HOST = os.getenv("RAPIDAPI_HOST", "judge0-ce.p.rapidapi.com")
+JUDGE0_BASE_URL = os.getenv("JUDGE0_URL", "http://127.0.0.1:2358")
+# JUDGE0_BASE_URL = os.getenv("JUDGE0_BASE_URL", "https://judge0-ce.p.rapidapi.com")
+# RAPIDAPI_KEY = os.getenv("RAPIDAPI_KEY")
+# RAPIDAPI_HOST = os.getenv("RAPIDAPI_HOST", "judge0-ce.p.rapidapi.com")
 
 # -----------------------------------------
 # REDIS

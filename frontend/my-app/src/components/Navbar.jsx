@@ -83,7 +83,7 @@ function Navbar() {
 
   return (
     <nav className="navbar navbar-expand-lg border-bottom app-navbar sticky-top">
-      <div className="container py-2">
+      <div className="container">
         <Link
           className="navbar-brand fw-bold fs-4 d-flex align-items-center gap-2"
           to="/"
