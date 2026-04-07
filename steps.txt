@@ -221,3 +221,7 @@ codifyenv\scripts\activate   ----> Virtual env activate
 "C:\Users\ABINASH DAS\Downloads\jitcoderDocker.pem"
 ssh -i "C:\Users\ABINASH DAS\Downloads\jitcoderDocker.pem" ubuntu@44.212.90.253
 ssh -i "C:\Users\ABINASH DAS\Downloads\jitcoderDocker.pem" ubuntu@98.92.68.253
+
+
+
+curl -X POST "http://localhost:2358/submissions/?base64_encoded=false&wait=true" -H "Content-Type: application/json" -d '{"source_code":"print(\"Hello Judge0\")","language_id":71}'
