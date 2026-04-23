@@ -676,10 +676,10 @@ export default function useContestEditor(id, problemId) {
         answers,
       });
 
-      // const resultMap = {};
-      // (res.data.results || []).forEach((item) => {
-      //   resultMap[item.problem_id] = item;
-      // });
+      const resultMap = {};
+      (res.data.results || []).forEach((item) => {
+        resultMap[item.problem_id] = item;
+      });
 
       setSubmitResults(resultMap);
       setBottomTab("result");
