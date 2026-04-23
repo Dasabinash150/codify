@@ -215,7 +215,7 @@ export default function useContestEditor(id, problemId) {
             String(item.contest_id || item.contest?.id || "") === String(id);
           const matchesProblem = selectedProblem
             ? String(item.problem_id || item.problem?.id || item.problem || "") ===
-              String(selectedProblem.id)
+            String(selectedProblem.id)
             : true;
           return matchesContest && matchesProblem;
         })
@@ -329,9 +329,9 @@ export default function useContestEditor(id, problemId) {
 
       const initialSelectedIdFromDraft =
         savedDraft?.selectedProblemId &&
-        enrichedProblems.some(
-          (problem) => Number(problem.id) === Number(savedDraft.selectedProblemId)
-        )
+          enrichedProblems.some(
+            (problem) => Number(problem.id) === Number(savedDraft.selectedProblemId)
+          )
           ? Number(savedDraft.selectedProblemId)
           : null;
 
@@ -592,33 +592,35 @@ export default function useContestEditor(id, problemId) {
         language,
       });
 
-      const submissionId = res.data.submission_id;
-      const taskId = res.data.task_id;
+      // const submissionId = res.data.submission_id;
+      // const taskId = res.data.task_id;
 
-      setSubmissionMeta((prev) => ({
-        ...prev,
-        [selectedProblem.id]: {
-          submission_id: submissionId,
-          task_id: taskId,
-          status: "PENDING",
-          runtime: 0,
-          score: 0,
-        },
-      }));
+      // setSubmissionMeta((prev) => ({
+      //   ...prev,
+      //   [selectedProblem.id]: {
+      //     submission_id: submissionId,
+      //     task_id: taskId,
+      //     status: "PENDING",
+      //     runtime: 0,
+      //     score: 0,
+      //   },
+      // }));
 
+      const data = res.data;
       setSubmitResults((prev) => ({
         ...prev,
         [selectedProblem.id]: {
           problem_id: selectedProblem.id,
           title: selectedProblem.title,
-          status: "PENDING",
-          passed: false,
-          score: 0,
-          runtime: 0,
-          passed_testcases: 0,
-          total_testcases: selectedProblem.testcaseObjects?.length || 0,
+          status: data.status,
+          passed: data.status === "AC",
+          score: data.score,
+          runtime: data.runtime,
+          passed_testcases: data.passed,
+          total_testcases: data.total,
         },
       }));
+
 
       setSubmittedProblemIds((prev) => ({
         ...prev,
@@ -626,7 +628,7 @@ export default function useContestEditor(id, problemId) {
       }));
 
       clearProblemDraft(selectedProblem.id);
-      await pollSubmissionHistory();
+      // await pollSubmissionHistory();
     } catch (err) {
       console.error("Submit error:", err.response?.data || err.message);
 
@@ -641,7 +643,7 @@ export default function useContestEditor(id, problemId) {
     } finally {
       setSubmitLoading(false);
     }
-  }, [codeStore, language, selectedProblem, id, clearProblemDraft, pollSubmissionHistory, navigate]);
+  }, [codeStore, language, selectedProblem, id, clearProblemDraft, navigate]);
 
   const handleFinishContest = useCallback(async () => {
     try {
@@ -674,10 +676,10 @@ export default function useContestEditor(id, problemId) {
         answers,
       });
 
-      const resultMap = {};
-      (res.data.results || []).forEach((item) => {
-        resultMap[item.problem_id] = item;
-      });
+      // const resultMap = {};
+      // (res.data.results || []).forEach((item) => {
+      //   resultMap[item.problem_id] = item;
+      // });
 
       setSubmitResults(resultMap);
       setBottomTab("result");

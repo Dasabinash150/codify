@@ -11,7 +11,7 @@ export default function useContestSocket(contestId, onMessage) {
   }, [onMessage]);
 
   useEffect(() => {
-    if (!contestId) return;
+    if (!contestId || socketRef.current) return;
 
     let isUnmounting = false;
 
@@ -35,7 +35,7 @@ export default function useContestSocket(contestId, onMessage) {
 
     socket.onerror = () => {
       if (!isUnmounting) {
-        console.log("WebSocket connection issue");
+        console.warn("WebSocket error (ignore in dev)");
       }
     };
 
@@ -43,33 +43,13 @@ export default function useContestSocket(contestId, onMessage) {
       if (!isUnmounting) {
         console.log("WebSocket disconnected");
       }
-      if (socketRef.current === socket) {
-        socketRef.current = null;
-      }
+      socketRef.current = null;
     };
 
     return () => {
       isUnmounting = true;
-
-      socket.onopen = null;
-      socket.onmessage = null;
-      socket.onerror = null;
-      socket.onclose = null;
-
-      if (
-        socket.readyState === WebSocket.OPEN ||
-        socket.readyState === WebSocket.CONNECTING
-      ) {
-        try {
-          socket.close();
-        } catch (e) {
-          // ignore cleanup close errors
-        }
-      }
-
-      if (socketRef.current === socket) {
-        socketRef.current = null;
-      }
+      socket.close();
+      socketRef.current = null;
     };
   }, [contestId]);
 

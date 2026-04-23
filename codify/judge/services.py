@@ -13,6 +13,8 @@ if not JUDGE0_BASE_URL:
 
 JUDGE0_SUBMIT_URL = f"{JUDGE0_BASE_URL}/submissions/?base64_encoded=false&wait=true"
 
+# JUDGE0_SUBMIT_URL = f"{JUDGE0_BASE_URL}/submissions/?base64_encoded=false&wait=false"
+# JUDGE0_RESULT_URL = f"{JUDGE0_BASE_URL}/submissions"
 
 def normalize_output(text):
     if text is None:
