@@ -645,7 +645,7 @@ export default function useContestEditor(id, problemId) {
     }
   }, [codeStore, language, selectedProblem, id, clearProblemDraft, navigate]);
 
-  const handleFinishContest = useCallback(async () => {
+  const handleFinishContest = useCallback(() => {
     try {
       const token = localStorage.getItem("access");
 
@@ -663,45 +663,53 @@ export default function useContestEditor(id, problemId) {
         language,
       }));
 
-      const hasEmptyCode = answers.some((item) => !item.source_code.trim());
+      const hasEmptyCode = answers.some(
+        (item) => !item.source_code || !item.source_code.trim()
+      );
+
       if (hasEmptyCode) {
         alert("Please write code for all questions before finishing contest.");
         return;
       }
 
+      // ✅ show loading briefly (optional)
       setSubmitLoading(true);
 
-      const res = await API.post("/submit-contest/", {
+      // 🔥 FIRE REQUEST (NO await)
+      API.post("/submit-contest/", {
         contest_id: id,
         answers,
+      }).catch((err) => {
+        console.error("Finish contest error:", err?.response?.data || err.message);
+
+        if (err.response?.status === 401) {
+          alert("Session expired. Please login again.");
+          localStorage.clear();
+          navigate("/login");
+          return;
+        }
+
+        alert(getErrorMessage(err, "Contest submit failed"));
       });
 
-      const resultMap = {};
-      (res.data.results || []).forEach((item) => {
-        resultMap[item.problem_id] = item;
-      });
-
-      setSubmitResults(resultMap);
-      setBottomTab("result");
+      // ✅ clear draft immediately
       clearContestDraft();
 
+      // ✅ instant feedback
       alert("Contest submitted successfully.");
+
+      // 🚀 instant redirect (no waiting)
       navigate(`/contest/${id}/leaderboard`);
+
     } catch (err) {
-      console.error("Finish contest error:", err.response?.data || err.message);
-
-      if (err.response?.status === 401) {
-        alert("Session expired. Please login again.");
-        localStorage.clear();
-        navigate("/login");
-        return;
-      }
-
-      alert(getErrorMessage(err, "Contest submit failed"));
+      console.error("Unexpected error:", err);
+      alert("Something went wrong.");
     } finally {
-      setSubmitLoading(false);
+      // optional: remove loader quickly
+      setTimeout(() => setSubmitLoading(false), 300);
     }
   }, [problemList, codeStore, language, id, clearContestDraft, navigate]);
+
 
   return {
     loading,

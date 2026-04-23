@@ -11,10 +11,10 @@ JUDGE0_BASE_URL = (getattr(settings, "JUDGE0_BASE_URL", "") or "").rstrip("/")
 if not JUDGE0_BASE_URL:
     raise ValueError("JUDGE0_BASE_URL is missing in settings/.env.local")
 
-JUDGE0_SUBMIT_URL = f"{JUDGE0_BASE_URL}/submissions/?base64_encoded=false&wait=true"
+# JUDGE0_SUBMIT_URL = f"{JUDGE0_BASE_URL}/submissions/?base64_encoded=false&wait=true"
 
-# JUDGE0_SUBMIT_URL = f"{JUDGE0_BASE_URL}/submissions/?base64_encoded=false&wait=false"
-# JUDGE0_RESULT_URL = f"{JUDGE0_BASE_URL}/submissions"
+JUDGE0_SUBMIT_URL = f"{JUDGE0_BASE_URL}/submissions/?base64_encoded=false&wait=false"
+JUDGE0_RESULT_URL = f"{JUDGE0_BASE_URL}/submissions"
 
 def normalize_output(text):
     if text is None:
@@ -46,7 +46,6 @@ def build_judge0_headers():
 
     return headers
 
-
 def run_code_with_judge0(source_code, language_id, stdin=""):
     payload = {
         "source_code": source_code,
@@ -57,63 +56,45 @@ def run_code_with_judge0(source_code, language_id, stdin=""):
     try:
         headers = build_judge0_headers()
     except ValueError as exc:
-        return {
-            "success": False,
-            "error": str(exc),
-        }
+        return {"success": False, "error": str(exc)}
 
-    print("JUDGE0 URL =", JUDGE0_SUBMIT_URL)
-    print("PAYLOAD =", payload)
+    try:
+        # ✅ Step 1: submit (fast)
+        response = requests.post(
+            JUDGE0_SUBMIT_URL,
+            json=payload,
+            headers=headers,
+            timeout=10,
+        )
 
-    last_error = None
+        data = response.json()
+        token = data.get("token")
 
-    for attempt in range(3):
-        try:
-            response = requests.post(
-                JUDGE0_SUBMIT_URL,
-                json=payload,
+        if not token:
+            return {"success": False, "error": "No token received"}
+
+        # ✅ Step 2: poll result
+        for _ in range(10):
+            res = requests.get(
+                f"{JUDGE0_RESULT_URL}/{token}?base64_encoded=false",
                 headers=headers,
-                timeout=30,
+                timeout=10,
             )
-        except requests.RequestException as exc:
-            last_error = f"Judge0 connection failed: {str(exc)}"
-            time.sleep(1)
-            continue
 
-        print("STATUS CODE =", response.status_code)
-        print("RAW RESPONSE =", response.text)
+            result = res.json()
+            status_id = result.get("status", {}).get("id")
 
-        if response.status_code >= 500:
-            last_error = (
-                f"Judge0 server error {response.status_code}: "
-                f"{response.text[:300]}"
-            )
-            time.sleep(1)
-            continue
+            # 1=queue, 2=processing
+            if status_id not in [1, 2]:
+                return {"success": True, "data": result}
 
-        try:
-            data = response.json()
-        except Exception:
-            return {
-                "success": False,
-                "error": f"Judge0 invalid response: {response.text}",
-            }
+            time.sleep(0.1)
 
-        if response.status_code >= 400:
-            return {
-                "success": False,
-                "error": f"Judge0 error {response.status_code}: {data}",
-            }
+        return {"success": False, "error": "Timeout waiting for Judge0"}
 
-        return {
-            "success": True,
-            "data": data,
-        }
+    except Exception as e:
+        return {"success": False, "error": str(e)}
 
-    return {
-        "success": False,
-        "error": last_error or "Judge0 request failed after retries.",
-    }
 
 
 def run_single_testcase(source_code, language_id, stdin=""):

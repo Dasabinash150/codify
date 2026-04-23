@@ -76,9 +76,11 @@ def run_code(request):
     return Response(result, status=status.HTTP_200_OK)
 
 
+from .tasks import evaluate_submission_task
+
+
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
-@transaction.atomic
 def submit_contest(request):
     contest_id = request.data.get("contest_id")
     answers = request.data.get("answers") or request.data.get("submissions") or []
@@ -127,46 +129,15 @@ def submit_contest(request):
 
     for ans in answers:
         problem_id = ans.get("problem_id")
-        source_code = (ans.get("source_code") or ans.get("code") or "").strip()
+        source_code = (ans.get("source_code") or "").strip()
         language_id = ans.get("language_id")
         language_name = (ans.get("language") or "python").lower()
 
-        if not problem_id:
-            submission_results.append({
-                "problem_id": None,
-                "title": "",
-                "passed": False,
-                "passed_testcases": 0,
-                "total_testcases": 0,
-                "score": 0,
-                "status": "ERROR",
-                "error": "problem_id is required",
-            })
-            continue
-
-        if not source_code:
+        if not problem_id or not source_code or not language_id:
             submission_results.append({
                 "problem_id": problem_id,
-                "title": "",
-                "passed": False,
-                "passed_testcases": 0,
-                "total_testcases": 0,
-                "score": 0,
                 "status": "ERROR",
-                "error": "source_code is required",
-            })
-            continue
-
-        if not language_id:
-            submission_results.append({
-                "problem_id": problem_id,
-                "title": "",
-                "passed": False,
-                "passed_testcases": 0,
-                "total_testcases": 0,
-                "score": 0,
-                "status": "ERROR",
-                "error": "language_id is required",
+                "error": "Missing required fields",
             })
             continue
 
@@ -179,81 +150,42 @@ def submit_contest(request):
         if not contest_problem:
             submission_results.append({
                 "problem_id": problem_id,
-                "title": "",
-                "passed": False,
-                "passed_testcases": 0,
-                "total_testcases": 0,
-                "score": 0,
                 "status": "ERROR",
-                "error": "Problem does not belong to this contest",
+                "error": "Problem not in contest",
             })
             continue
 
         problem = contest_problem.problem
 
-        judge_result = judge_problem_submission(
-            problem=problem,
-            source_code=source_code,
-            language_id=language_id,
-            use_sample=False,
-        )
-
-        passed_count = judge_result["passed_count"]
-        total_testcases = judge_result["total_count"]
-        final_status = judge_result["status"]
-        all_passed = final_status == "AC"
-        score = problem.points if all_passed else 0
-
-        Submission.objects.create(
+        # ✅ CREATE SUBMISSION (PENDING)
+        submission = Submission.objects.create(
             user=user,
             problem=problem,
             contest=contest,
             code=source_code,
             language=language_name,
-            status=final_status,
-            runtime=judge_result.get("runtime") or 0.0,
-            score=score,
+            status="PENDING",
+            runtime=0,
+            score=0,
         )
+
+        # ✅ SEND TO CELERY
+        evaluate_submission_task.delay(submission.id)
 
         submission_results.append({
             "problem_id": problem.id,
             "title": problem.title,
-            "passed": all_passed,
-            "passed_testcases": passed_count,
-            "total_testcases": total_testcases,
-            "score": score,
-            "status": final_status,
+            "status": "PENDING",
         })
-
-    rebuild_contest_leaderboard(contest)
-
-    my_row = Leaderboard.objects.filter(contest=contest, user=user).first()
-    total_score = my_row.score if my_row else 0
-    solved_count = my_row.solved if my_row else 0
-
-    broadcast_leaderboard(contest.id)
-    broadcast_submission_update(
-        contest.id,
-        {
-            "contest_id": contest.id,
-            "user": get_user_display_name(user),
-            "type": "contest_submit",
-            "total_score": total_score,
-            "solved_count": solved_count,
-        },
-    )
 
     return Response(
         {
-            "message": "Contest submitted successfully",
-            "total_score": total_score,
-            "solved_count": solved_count,
-            "results": submission_results,
+            "message": "Contest submitted",
+            "status": "PENDING",
+            "submissions": submission_results,
         },
         status=status.HTTP_200_OK,
     )
-
-
 @api_view(["GET"])
 def leaderboard(request, contest_id):
     try:
