@@ -271,8 +271,32 @@
   background: rgba(var(--primary-rgb), 0.05);
 }
 
+.leaderboard-row-highlight {
+  position: relative;
+  border-left: 4px solid var(--primary);
+  font-weight: 700;
+}
+
 .leaderboard-row-highlight td {
-  background: rgba(var(--primary-rgb), 0.08) !important;
+  background: rgba(var(--primary-rgb), 0.14) !important;
+}
+
+.leaderboard-row-highlight:hover td {
+  background: rgba(var(--primary-rgb), 0.18) !important;
+}
+
+.leaderboard-row-highlight .leaderboard-user-name {
+  color: var(--primary);
+}
+.you-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 800;
+  background: var(--primary);
+  color: white;
+  letter-spacing: 0.03em;
 }
 
 .leaderboard-empty {

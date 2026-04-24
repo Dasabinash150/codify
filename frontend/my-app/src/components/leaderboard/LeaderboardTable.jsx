@@ -31,12 +31,12 @@ const LeaderboardTable = ({
             {users.length ? (
               users.map((user) => (
                 <LeaderboardRow
-                  key={user.id}
+                  key={user.id || user.rank}
                   user={user}
                   highlight={
                     typeof highlightUser === "function"
                       ? highlightUser(user)
-                      : user.id === currentUserId
+                      : user.id?.toString() === currentUserId?.toString()
                   }
                 />
               ))

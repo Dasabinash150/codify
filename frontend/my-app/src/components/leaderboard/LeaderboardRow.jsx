@@ -6,7 +6,6 @@ const LeaderboardRow = ({ user, highlight = false }) => {
     user.rank === 1 || user.rank === 2 || user.rank === 3
       ? `rank-${user.rank}`
       : "rank-other";
-
   return (
     <tr className={highlight ? "leaderboard-row-highlight" : ""}>
       <td className="text-center">
@@ -18,7 +17,11 @@ const LeaderboardRow = ({ user, highlight = false }) => {
           <UserAvatar user={user} size={36} />
 
           <div className="leaderboard-user-meta">
-            <div className="leaderboard-user-name">{user.username}</div>
+            <div className="leaderboard-user-name">{user.username}  {highlight && (
+              <span className="you-badge ms-2">
+                YOU
+              </span>
+            )}</div>
             <div className="leaderboard-user-subtext">{user.full_name}</div>
           </div>
         </div>

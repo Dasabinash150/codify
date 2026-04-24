@@ -16,7 +16,16 @@ const ContestLeaderboardPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const currentUserId = null;
+  const currentUser =
+    JSON.parse(localStorage.getItem("user")) || {};
+
+  const currentUsername =
+    localStorage.getItem("username") ||
+    localStorage.getItem("email") ||
+    "";
+
+
+
   const [contestInfo, setContestInfo] = useState({
     name: "",
     participants: 0,
@@ -159,7 +168,16 @@ const ContestLeaderboardPage = () => {
 
               <LeaderboardTable
                 users={tableUsers.length ? tableUsers : filteredUsers}
-                currentUserId={currentUserId}
+                highlightUser={(user) =>
+                  (user.username || "")
+                    .trim()
+                    .toLowerCase()
+                    .includes(
+                      (currentUsername || "")
+                        .trim()
+                        .toLowerCase()
+                    )
+                }
                 title="Contest Rankings"
               />
             </div>

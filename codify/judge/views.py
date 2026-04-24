@@ -208,8 +208,10 @@ def leaderboard(request, contest_id):
     for row in rows:
         result.append(
             {
+                "id": row.user.id,
                 "rank": row.rank,
                 "user_name": get_user_display_name(row.user),
+                "email": row.user.email,
                 "score": row.score,
                 "solved": row.solved,
                 "penalty": row.penalty,
