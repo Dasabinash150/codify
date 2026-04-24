@@ -166,6 +166,36 @@ function DashboardPage() {
       .slice(0, 5);
   }, [submissions]);
 
+  // ===================Achievments part===========================
+  const streak = profile?.streak || 0;
+
+  const contestPercentile =
+    profile?.contest_percentile ??
+    profile?.percentile ??
+    null;
+
+  const totalAccepted =
+    acceptedCount || 0;
+
+  const achievementTitle =
+    contestPercentile
+      ? `Top ${contestPercentile}%`
+      : totalAccepted >= 100
+        ? "100+ Problems Milestone"
+        : totalAccepted >= 50
+          ? "50+ Problems Milestone"
+          : totalAccepted >= 10
+            ? "10+ Problems Milestone"
+            : "Start Your Journey";
+
+  const achievementSubtitle =
+    contestPercentile
+      ? "Your contest performance is updated from live data."
+      : totalAccepted >= 10
+        ? "Keep solving consistently to unlock bigger milestones."
+        : "Solve more problems to unlock your first achievement.";
+
+
   // ============================================================
   const dailySolved =
     profile?.daily_solved ??
@@ -509,26 +539,66 @@ function DashboardPage() {
                 <Card.Body>
                   <h5 className="section-title mb-3">Achievements</h5>
 
+                  {/* Streak Achievement */}
                   <div className="achievement-item mb-3">
                     <CheckCircleFill className="achievement-icon fs-4 flex-shrink-0" />
                     <div>
-                      <h6 className="fw-bold mb-1">{profile?.streak || 0} Day Streak</h6>
+                      <h6 className="fw-bold mb-1">
+                        {streak} Day Streak
+                      </h6>
                       <p className="mb-0 text-muted-custom">
                         Keep solving daily to maintain your streak.
                       </p>
                     </div>
                   </div>
 
-                  <div className="achievement-item">
+                  {/* Problem Solving Milestone */}
+                  <div className="achievement-item mb-3">
+                    <CodeSlash className="achievement-icon fs-4 flex-shrink-0" />
+                    <div>
+                      <h6 className="fw-bold mb-1">
+                        {totalAccepted >= 100
+                          ? "Problem Master"
+                          : totalAccepted >= 50
+                            ? "Problem Solver"
+                            : totalAccepted >= 10
+                              ? "Getting Started"
+                              : "Beginner Coder"}
+                      </h6>
+                      <p className="mb-0 text-muted-custom">
+                        {totalAccepted} accepted submissions completed.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Contest Achievement */}
+                  <div className="achievement-item mb-3">
                     <TrophyFill className="achievement-icon fs-4 flex-shrink-0" />
                     <div>
                       <h6 className="fw-bold mb-1">
-                        {profile?.contest_percentile
-                          ? `Top ${profile.contest_percentile}%`
-                          : "Contest Progress"}
+                        {contestPercentile
+                          ? `Top ${contestPercentile}%`
+                          : "Contest Challenger"}
                       </h6>
                       <p className="mb-0 text-muted-custom">
-                        Your contest performance is updated from live data.
+                        Your contest performance is updated from live ranking.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Acceptance Rate Achievement */}
+                  <div className="achievement-item">
+                    <BarChartFill className="achievement-icon fs-4 flex-shrink-0" />
+                    <div>
+                      <h6 className="fw-bold mb-1">
+                        {acceptanceRate >= 80
+                          ? "High Accuracy"
+                          : acceptanceRate >= 50
+                            ? "Consistent Performer"
+                            : "Keep Improving"}
+                      </h6>
+                      <p className="mb-0 text-muted-custom">
+                        {acceptanceRate}% submission acceptance rate.
                       </p>
                     </div>
                   </div>

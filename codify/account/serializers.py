@@ -9,6 +9,9 @@ from rest_framework import serializers
 from account.models import EmailOTP
 from account.utils import Util
 
+from contest.models import Submission
+from datetime import date, timedelta
+
 User = get_user_model()
 
 
@@ -53,16 +56,87 @@ class UserLoginSerializer(serializers.ModelSerializer):
         fields = ["email", "password"]
 
 
+# class UserProfileSerializer(serializers.ModelSerializer):
+#     display_name = serializers.SerializerMethodField()
+
+#     class Meta:
+#         model = User
+#         fields = ["id", "email", "name", "display_name"]
+
+#     def get_display_name(self, obj):
+#         return obj.name or obj.email
 class UserProfileSerializer(serializers.ModelSerializer):
     display_name = serializers.SerializerMethodField()
+    streak = serializers.SerializerMethodField()
 
     class Meta:
         model = User
-        fields = ["id", "email", "name", "display_name"]
+        fields = [
+            "id",
+            "email",
+            "name",
+            "display_name",
+            "streak",
+        ]
 
     def get_display_name(self, obj):
         return obj.name or obj.email
 
+    def get_streak(self, obj):
+        submissions = Submission.objects.filter(
+            user=obj,
+            status="AC"
+        ).order_by("-submitted_at")
+
+        print("========== STREAK DEBUG ==========")
+        print("USER:", obj.email)
+        print("TOTAL ACCEPTED SUBMISSIONS:", submissions.count())
+
+        if not submissions.exists():
+            return 0
+
+        streak = 0
+        checked_days = set()
+
+        latest_day = submissions.first().submitted_at.date()
+        today = date.today()
+
+        # allow yesterday as active streak start
+        if latest_day == today:
+            current_day = today
+        elif latest_day == today - timedelta(days=1):
+            current_day = latest_day
+        else:
+            return 0
+
+        print("START FROM:", current_day)
+
+        for submission in submissions:
+            submission_day = submission.submitted_at.date()
+
+            print(
+                "SUBMISSION ID:", submission.id,
+                "| STATUS:", submission.status,
+                "| DATE:", submission_day
+            )
+
+            if submission_day in checked_days:
+                continue
+
+            if submission_day == current_day:
+                streak += 1
+                checked_days.add(submission_day)
+                current_day -= timedelta(days=1)
+                print("COUNTED → streak =", streak)
+
+            elif submission_day < current_day:
+                print("BREAK")
+                break
+
+        print("FINAL STREAK:", streak)
+        print("=================================")
+
+        return streak
 
 class UserChangePasswordSerializer(serializers.Serializer):
     password = serializers.CharField(

@@ -1,8 +1,15 @@
 from django.db import models
 from contest.models import Problem
-
+from django.conf import settings
 
 class Submission(models.Model):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="judge_submissions",
+        null=True,
+        blank=True
+    )
     VERDICT_CHOICES = [
         ("PENDING", "Pending"),
         ("AC", "Accepted"),
