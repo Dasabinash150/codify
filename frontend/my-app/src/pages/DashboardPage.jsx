@@ -166,32 +166,65 @@ function DashboardPage() {
       .slice(0, 5);
   }, [submissions]);
 
+  // ============================================================
+  const dailySolved =
+    profile?.daily_solved ??
+    acceptedCount ??
+    0;
+
+  const dailyTarget =
+    profile?.daily_target ??
+    5;
+
+  const dailyRemaining = Math.max(
+    0,
+    dailyTarget - dailySolved
+  );
+
+  const dailyProgress = dailyTarget
+    ? Math.min(
+      100,
+      Math.round((dailySolved / dailyTarget) * 100)
+    )
+    : 0;
+  const estimatedPracticeHours = Math.max(
+    1,
+    Math.round(totalSubmissions * 0.5)
+  );
   const stats = [
     {
       title: "Problems Solved",
-      value: problemsSolved,
+      value: problemsSolved || 0,
       icon: <CodeSlash size={22} />,
-      extra: `${totalProblems} total problems`,
+      extra: `${totalProblems || 0} total problems`,
     },
     {
-      title: "Contest Rating",
-      value: profile?.rating || 0,
+      title: "Contest Ranking",
+      value: profile?.rating || profile?.contest_rating || 0,
       icon: <TrophyFill size={22} />,
-      extra: profile?.rank ? `Rank #${profile.rank}` : "No rank yet",
+      extra:
+        profile?.rank
+          ? `Rank #${profile.rank}`
+          : profile?.global_rank
+            ? `Global Rank #${profile.global_rank}`
+            : "No rank yet",
     },
     {
       title: "Submissions",
-      value: totalSubmissions,
+      value: totalSubmissions || 0,
       icon: <BarChartFill size={22} />,
-      extra: `${acceptanceRate}% acceptance rate`,
+      extra: `${acceptanceRate || 0}% acceptance rate`,
     },
     {
       title: "Practice Hours",
-      value: profile?.practice_hours ? `${profile.practice_hours}h` : "0h",
+      value: `${estimatedPracticeHours}h`,
       icon: <ClockHistory size={22} />,
-      extra: "Tracked from your profile",
+      extra: "Estimated from submissions activity",
     },
   ];
+
+
+  // =============================================================
 
   const getStatusBadgeClass = (status) => {
     const normalized = String(status || "").toLowerCase();
@@ -451,30 +484,22 @@ function DashboardPage() {
 
                   <div className="goal-circle text-center mb-3">
                     <h3 className="mb-1">
-                      {profile?.daily_solved || 0}/{profile?.daily_target || 5}
+                      {dailySolved}/{dailyTarget}
                     </h3>
-                    <p className="mb-0 text-muted-custom">Problems</p>
+                    <p className="mb-0 text-muted-custom">
+                      Problems Solved Today
+                    </p>
                   </div>
 
                   <ProgressBar
-                    now={
-                      profile?.daily_target
-                        ? Math.min(
-                            100,
-                            Math.round(
-                              ((profile.daily_solved || 0) / profile.daily_target) * 100
-                            )
-                          )
-                        : 0
-                    }
+                    now={dailyProgress}
                     className="custom-progress mb-3"
                   />
 
                   <p className="small text-muted-custom mb-0">
-                    {profile?.daily_target && profile?.daily_solved < profile?.daily_target
-                      ? `Solve ${
-                          profile.daily_target - (profile.daily_solved || 0)
-                        } more problems to complete today’s target.`
+                    {dailySolved < dailyTarget
+                      ? `Solve ${dailyRemaining} more problem${dailyRemaining > 1 ? "s" : ""
+                      } to complete today's target.`
                       : "Daily goal completed. Great work!"}
                   </p>
                 </Card.Body>
