@@ -7,6 +7,7 @@ import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import useContestSocket from "../hooks/useContestSocket";
 import API from "../services/api";
+import formatContestDuration from "../utils/formatContestDuration";
 
 const ContestLeaderboardPage = () => {
   const { id } = useParams();
@@ -40,11 +41,22 @@ const ContestLeaderboardPage = () => {
 
       setContestInfo({
         name: data.title || data.name || "Contest",
-        participants: data.participants || data.participant_count || 0,
-        problems: data.problems_count || data.problem_count || data.problems?.length || 0,
-        duration: data.duration || data.duration_minutes
-          ? `${data.duration_minutes || data.duration} min`
-          : "2h contest"
+
+        participants:
+          data.participants_count ||
+          data.participant_count ||
+          data.participants ||
+          0,
+
+        problems:
+          data.problems_count ||
+          data.problem_count ||
+          data.problems?.length ||
+          0,
+
+        duration: formatContestDuration(
+          data.duration_minutes || data.duration
+        ),
       });
 
     } catch (err) {

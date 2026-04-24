@@ -9,6 +9,7 @@ import Footer from "../components/Footer";
 import useContestSocket from "../hooks/useContestSocket";
 import API from "../services/api";
 
+
 function ContestDetailsPage() {
   const { id } = useParams();
 

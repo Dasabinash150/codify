@@ -17,6 +17,7 @@ import "../styles/ContestListPage.css";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { getContests } from "../services/contestApi";
+import formatContestDuration from "../utils/formatContestDuration";
 
 
 function ContestListPage() {
@@ -220,9 +221,11 @@ function ContestListPage() {
                             <span className="meta-label">Duration</span>
                             <span className="meta-value">
                               {contest.start_time && contest.end_time
-                                ? `${Math.round(
-                                  (new Date(contest.end_time) - new Date(contest.start_time)) / 60000
-                                )} min`
+                                ? formatContestDuration(
+                                  Math.round(
+                                    (new Date(contest.end_time) - new Date(contest.start_time)) / 60000
+                                  )
+                                )
                                 : "N/A"}
                             </span>
                           </div>
