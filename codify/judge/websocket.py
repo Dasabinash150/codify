@@ -7,22 +7,34 @@ def serialize_leaderboard(contest_id):
     rows = (
         Leaderboard.objects.filter(contest_id=contest_id)
         .select_related("user")
-        .order_by("rank", "-score", "-solved", "penalty", "last_updated", "id")
+        .order_by(
+            "rank",
+            "-score",
+            "-solved",
+            "penalty",
+            "last_updated",
+            "id",
+        )
     )
 
     data = []
+
     for row in rows:
         data.append({
+            "id": row.user.id,
             "rank": row.rank,
-            "user_name": str(row.user),
+            "user_name": getattr(row.user, "username", None)
+                or getattr(row.user, "email", None)
+                or str(row.user),
+            "email": getattr(row.user, "email", ""),
             "score": row.score,
-            "submissions": getattr(row, "submissions", 0),
-            "solved": getattr(row, "solved", 0),
-            "penalty": getattr(row, "penalty", 0),
-            "time": row.last_updated.strftime("%H:%M:%S") if row.last_updated else "00:00:00",
+            "solved": row.solved,
+            "penalty": row.penalty,
+            "last_updated": row.last_updated.isoformat()
+            if row.last_updated else None,
         })
-    return data
 
+    return data
 
 def _broadcast(contest_id, event_name, data):
     channel_layer = get_channel_layer()
