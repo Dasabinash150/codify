@@ -50,7 +50,20 @@ export default function ContestBottomPanel({
         <button
           type="button"
           className={`editor-bottom-tab ${bottomTab === "history" ? "active" : ""}`}
-          onClick={() => setBottomTab("history")}
+          onClick={() => {
+            console.log("History tab clicked");
+            console.log("selectedProblem:", selectedProblem);
+            console.log("submissionHistory BEFORE refresh:", submissionHistory);
+
+            setBottomTab("history");
+
+            if (typeof onRefreshHistory === "function") {
+              console.log("Calling onRefreshHistory()");
+              onRefreshHistory();
+            } else {
+              console.log("onRefreshHistory is NOT a function");
+            }
+          }}
         >
           Submission History
         </button>
@@ -89,7 +102,7 @@ export default function ContestBottomPanel({
                     </div>
 
                     <pre className="editor-output-pre mb-2">
-{`Expected:
+                      {`Expected:
 ${item.expected_output || "N/A"}
 
 Actual:

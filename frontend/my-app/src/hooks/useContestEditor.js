@@ -206,40 +206,61 @@ export default function useContestEditor(id, problemId) {
   const loadSubmissionHistory = useCallback(async () => {
     try {
       setHistoryLoading(true);
+
       const res = await API.get("/submissions/");
-      const items = Array.isArray(res.data) ? res.data : res.data?.results || [];
+
+      console.log("RAW SUBMISSIONS API:", res.data);
+
+      const items = Array.isArray(res.data)
+        ? res.data
+        : res.data?.results || [];
 
       const filtered = items
         .filter((item) => {
-          const matchesContest =
-            String(item.contest_id || item.contest?.id || "") === String(id);
-          const matchesProblem = selectedProblem
-            ? String(item.problem_id || item.problem?.id || item.problem || "") ===
-            String(selectedProblem.id)
-            : true;
-          return matchesContest && matchesProblem;
+          const itemContestId =
+            item.contest_id ||
+            item.contest?.id ||
+            item.contest ||
+            "";
+
+          const itemProblemId =
+            item.problem_id ||
+            item.problem?.id ||
+            item.problem ||
+            "";
+
+          return (
+            String(itemContestId) === String(id) &&
+            String(itemProblemId) === String(selectedProblem?.id)
+          );
         })
         .sort(
           (a, b) =>
-            new Date(b.created_at || b.submitted_at || 0) -
-            new Date(a.created_at || a.submitted_at || 0)
+            new Date(b.submitted_at || b.created_at || 0) -
+            new Date(a.submitted_at || a.created_at || 0)
         );
+
+      console.log("FILTERED HISTORY:", filtered);
 
       setSubmissionHistory(filtered);
     } catch (err) {
-      console.error("Submission history load error:", err?.response?.data || err.message);
+      console.error(
+        "Submission history load error:",
+        err?.response?.data || err.message
+      );
+
       setSubmissionHistory([]);
     } finally {
       setHistoryLoading(false);
     }
   }, [id, selectedProblem]);
 
-  const pollSubmissionHistory = useCallback(async (retries = 8, delay = 2000) => {
-    for (let i = 0; i < retries; i++) {
-      await loadSubmissionHistory();
-      await new Promise((resolve) => setTimeout(resolve, delay));
-    }
-  }, [loadSubmissionHistory]);
+  // const pollSubmissionHistory = useCallback(async (retries = 8, delay = 2000) => {
+  //   for (let i = 0; i < retries; i++) {
+  //     await loadSubmissionHistory();
+  //     await new Promise((resolve) => setTimeout(resolve, delay));
+  //   }
+  // }, [loadSubmissionHistory]);
 
   const initializeContest = useCallback(async () => {
     try {
@@ -628,7 +649,7 @@ export default function useContestEditor(id, problemId) {
       }));
 
       clearProblemDraft(selectedProblem.id);
-      // await pollSubmissionHistory();
+      //await pollSubmissionHistory();
     } catch (err) {
       console.error("Submit error:", err.response?.data || err.message);
 
