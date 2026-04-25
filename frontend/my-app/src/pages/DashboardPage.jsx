@@ -197,10 +197,22 @@ function DashboardPage() {
 
 
   // ============================================================
-  const dailySolved =
-    profile?.daily_solved ??
-    acceptedCount ??
-    0;
+  const today = new Date().toDateString();
+
+  const dailySolved = useMemo(() => {
+    return submissions.filter((item) => {
+      const isAccepted =
+        item.status === "Accepted" ||
+        item.status === "AC" ||
+        item.status === "accepted";
+
+      const submissionDate = new Date(
+        item.created_at || item.submitted_at
+      ).toDateString();
+
+      return isAccepted && submissionDate === today;
+    }).length;
+  }, [submissions]);
 
   const dailyTarget =
     profile?.daily_target ??
@@ -228,28 +240,34 @@ function DashboardPage() {
       icon: <CodeSlash size={22} />,
       extra: `${totalProblems || 0} total problems`,
     },
+
     {
       title: "Contest Ranking",
-      value: profile?.rating || profile?.contest_rating || 0,
+      value:
+        profile?.rank ||
+        profile?.global_rank ||
+        profile?.rating ||
+        profile?.contest_rating ||
+        "N/A",
       icon: <TrophyFill size={22} />,
       extra:
-        profile?.rank
-          ? `Rank #${profile.rank}`
-          : profile?.global_rank
-            ? `Global Rank #${profile.global_rank}`
-            : "No rank yet",
+        profile?.rating || profile?.contest_rating
+          ? `Rating ${profile?.rating || profile?.contest_rating}`
+          : "No contest data yet",
     },
+
     {
       title: "Submissions",
-      value: totalSubmissions || 0,
+      value: acceptedCount || 0,
       icon: <BarChartFill size={22} />,
-      extra: `${acceptanceRate || 0}% acceptance rate`,
+      extra: `${totalSubmissions || 0} total submissions`,
     },
+
     {
       title: "Practice Hours",
-      value: `${estimatedPracticeHours}h`,
+      value: `${estimatedPracticeHours || 0}h`,
       icon: <ClockHistory size={22} />,
-      extra: "Estimated from submissions activity",
+      extra: `${acceptanceRate || 0}% acceptance rate`,
     },
   ];
 
@@ -341,8 +359,8 @@ function DashboardPage() {
             </Alert>
           )}
 
-          <Card className="dashboard-card dashboard-hero mb-4">
-            <Card.Body className="p-4 p-lg-5">
+          <Card className="dashboard-card dashboard-hero mb-3">
+            <Card.Body className="p-2 p-lg-1">
               <Row className="align-items-center g-4">
                 <Col lg={8}>
                   <p className="dashboard-label text-uppercase small mb-2">
@@ -384,18 +402,21 @@ function DashboardPage() {
           <Row className="g-4 mb-4">
             {stats.map((item, index) => (
               <Col md={6} xl={3} key={index}>
-                <Card className="dashboard-card stat-card h-100">
+                <Card className="dashboard-card stat-card">
                   <Card.Body>
-                    <div className="d-flex justify-content-between align-items-start mb-3">
+                    <div className="d-flex align-items-center gap-3 mb-2">
                       <div className="stat-icon">
                         {React.cloneElement(item.icon, {
                           className: "theme-icon",
                         })}
                       </div>
+
+                      <div>
+                        <h3 className="stat-value mb-0">{item.value}</h3>
+                        <h6 className="stat-title mb-0">{item.title}</h6>
+                      </div>
                     </div>
 
-                    <h6 className="stat-title mb-2">{item.title}</h6>
-                    <h3 className="stat-value mb-1">{item.value}</h3>
                     <p className="stat-extra mb-0">{item.extra}</p>
                   </Card.Body>
                 </Card>
@@ -572,7 +593,7 @@ function DashboardPage() {
                   </div>
 
                   {/* Contest Achievement */}
-                  <div className="achievement-item mb-3">
+                  <div className="achievement-item py-2">
                     <TrophyFill className="achievement-icon fs-4 flex-shrink-0" />
                     <div>
                       <h6 className="fw-bold mb-1">
@@ -589,6 +610,7 @@ function DashboardPage() {
                   {/* Acceptance Rate Achievement */}
                   <div className="achievement-item">
                     <BarChartFill className="achievement-icon fs-4 flex-shrink-0" />
+
                     <div>
                       <h6 className="fw-bold mb-1">
                         {acceptanceRate >= 80
@@ -597,6 +619,7 @@ function DashboardPage() {
                             ? "Consistent Performer"
                             : "Keep Improving"}
                       </h6>
+
                       <p className="mb-0 text-muted-custom">
                         {acceptanceRate}% submission acceptance rate.
                       </p>

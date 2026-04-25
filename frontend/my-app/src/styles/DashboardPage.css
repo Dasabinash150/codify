@@ -33,6 +33,7 @@
   color: inherit;
 }
 
+
 .dashboard-hero {
   background: linear-gradient(
     135deg,
@@ -40,8 +41,8 @@
     rgba(var(--primary-rgb), 0.08)
   );
   border: 1px solid var(--border-color);
-  border-radius: 24px;
-  padding: 32px;
+  border-radius: 20px;
+  padding: 20px 24px;
   backdrop-filter: blur(12px);
 }
 
@@ -70,7 +71,7 @@
 }
 
 .stat-card .card-body {
-  padding: 24px;
+  padding: 16px;
 }
 
 .stat-icon {
@@ -123,7 +124,7 @@
 
 .progress-value {
   color: var(--text-main);
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .custom-progress {
@@ -176,10 +177,9 @@
 .achievement-item,
 .contest-item {
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 14px 0;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
   border-bottom: 1px solid var(--border-color);
 }
 
@@ -191,7 +191,7 @@
 
 .achievement-icon {
   color: var(--icon-color);
-  margin-top: 2px;
+  margin-top: 0;
 }
 
 .dashboard-table {
