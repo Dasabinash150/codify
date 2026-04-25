@@ -32,6 +32,7 @@ function Navbar() {
           if (profileUser?.username) {
             localStorage.setItem("username", profileUser.username);
           }
+
           if (profileUser?.name) {
             localStorage.setItem("name", profileUser.name);
           }
@@ -39,11 +40,15 @@ function Navbar() {
         .catch((err) => {
           console.error("Profile fetch error:", err);
 
-          if (err.response?.status === 401 || err.response?.status === 403) {
+          if (
+            err.response?.status === 401 ||
+            err.response?.status === 403
+          ) {
             localStorage.removeItem("access");
             localStorage.removeItem("refresh");
             localStorage.removeItem("username");
             localStorage.removeItem("name");
+
             setUser(null);
             navigate("/login", { replace: true });
           }
@@ -53,12 +58,16 @@ function Navbar() {
 
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target)
+      ) {
         setOpenDropdown(false);
       }
     };
 
     document.addEventListener("mousedown", handleClickOutside);
+
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
@@ -72,6 +81,7 @@ function Navbar() {
 
     setUser(null);
     setOpenDropdown(false);
+
     navigate("/login", { replace: true });
   };
 
@@ -81,12 +91,29 @@ function Navbar() {
     return displayName.charAt(0).toUpperCase();
   };
 
+  const closeMobileMenu = () => {
+    const navbar = document.getElementById("mainNavbar");
+
+    if (navbar) {
+      const bsCollapse =
+        window.bootstrap?.Collapse.getInstance(navbar) ||
+        new window.bootstrap.Collapse(navbar, {
+          toggle: false,
+        });
+
+      bsCollapse.hide();
+    }
+
+    setOpenDropdown(false);
+  };
+
   return (
     <nav className="navbar navbar-expand-lg border-bottom app-navbar sticky-top">
       <div className="container">
         <Link
           className="navbar-brand fw-bold fs-4 d-flex align-items-center gap-2"
           to="/"
+          onClick={closeMobileMenu}
         >
           <span>{"</>"}</span>
           JitCoder
@@ -100,6 +127,7 @@ function Navbar() {
           aria-controls="mainNavbar"
           aria-expanded="false"
           aria-label="Toggle navigation"
+          onClick={() => setOpenDropdown(false)}
         >
           <span></span>
           <span></span>
@@ -109,25 +137,40 @@ function Navbar() {
         <div className="collapse navbar-collapse" id="mainNavbar">
           <ul className="navbar-nav ms-auto mb-2 mb-lg-0 align-items-lg-center gap-lg-2">
             <li className="nav-item">
-              <Link className="nav-link fw-medium" to="/">
+              <Link
+                className="nav-link fw-medium"
+                to="/"
+                onClick={closeMobileMenu}
+              >
                 Home
               </Link>
             </li>
 
             <li className="nav-item">
-              <Link className="nav-link fw-medium" to="/problems">
+              <Link
+                className="nav-link fw-medium"
+                to="/problems"
+                onClick={closeMobileMenu}
+              >
                 Problems
               </Link>
             </li>
 
             <li className="nav-item">
-              <Link className="nav-link fw-medium" to="/contests">
+              <Link
+                className="nav-link fw-medium"
+                to="/contests"
+                onClick={closeMobileMenu}
+              >
                 Contests
               </Link>
             </li>
 
             {user ? (
-              <li className="nav-item position-relative ms-lg-2" ref={dropdownRef}>
+              <li
+                className="nav-item position-relative ms-lg-2"
+                ref={dropdownRef}
+              >
                 <button
                   type="button"
                   className="btn d-flex align-items-center gap-2 border-0 bg-transparent user-menu-btn"
@@ -139,7 +182,8 @@ function Navbar() {
                       width: "36px",
                       height: "36px",
                       borderRadius: "50%",
-                      background: "linear-gradient(135deg,var(--primary),#6f42c1)"
+                      background:
+                        "linear-gradient(135deg,var(--primary),#6f42c1)",
                     }}
                   >
                     {getInitial()}
@@ -152,27 +196,38 @@ function Navbar() {
                 </button>
 
                 {openDropdown && (
-                  <div className="position-absolute end-0 mt-2 user-dropdown" style={{ zIndex: 1050 }}>
-
+                  <div
+                    className="position-absolute end-0 mt-2 user-dropdown"
+                    style={{ zIndex: 1050 }}
+                  >
                     <div className="user-dropdown-header">
                       <div className="user-name">{displayName}</div>
                       <div className="user-subtitle">Welcome back</div>
                     </div>
 
-                    <Link to="/dashboard" className="user-dropdown-item">
+                    <Link
+                      to="/dashboard"
+                      className="user-dropdown-item"
+                      onClick={closeMobileMenu}
+                    >
                       📊 Dashboard
                     </Link>
 
-                    <Link to="/contests" className="user-dropdown-item">
+                    <Link
+                      to="/contests"
+                      className="user-dropdown-item"
+                      onClick={closeMobileMenu}
+                    >
                       🏆 My Contests
                     </Link>
 
-                    <Link to="/problems" className="user-dropdown-item">
+                    <Link
+                      to="/problems"
+                      className="user-dropdown-item"
+                      onClick={closeMobileMenu}
+                    >
                       💻 Problems
                     </Link>
-                    {/* <Link to="/leaderboard" className="user-dropdown-item">
-                      LeaderBoard
-                    </Link> */}
 
                     <hr className="m-1" />
 
@@ -189,13 +244,21 @@ function Navbar() {
             ) : (
               <>
                 <li className="nav-item mt-2 mt-lg-0">
-                  <Link className="btn btn-outline-primary btn-sm px-3" to="/login">
+                  <Link
+                    className="btn btn-outline-primary btn-sm px-3"
+                    to="/login"
+                    onClick={closeMobileMenu}
+                  >
                     Login
                   </Link>
                 </li>
 
                 <li className="nav-item mt-2 mt-lg-0">
-                  <Link className="btn btn-primary btn-sm px-3" to="/register">
+                  <Link
+                    className="btn btn-primary btn-sm px-3"
+                    to="/register"
+                    onClick={closeMobileMenu}
+                  >
                     Sign Up
                   </Link>
                 </li>
