@@ -73,7 +73,16 @@ def run_code(request):
             status=status.HTTP_400_BAD_REQUEST,
         )
 
-    return Response(result, status=status.HTTP_200_OK)
+    return Response(
+        {
+            "results": result.get("testcase_results", []),
+            "passed": result.get("passed_count", 0),
+            "total": result.get("total_count", 0),
+            "status": result.get("status"),
+            "runtime": result.get("runtime", 0),
+        },
+        status=status.HTTP_200_OK,
+    )
 
 
 from .tasks import evaluate_submission_task
@@ -354,7 +363,8 @@ class SubmitCodeView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        score = problem.points if (contest and final_status == "AC") else 0
+        # score = problem.points if (contest and final_status == "AC") else 0
+        score = problem.points if final_status == "AC" else 0
 
         submission = Submission.objects.create(
             user=request.user,

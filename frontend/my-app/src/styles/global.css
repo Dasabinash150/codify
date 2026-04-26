@@ -47,3 +47,34 @@ a {
   --bs-table-hover-bg: rgba(var(--primary-rgb), 0.05);
   --bs-table-hover-color: var(--text-main);
 }
+
+
+/* button */
+.jc-btn-primary {
+  flex: 1;
+  background: red;
+  border: none;
+  color: white;
+  font-weight: 600;
+  font-size: 0.85rem;
+  padding: 7px 12px;
+  border-radius: 8px;
+}
+
+.jc-btn-primary:hover {
+  background: rgba(var(--primary-rgb), 0.9);
+}
+
+.jc-btn-outline {
+  background: transparent;
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+  font-weight: 500;
+  font-size: 0.85rem;
+  padding: 7px 12px;
+  border-radius: 8px;
+}
+
+.jc-btn-outline:hover {
+  background: var(--bg-soft);
+}

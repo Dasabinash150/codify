@@ -216,6 +216,8 @@ c:\Users\ABINASH DAS\Downloads\jitcoderkey.pem
 ssh -i "c:\Users\ABINASH DAS\Downloads\jitcoderkey.pem" ubuntu@98.93.180.201    ==== (Connect from Windows)
 
 codifyenv\scripts\activate   ----> Virtual env activate
+python manage.py runserver
+cd frontend\my-app
 
 
 "C:\Users\ABINASH DAS\Downloads\jitcoderDocker.pem"

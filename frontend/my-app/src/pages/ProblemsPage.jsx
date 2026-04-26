@@ -123,33 +123,25 @@ function ProblemsPage() {
             </div>
           </div>
 
-          <div className="row g-3 mb-4">
-            <div className="col-md-3">
-              <div className="stat-card p-3 p-lg-4 h-100">
-                <div className="stat-label mb-1">Total Problems</div>
-                <div className="stat-value">{totalProblems}</div>
-              </div>
-            </div>
+          <div className="mb-3">
+            <div className="d-flex flex-wrap align-items-center gap-3 problem-stats-inline">
 
-            <div className="col-md-3">
-              <div className="stat-card p-3 p-lg-4 h-100">
-                <div className="stat-label mb-1">Easy</div>
-                <div className="stat-value">{easyCount}</div>
-              </div>
-            </div>
+              <span className="stats-pill">
+                <strong>Total Problem:</strong> {totalProblems}
+              </span>
 
-            <div className="col-md-3">
-              <div className="stat-card p-3 p-lg-4 h-100">
-                <div className="stat-label mb-1">Medium</div>
-                <div className="stat-value">{mediumCount}</div>
-              </div>
-            </div>
+              <span className="stats-pill easy">
+                <strong>Easy:</strong> {easyCount}
+              </span>
 
-            <div className="col-md-3">
-              <div className="stat-card p-3 p-lg-4 h-100">
-                <div className="stat-label mb-1">Hard</div>
-                <div className="stat-value">{hardCount}</div>
-              </div>
+              <span className="stats-pill medium">
+                <strong>Medium:</strong> {mediumCount}
+              </span>
+
+              <span className="stats-pill hard">
+                <strong>Hard:</strong> {hardCount}
+              </span>
+
             </div>
           </div>
 

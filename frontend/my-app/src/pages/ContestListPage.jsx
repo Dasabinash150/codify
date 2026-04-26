@@ -97,14 +97,29 @@ function ContestListPage() {
     if (difficulty === "Hard") return "difficulty-hard";
     return "difficulty-mixed";
   };
+  // --------------------------------
+  const formatStartTime = (dateString) => {
+    if (!dateString) return "N/A";
 
+    const date = new Date(dateString);
+
+    return date.toLocaleString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    });
+  };
+  // ---------------------------
   return (
     <>
       <Navbar />
 
-      <div className="contest-list-page py-4 py-lg-5">
+      <div className="contest-list-page py-1 py-lg-3">
         <Container>
-          <div className="contest-list-hero mb-4 mb-lg-5">
+          <div className="contest-list-hero mb-2 mb-lg-3">
             <div className="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3">
               <div>
                 <p className="contest-list-label mb-2">Coding Contests</p>
@@ -233,7 +248,7 @@ function ContestListPage() {
                           <div className="meta-item">
                             <span className="meta-label">Start</span>
                             <span className="meta-value">
-                              {contest.start_time || contest.startTime || "N/A"}
+                              {formatStartTime(contest.start_time || contest.startTime)}
                             </span>
                           </div>
                         </div>
@@ -243,7 +258,7 @@ function ContestListPage() {
                             as={Link}
                             to={`/contest/${contest.id}`}
                             variant="primary"
-                            className="contest-primary-btn w-100"
+                            className="jc-primary-btn w-100"
                           >
                             View Details
                           </Button>
@@ -252,7 +267,7 @@ function ContestListPage() {
                             as={Link}
                             to={`/contest/${contest.id}/leaderboard`}
                             variant="outline-primary"
-                            className="contest-outline-btn"
+                            className="jc-outline-btn"
                           >
                             Leaderboard
                           </Button>

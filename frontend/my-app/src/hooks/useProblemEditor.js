@@ -227,16 +227,21 @@ export default function useProblemEditor(id) {
         const stdout = data.stdout || "";
         const stderr = data.stderr || "";
         const compileOutput = data.compile_output || "";
-        const message = data.message || "";
+
+        const finalOutput =
+          stdout.trim() ||
+          stderr.trim() ||
+          compileOutput.trim() ||
+          "";
 
         setRunSummary(null);
+
         setRunResults([
           {
             testcase: 1,
-            passed: !stderr && !compileOutput,
-            expected_output: "N/A",
-            actual_output:
-              stdout || stderr || compileOutput || message || "No output",
+            passed: !!stdout && !stderr && !compileOutput,
+            expected_output: "Check testcase output",
+            actual_output: finalOutput || "No output received",
           },
         ]);
       }
