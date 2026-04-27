@@ -1,9 +1,12 @@
-name: Deploy Django to AWS EC2
+name: Deploy Backend to AWS EC2
 
 on:
   push:
     branches:
       - main
+    paths:
+      - 'codify/**'
+      - '.github/workflows/deploy-backend.yml'
 
 jobs:
   deploy:
@@ -20,7 +23,7 @@ jobs:
           username: ubuntu
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            cd ~/jitcoder/codify
+            cd /home/ubuntu/codify
 
             echo "Pull latest code"
             git pull origin main
@@ -28,17 +31,18 @@ jobs:
             echo "Activate virtual environment"
             source venv/bin/activate
 
-            echo "Install dependencies"
-            pip install -r requirements.txt
+            echo "Install requirements"
+            pip install -r codify/requirements.txt
 
             echo "Run migrations"
-            python manage.py migrate
+            cd codify
+            python manage.py migrate --settings=codify.settings.production
 
             echo "Collect static files"
-            python manage.py collectstatic --noinput
+            python manage.py collectstatic --noinput --settings=codify.settings.production
 
-            echo "Restart services"
+            echo "Restart Gunicorn"
             sudo systemctl restart gunicorn
-            sudo systemctl restart nginx
 
-            echo "Deployment completed successfully"
+            echo "Restart Nginx"
+            sudo systemctl restart nginx
