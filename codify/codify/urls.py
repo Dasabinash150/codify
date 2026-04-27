@@ -3,7 +3,7 @@ from django.urls import path, include
 from django.http import HttpResponse
 
 def home(request):
-    return HttpResponse("Welcome to Codify API 🚀")
+    return HttpResponse("Welcome to Codify API 🚀 by Abinash Das")
 
 urlpatterns = [
     path('', home, name='home'),
