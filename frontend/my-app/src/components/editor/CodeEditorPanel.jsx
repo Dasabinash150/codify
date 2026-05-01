@@ -2,6 +2,7 @@ import React from "react";
 import { Form } from "react-bootstrap";
 import Editor from "@monaco-editor/react";
 import { editorLanguageMap } from "../../constants/editorConstants";
+import useFullscreen from "../../hooks/useFullscreen";
 
 export default function CodeEditorPanel({
   language,
@@ -51,6 +52,7 @@ export default function CodeEditorPanel({
             readOnly: contestEnded,
           }}
         />
+
       </div>
     </>
   );
