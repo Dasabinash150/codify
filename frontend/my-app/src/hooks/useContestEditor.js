@@ -10,6 +10,7 @@ import {
 } from "../utils/editorUtils";
 
 export default function useContestEditor(id, problemId) {
+
   const navigate = useNavigate();
   const contestDraftKey = useMemo(() => `contest_draft_${id}`, [id]);
 
@@ -49,6 +50,8 @@ export default function useContestEditor(id, problemId) {
 
   const [leftPanelWidth, setLeftPanelWidth] = useState(45);
   const [bottomPanelHeight, setBottomPanelHeight] = useState(260);
+
+  const autoSubmitRef = useRef(false);
 
   const selectedProblem = useMemo(() => {
     if (!problemList.length) return null;
@@ -446,29 +449,25 @@ export default function useContestEditor(id, problemId) {
     selectedProblemId,
     submittedProblemIds,
   ]);
-
+  //  Timer
   useEffect(() => {
-    if (!contestInfo?.end_time || contestEnded) return;
+    if (!contestInfo?.end_time) return;
 
     const timer = setInterval(() => {
       setContestTime((prev) => {
-        if (prev <= 1) {
+        if (prev === 1) {
           clearInterval(timer);
-
-          setContestEnded(true);      // 🔥 mark ended
-          finishContest(true);         // 🔥 auto submit
-
+          finishContest(true);   // 🔥 call directly
           return 0;
         }
-        return prev - 1;
+        return prev > 0 ? prev - 1 : 0;
       });
 
       setActiveTime((prev) => prev + 1);
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [contestInfo?.end_time, contestEnded]);
-
+  }, [contestInfo?.end_time]);
   useEffect(() => {
     if (!selectedProblem?.id) return;
     problemStartRef.current = Date.now();
@@ -669,7 +668,8 @@ export default function useContestEditor(id, problemId) {
   // ==================== Finish Contest =========================================
 
   const finishContest = useCallback((isAuto = false) => {
-    if (contestEnded) return;   // 🔒 prevent double call
+    if (autoSubmitRef.current) return;   // 🔒 prevent duplicates
+    autoSubmitRef.current = true;
 
     try {
       const token = localStorage.getItem("access");
@@ -688,7 +688,6 @@ export default function useContestEditor(id, problemId) {
         language,
       }));
 
-      // ❌ validation ONLY for manual
       if (!isAuto) {
         const hasEmptyCode = answers.some(
           (item) => !item.source_code || !item.source_code.trim()
@@ -696,6 +695,7 @@ export default function useContestEditor(id, problemId) {
 
         if (hasEmptyCode) {
           alert("Please write code for all questions before finishing contest.");
+          autoSubmitRef.current = false; // allow retry
           return;
         }
       }
@@ -706,29 +706,26 @@ export default function useContestEditor(id, problemId) {
         contest_id: id,
         answers,
       }).catch((err) => {
-        // 🔥 ignore 403 (already finished)
-        if (err.response?.status === 403) {
-          console.log("Contest already finished (auto)");
-          return;
+        if (err.response?.status !== 403) {
+          console.error(err);
         }
-
-        console.error("Submit error:", err?.response?.data || err.message);
       });
 
       clearContestDraft();
 
-      if (isAuto) {
-        alert("⏱ Time over! Auto submitted.");
-      } else {
-        alert("Contest submitted successfully.");
-      }
+      alert(
+        isAuto
+          ? "⏱ Time over! Auto submitted."
+          : "Contest submitted successfully."
+      );
 
       navigate(`/contest/${id}/leaderboard`);
 
     } catch (err) {
       console.error(err);
     }
-  }, [contestEnded, problemList, codeStore, language, id, clearContestDraft, navigate]);
+  }, [problemList, codeStore, language, id, clearContestDraft, navigate]);
+
   const handleFinishContest = () => {
     finishContest(false);
   };
