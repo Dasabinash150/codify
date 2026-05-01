@@ -565,14 +565,14 @@ export default function useContestEditor(id, problemId) {
       setRunSummary((prev) => ({
         ...prev,
         [selectedProblem.id]: {
-          passed: res.data.passed_count || 0,
-          total: res.data.total_count || 0,
+          passed: res.data.passed || 0,
+          total: res.data.total || 0,
         },
       }));
 
       setRunResults((prev) => ({
         ...prev,
-        [selectedProblem.id]: res.data.testcase_results || [],
+        [selectedProblem.id]: res.data.results || [],
       }));
     } catch (err) {
       console.error("RUN ERROR:", err.response?.data || err.message);

@@ -35,12 +35,18 @@ class TestCase(models.Model):
     )
     input = models.TextField()
     expected_output = models.TextField()
+    explanation = models.TextField(blank=True, null=True)
 
     is_sample = models.BooleanField(default=False)
     is_hidden = models.BooleanField(default=True)   # NEW FIELD
 
     class Meta:
         ordering = ["id"]
+
+    def save(self, *args, **kwargs):
+        if self.is_sample:
+            self.is_hidden = False
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"TestCase - {self.problem.title}"

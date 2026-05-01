@@ -214,6 +214,50 @@
   padding: 14px;
 }
 
+/* Section spacing */
+.editor-section {
+  margin-bottom: 22px;
+}
+
+/* Section titles */
+.editor-section-title {
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: 10px;
+  color: var(--text-main);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Example header */
+.example-header {
+  font-weight: 600;
+  font-size: 13px;
+  margin-bottom: 8px;
+  color: var(--primary);
+}
+
+/* Labels */
+.editor-example-block .label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 4px;
+  color: var(--text-muted);
+}
+
+/* Improve code blocks */
+.editor-example-block pre {
+  background: #0f172a; /* darker */
+  border: 1px solid var(--border-color);
+  padding: 10px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  overflow-x: auto;
+}
+
+
 .editor-left-content::-webkit-scrollbar {
   width: 6px;
 }
