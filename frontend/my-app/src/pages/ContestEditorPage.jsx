@@ -95,6 +95,7 @@ export default function ContestEditorPage() {
       leftContent={
         <ProblemDetailsPanel
           problem={editor.selectedProblem}
+          submittedProblemIds={editor.submittedProblemIds}
           leftTab={editor.leftTab}
           setLeftTab={editor.setLeftTab}
           showStatus={true}

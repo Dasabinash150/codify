@@ -196,7 +196,7 @@ export default function useContestEditor(id, problemId) {
       constraints: parseConstraints(problem.constraints),
       tags: parseTags(problem.tags),
       points: problem.points || 100,
-      status: solvedMap[problem.id] ? "Solved" : "Unsolved",
+      status: submittedProblemIds[problem.id] ? "Solved" : "Unsolved",
       examples,
       testcases: firstSample?.input || "",
       testcaseObjects: problemTestcases,
@@ -643,10 +643,12 @@ export default function useContestEditor(id, problemId) {
       }));
 
 
-      setSubmittedProblemIds((prev) => ({
-        ...prev,
-        [selectedProblem.id]: true,
-      }));
+      if (data.status === "AC") {
+        setSubmittedProblemIds((prev) => ({
+          ...prev,
+          [selectedProblem.id]: true,
+        }));
+      }
 
       clearProblemDraft(selectedProblem.id);
       //await pollSubmissionHistory();
@@ -740,6 +742,8 @@ export default function useContestEditor(id, problemId) {
     contestStatus: contestInfo?.status || "Live",
     problemList,
     selectedProblem,
+    submittedProblemIds,
+    
     language,
     setLanguage,
     leftTab,
@@ -771,5 +775,6 @@ export default function useContestEditor(id, problemId) {
     setLeftPanelWidth,
     bottomPanelHeight,
     setBottomPanelHeight,
+    
   };
 }

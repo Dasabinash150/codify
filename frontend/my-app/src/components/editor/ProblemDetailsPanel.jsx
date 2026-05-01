@@ -8,6 +8,7 @@ import {
 
 export default function ProblemDetailsPanel({
   problem,
+  submittedProblemIds,
   leftTab,
   setLeftTab,
   showStatus = false,
@@ -29,10 +30,14 @@ export default function ProblemDetailsPanel({
         <span className={`editor-pill ${getDifficultyClass(problem?.difficulty)}`}>
           {problem?.difficulty || "Unknown"}
         </span>
-
         {showStatus && (
-          <span className={`editor-pill ${getStatusClass(problem?.status)}`}>
-            {problem?.status || "Unsolved"}
+          <span
+            className={`editor-pill ${submittedProblemIds?.[problem?.id]
+                ? "editor-status-solved"
+                : "editor-status-unsolved"
+              }`}
+          >
+            {submittedProblemIds?.[problem?.id] ? "Solved" : "Unsolved"}
           </span>
         )}
 
