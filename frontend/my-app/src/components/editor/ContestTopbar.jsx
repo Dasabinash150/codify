@@ -14,6 +14,7 @@ export default function ContestTopbar({
   onFinish,
   onBack,
   problemList = [],
+  contestEnded = false,   // 🔥 ADD THIS LINE
 }) {
   const contestTitle = contestInfo?.name || "Contest";
   const contestStatus = contestInfo?.status || "Live";

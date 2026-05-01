@@ -9,6 +9,7 @@ export default function CodeEditorPanel({
   currentCode,
   onChange,
   isDarkTheme,
+  contestEnded = false,
 }) {
   return (
     <>

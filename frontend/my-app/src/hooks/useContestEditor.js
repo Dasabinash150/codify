@@ -706,6 +706,12 @@ export default function useContestEditor(id, problemId) {
         contest_id: id,
         answers,
       }).catch((err) => {
+        // 🔥 ignore 403 (already finished)
+        if (err.response?.status === 403) {
+          console.log("Contest already finished (auto)");
+          return;
+        }
+
         console.error("Submit error:", err?.response?.data || err.message);
       });
 
@@ -765,6 +771,9 @@ export default function useContestEditor(id, problemId) {
     contestTime,
     activeTime,
     hasUnsavedWork,
+
+    contestEnded,
+
     handleBackToProblems,
     leftPanelWidth,
     setLeftPanelWidth,

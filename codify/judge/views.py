@@ -122,6 +122,14 @@ def submit_contest(request):
             status=status.HTTP_400_BAD_REQUEST,
         )
 
+    # ✅ ADD THIS BLOCK
+    from django.utils import timezone
+    if timezone.now() > contest.end_time:
+        return Response(
+            {"error": "Contest has already ended"},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+
     if contest.status == "Ended":
         return Response(
             {"error": "Contest has already ended"},
