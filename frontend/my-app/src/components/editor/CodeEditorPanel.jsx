@@ -47,6 +47,7 @@ export default function CodeEditorPanel({
             automaticLayout: true,
             wordWrap: "on",
             padding: { top: 16 },
+            readOnly: contestEnded,
           }}
         />
       </div>

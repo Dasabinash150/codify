@@ -18,6 +18,8 @@ function ContestDetailsPage() {
   const [joining, setJoining] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [timeLeft, setTimeLeft] = useState("");
+
 
   useContestSocket(id, (msg) => {
     if (msg.event === "participant_count" || msg.event === "participant_update") {
@@ -104,6 +106,29 @@ function ContestDetailsPage() {
 
     if (id) fetchContestDetails();
   }, [id]);
+  useEffect(() => {
+    if (!contest) return;
+
+    const interval = setInterval(() => {
+      const now = new Date();
+
+      const start = new Date(contest.startTime);
+      const end = new Date(contest.endTime);
+
+
+      if (now < start) {
+        const diff = start - now;
+        setTimeLeft(`Starts in ${formatTime(diff)}`);
+      } else if (now < end) {
+        const diff = end - now;
+        setTimeLeft(`Ends in ${formatTime(diff)}`);
+      } else {
+        setTimeLeft("Contest Ended");
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [contest]);
 
   const difficultyClass = (difficulty = "") => {
     const value = difficulty.toLowerCase();
@@ -161,6 +186,15 @@ function ContestDetailsPage() {
   };
 
   const renderContestActionButton = () => {
+    if (!contest) return null;
+
+    const now = new Date();
+    const start = new Date(contest.startTime);
+    const end = new Date(contest.endTime);
+
+    const isStarted = now >= start;
+    const isEnded = now > end;
+
     const contestStatus = String(contest?.status || "").toLowerCase();
 
     if (contestStatus === "ended" || contestStatus === "finished") {
@@ -179,8 +213,16 @@ function ContestDetailsPage() {
         <Link
           to={`/contest/${contest.id}/problem/${contest.problems[0].id}`}
           className="btn btn-success px-3"
+          style={{
+            pointerEvents: !isStarted || isEnded ? "none" : "auto",
+            opacity: !isStarted || isEnded ? 0.6 : 1,
+          }}
         >
-          Enter Contest
+          {!isStarted
+            ? "Contest Not Started"
+            : isEnded
+              ? "Contest Ended"
+              : "Enter Contest"}
         </Link>
       );
     }
@@ -282,7 +324,7 @@ function ContestDetailsPage() {
               <div className="card card-theme border-0 shadow-sm rounded-4 h-100">
                 <div className="card-body p-3">
                   <p className="small text-muted-custom mb-1">Timer</p>
-                  <h5 className="mb-0 fw-bold">{contest.timer}</h5>
+                  <h5 className="mb-0 fw-bold">{timeLeft}</h5>
                 </div>
               </div>
             </div>
@@ -423,6 +465,14 @@ function ContestDetailsPage() {
       <Footer />
     </>
   );
+}
+function formatTime(ms) {
+  const totalSeconds = Math.floor(ms / 1000);
+  const h = Math.floor(totalSeconds / 3600);
+  const m = Math.floor((totalSeconds % 3600) / 60);
+  const s = totalSeconds % 60;
+
+  return `${h}h ${m}m ${s}s`;
 }
 
 export default ContestDetailsPage;

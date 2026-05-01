@@ -57,7 +57,7 @@ export default function ContestTopbar({
           size="sm"
           variant="success"
           onClick={onFinish}
-          disabled={submitLoading || problemList.length === 0}
+          disabled={contestEnded}
         >
           Finish Contest
         </Button>
