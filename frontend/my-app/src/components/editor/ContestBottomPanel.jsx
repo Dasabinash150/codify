@@ -44,7 +44,7 @@ export default function ContestBottomPanel({
           className={`editor-bottom-tab ${bottomTab === "result" ? "active" : ""}`}
           onClick={() => setBottomTab("result")}
         >
-          Test Result
+          Submission Result
         </button>
 
         <button
@@ -132,9 +132,7 @@ Verdict: ${getVerdictLabel(selectedSubmitResult.status)}
 Score: ${selectedSubmitResult.score ?? 0}
 Runtime: ${selectedSubmitResult.runtime ?? 0}
 Passed Testcases: ${selectedSubmitResult.passed_testcases ?? 0}/${selectedSubmitResult.total_testcases ?? 0}
-
-Submission ID: ${selectedSubmissionMeta?.submission_id || "N/A"}
-Task Status: ${selectedSubmissionMeta?.status || "N/A"}`
+`
                 : "Submission result will appear here."}
             </pre>
           </div>

@@ -18,15 +18,17 @@ function ContestDetailsPage() {
   const [joining, setJoining] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [timeLeft, setTimeLeft] = useState("");
+
 
   useContestSocket(id, (msg) => {
     if (msg.event === "participant_count" || msg.event === "participant_update") {
       setContest((prev) =>
         prev
           ? {
-              ...prev,
-              participants: msg.data?.count ?? msg.count ?? prev.participants,
-            }
+            ...prev,
+            participants: msg.data?.count ?? msg.count ?? prev.participants,
+          }
           : prev
       );
     }
@@ -41,6 +43,32 @@ function ContestDetailsPage() {
         const response = await API.get(`/contests/${id}/`);
         const data = response.data;
 
+        // ✅ STEP 1: get problem ids
+        const problemIds = (data.problems || []).map(p => p.problem_id);
+
+        // ✅ STEP 2: fetch problem details
+        const problemResponses = await Promise.all(
+          problemIds.map(pid => API.get(`/problems/${pid}/`))
+        );
+
+        // ✅ STEP 3: extract data
+        const problemData = problemResponses.map(res => res.data);
+
+        // ✅ STEP 4: merge data
+        const enrichedProblems = (data.problems || []).map((cp) => {
+          const p = problemData.find(
+            (item) => Number(item.id) === Number(cp.problem_id)
+          );
+
+          return {
+            ...cp,
+            title: p?.title || "Untitled",
+            difficulty: p?.difficulty || "easy",
+            points: p?.points || 100,
+          };
+        });
+
+        // ✅ STEP 5: set contest
         setContest({
           id: data.id,
           title: data.name || "Untitled Contest",
@@ -48,7 +76,7 @@ function ContestDetailsPage() {
           status: data.status || "Upcoming",
           participants: data.participants_count ?? 0,
           totalProblems: data.problems_count ?? 0,
-          problems: Array.isArray(data.problems) ? data.problems : [],
+          problems: enrichedProblems, // 🔥 IMPORTANT FIX
           startTime: data.start_time,
           endTime: data.end_time,
           duration: data.duration_minutes,
@@ -56,13 +84,15 @@ function ContestDetailsPage() {
             Array.isArray(data.rules) && data.rules.length > 0
               ? data.rules
               : [
-                  "Contest duration is based on start and end time.",
-                  "Solve problems within the allowed contest time.",
-                  "Ranking depends on score and submission time.",
-                  "Do not use unfair means.",
-                ],
+                "Contest duration is based on start and end time.",
+                "Solve problems within the allowed contest time.",
+                "Ranking depends on score and submission time.",
+                "Do not use unfair means.",
+              ],
           timer:
-            data.status === "Upcoming" ? "Starts Soon" : `${data.duration_minutes} min`,
+            data.status === "Upcoming"
+              ? "Starts Soon"
+              : `${data.duration_minutes} min`,
         });
 
         setJoined(Boolean(data.joined || data.is_joined || data.registered || false));
@@ -76,6 +106,29 @@ function ContestDetailsPage() {
 
     if (id) fetchContestDetails();
   }, [id]);
+  useEffect(() => {
+    if (!contest) return;
+
+    const interval = setInterval(() => {
+      const now = new Date();
+
+      const start = new Date(contest.startTime);
+      const end = new Date(contest.endTime);
+
+
+      if (now < start) {
+        const diff = start - now;
+        setTimeLeft(`Starts in ${formatTime(diff)}`);
+      } else if (now < end) {
+        const diff = end - now;
+        setTimeLeft(`Ends in ${formatTime(diff)}`);
+      } else {
+        setTimeLeft("Contest Ended");
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [contest]);
 
   const difficultyClass = (difficulty = "") => {
     const value = difficulty.toLowerCase();
@@ -133,6 +186,15 @@ function ContestDetailsPage() {
   };
 
   const renderContestActionButton = () => {
+    if (!contest) return null;
+
+    const now = new Date();
+    const start = new Date(contest.startTime);
+    const end = new Date(contest.endTime);
+
+    const isStarted = now >= start;
+    const isEnded = now > end;
+
     const contestStatus = String(contest?.status || "").toLowerCase();
 
     if (contestStatus === "ended" || contestStatus === "finished") {
@@ -151,8 +213,16 @@ function ContestDetailsPage() {
         <Link
           to={`/contest/${contest.id}/problem/${contest.problems[0].id}`}
           className="btn btn-success px-3"
+          style={{
+            pointerEvents: !isStarted || isEnded ? "none" : "auto",
+            opacity: !isStarted || isEnded ? 0.6 : 1,
+          }}
         >
-          Enter Contest
+          {!isStarted
+            ? "Contest Not Started"
+            : isEnded
+              ? "Contest Ended"
+              : "Enter Contest"}
         </Link>
       );
     }
@@ -254,7 +324,7 @@ function ContestDetailsPage() {
               <div className="card card-theme border-0 shadow-sm rounded-4 h-100">
                 <div className="card-body p-3">
                   <p className="small text-muted-custom mb-1">Timer</p>
-                  <h5 className="mb-0 fw-bold">{contest.timer}</h5>
+                  <h5 className="mb-0 fw-bold">{timeLeft}</h5>
                 </div>
               </div>
             </div>
@@ -283,11 +353,11 @@ function ContestDetailsPage() {
                   <p className="small text-muted-custom mb-1">Your Status</p>
                   <h5 className="mb-0 fw-bold">
                     {String(contest.status || "").toLowerCase() === "ended" ||
-                    String(contest.status || "").toLowerCase() === "finished"
+                      String(contest.status || "").toLowerCase() === "finished"
                       ? "Contest Closed"
                       : joined
-                      ? "Ready"
-                      : "Not Joined"}
+                        ? "Ready"
+                        : "Not Joined"}
                   </h5>
                 </div>
               </div>
@@ -342,8 +412,8 @@ function ContestDetailsPage() {
                         <th className="ps-3 ps-md-4">Problem</th>
                         <th>Difficulty</th>
                         <th>Points</th>
-                        <th>Status</th>
-                        <th className="text-center pe-3 pe-md-4">Action</th>
+                        {/* <th>Status</th>
+                        <th className="text-center pe-3 pe-md-4">Action</th> */}
                       </tr>
                     </thead>
                     <tbody>
@@ -364,24 +434,6 @@ function ContestDetailsPage() {
 
                             <td className="fw-semibold">{problem.points}</td>
 
-                            <td>
-                              <span
-                                className={`badge rounded-pill px-3 py-2 ${statusClass(
-                                  problem.status
-                                )}`}
-                              >
-                                {problem.status}
-                              </span>
-                            </td>
-
-                            <td className="text-center pe-3 pe-md-4">
-                              <Link
-                                to={`/contest/${contest.id}/problem/${problem.id}`}
-                                className="btn btn-sm btn-primary"
-                              >
-                                Solve
-                              </Link>
-                            </td>
                           </tr>
                         ))
                       ) : (
@@ -413,6 +465,14 @@ function ContestDetailsPage() {
       <Footer />
     </>
   );
+}
+function formatTime(ms) {
+  const totalSeconds = Math.floor(ms / 1000);
+  const h = Math.floor(totalSeconds / 3600);
+  const m = Math.floor((totalSeconds % 3600) / 60);
+  const s = totalSeconds % 60;
+
+  return `${h}h ${m}m ${s}s`;
 }
 
 export default ContestDetailsPage;

@@ -10,6 +10,7 @@ import {
 } from "../utils/editorUtils";
 
 export default function useContestEditor(id, problemId) {
+
   const navigate = useNavigate();
   const contestDraftKey = useMemo(() => `contest_draft_${id}`, [id]);
 
@@ -41,12 +42,16 @@ export default function useContestEditor(id, problemId) {
   const [error, setError] = useState("");
 
   const [contestTime, setContestTime] = useState(0);
+  const [contestEnded, setContestEnded] = useState(false);
+
   const [activeTime, setActiveTime] = useState(0);
   const [problemTimeMap, setProblemTimeMap] = useState({});
   const [submittedProblemIds, setSubmittedProblemIds] = useState({});
 
   const [leftPanelWidth, setLeftPanelWidth] = useState(45);
   const [bottomPanelHeight, setBottomPanelHeight] = useState(260);
+
+  const autoSubmitRef = useRef(false);
 
   const selectedProblem = useMemo(() => {
     if (!problemList.length) return null;
@@ -196,7 +201,7 @@ export default function useContestEditor(id, problemId) {
       constraints: parseConstraints(problem.constraints),
       tags: parseTags(problem.tags),
       points: problem.points || 100,
-      status: solvedMap[problem.id] ? "Solved" : "Unsolved",
+      status: submittedProblemIds[problem.id] ? "Solved" : "Unsolved",
       examples,
       testcases: firstSample?.input || "",
       testcaseObjects: problemTestcases,
@@ -444,18 +449,25 @@ export default function useContestEditor(id, problemId) {
     selectedProblemId,
     submittedProblemIds,
   ]);
-
+  //  Timer
   useEffect(() => {
     if (!contestInfo?.end_time) return;
 
     const timer = setInterval(() => {
-      setContestTime((prev) => (prev > 0 ? prev - 1 : 0));
+      setContestTime((prev) => {
+        if (prev === 1) {
+          clearInterval(timer);
+          finishContest(true);   // 🔥 call directly
+          return 0;
+        }
+        return prev > 0 ? prev - 1 : 0;
+      });
+
       setActiveTime((prev) => prev + 1);
     }, 1000);
 
     return () => clearInterval(timer);
   }, [contestInfo?.end_time]);
-
   useEffect(() => {
     if (!selectedProblem?.id) return;
     problemStartRef.current = Date.now();
@@ -565,14 +577,14 @@ export default function useContestEditor(id, problemId) {
       setRunSummary((prev) => ({
         ...prev,
         [selectedProblem.id]: {
-          passed: res.data.passed_count || 0,
-          total: res.data.total_count || 0,
+          passed: res.data.passed || 0,
+          total: res.data.total || 0,
         },
       }));
 
       setRunResults((prev) => ({
         ...prev,
-        [selectedProblem.id]: res.data.testcase_results || [],
+        [selectedProblem.id]: res.data.results || [],
       }));
     } catch (err) {
       console.error("RUN ERROR:", err.response?.data || err.message);
@@ -613,20 +625,6 @@ export default function useContestEditor(id, problemId) {
         language,
       });
 
-      // const submissionId = res.data.submission_id;
-      // const taskId = res.data.task_id;
-
-      // setSubmissionMeta((prev) => ({
-      //   ...prev,
-      //   [selectedProblem.id]: {
-      //     submission_id: submissionId,
-      //     task_id: taskId,
-      //     status: "PENDING",
-      //     runtime: 0,
-      //     score: 0,
-      //   },
-      // }));
-
       const data = res.data;
       setSubmitResults((prev) => ({
         ...prev,
@@ -643,10 +641,12 @@ export default function useContestEditor(id, problemId) {
       }));
 
 
-      setSubmittedProblemIds((prev) => ({
-        ...prev,
-        [selectedProblem.id]: true,
-      }));
+      if (data.status === "AC") {
+        setSubmittedProblemIds((prev) => ({
+          ...prev,
+          [selectedProblem.id]: true,
+        }));
+      }
 
       clearProblemDraft(selectedProblem.id);
       //await pollSubmissionHistory();
@@ -665,8 +665,12 @@ export default function useContestEditor(id, problemId) {
       setSubmitLoading(false);
     }
   }, [codeStore, language, selectedProblem, id, clearProblemDraft, navigate]);
+  // ==================== Finish Contest =========================================
 
-  const handleFinishContest = useCallback(() => {
+  const finishContest = useCallback((isAuto = false) => {
+    if (autoSubmitRef.current) return;   // 🔒 prevent duplicates
+    autoSubmitRef.current = true;
+
     try {
       const token = localStorage.getItem("access");
 
@@ -684,52 +688,48 @@ export default function useContestEditor(id, problemId) {
         language,
       }));
 
-      const hasEmptyCode = answers.some(
-        (item) => !item.source_code || !item.source_code.trim()
-      );
+      if (!isAuto) {
+        const hasEmptyCode = answers.some(
+          (item) => !item.source_code || !item.source_code.trim()
+        );
 
-      if (hasEmptyCode) {
-        alert("Please write code for all questions before finishing contest.");
-        return;
+        if (hasEmptyCode) {
+          alert("Please write code for all questions before finishing contest.");
+          autoSubmitRef.current = false; // allow retry
+          return;
+        }
       }
 
-      // ✅ show loading briefly (optional)
-      setSubmitLoading(true);
+      setContestEnded(true);
 
-      // 🔥 FIRE REQUEST (NO await)
       API.post("/submit-contest/", {
         contest_id: id,
         answers,
       }).catch((err) => {
-        console.error("Finish contest error:", err?.response?.data || err.message);
-
-        if (err.response?.status === 401) {
-          alert("Session expired. Please login again.");
-          localStorage.clear();
-          navigate("/login");
-          return;
+        if (err.response?.status !== 403) {
+          console.error(err);
         }
-
-        alert(getErrorMessage(err, "Contest submit failed"));
       });
 
-      // ✅ clear draft immediately
       clearContestDraft();
 
-      // ✅ instant feedback
-      alert("Contest submitted successfully.");
+      alert(
+        isAuto
+          ? "⏱ Time over! Auto submitted."
+          : "Contest submitted successfully."
+      );
 
-      // 🚀 instant redirect (no waiting)
       navigate(`/contest/${id}/leaderboard`);
 
     } catch (err) {
-      console.error("Unexpected error:", err);
-      alert("Something went wrong.");
-    } finally {
-      // optional: remove loader quickly
-      setTimeout(() => setSubmitLoading(false), 300);
+      console.error(err);
     }
   }, [problemList, codeStore, language, id, clearContestDraft, navigate]);
+
+  const handleFinishContest = () => {
+    finishContest(false);
+  };
+
 
 
   return {
@@ -740,6 +740,8 @@ export default function useContestEditor(id, problemId) {
     contestStatus: contestInfo?.status || "Live",
     problemList,
     selectedProblem,
+    submittedProblemIds,
+
     language,
     setLanguage,
     leftTab,
@@ -766,10 +768,14 @@ export default function useContestEditor(id, problemId) {
     contestTime,
     activeTime,
     hasUnsavedWork,
+
+    contestEnded,
+
     handleBackToProblems,
     leftPanelWidth,
     setLeftPanelWidth,
     bottomPanelHeight,
     setBottomPanelHeight,
+
   };
 }

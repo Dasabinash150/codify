@@ -1,7 +1,9 @@
 import React from "react";
+import { useEffect, useState } from "react";
 import { Button } from "react-bootstrap";
 import { formatTime } from "../../utils/editorUtils";
 import ThemeToggle from "../ThemeToggle";
+import useFullscreen from "../../hooks/useFullscreen";
 
 export default function ContestTopbar({
   contestInfo,
@@ -14,9 +16,11 @@ export default function ContestTopbar({
   onFinish,
   onBack,
   problemList = [],
+  contestEnded = false,   // 🔥 ADD THIS LINE
 }) {
   const contestTitle = contestInfo?.name || "Contest";
   const contestStatus = contestInfo?.status || "Live";
+  const { isFullscreen, toggleFullscreen } = useFullscreen();
 
   return (
     <div className="editor-topbar editor-topbar-theme d-flex align-items-center justify-content-between px-3 border-bottom">
@@ -40,6 +44,14 @@ export default function ContestTopbar({
       </div>
 
       <div className="d-flex gap-2 flex-wrap">
+        <button
+          className="fullscreen-btn"
+          onClick={toggleFullscreen}
+          title="Toggle Fullscreen"
+        >
+          {isFullscreen ? "⤡" : "⛶"}
+        </button>
+
         <Button size="sm" variant="outline-secondary" onClick={onRun} disabled={runLoading}>
           {runLoading ? "Running..." : "Run"}
         </Button>
@@ -57,10 +69,12 @@ export default function ContestTopbar({
           size="sm"
           variant="success"
           onClick={onFinish}
-          disabled={submitLoading || problemList.length === 0}
+          disabled={contestEnded}
         >
           Finish Contest
         </Button>
+
+
         <ThemeToggle />
       </div>
     </div>

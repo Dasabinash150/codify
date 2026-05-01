@@ -1,7 +1,11 @@
+# Contest Models
+
 from django.db import models
 from django.utils import timezone
 from django.core.exceptions import ValidationError
 from account.models import User
+
+from celery.result import AsyncResult
 
 
 class Problem(models.Model):
@@ -35,12 +39,18 @@ class TestCase(models.Model):
     )
     input = models.TextField()
     expected_output = models.TextField()
+    explanation = models.TextField(blank=True, null=True)
 
     is_sample = models.BooleanField(default=False)
     is_hidden = models.BooleanField(default=True)   # NEW FIELD
 
     class Meta:
         ordering = ["id"]
+
+    def save(self, *args, **kwargs):
+        if self.is_sample:
+            self.is_hidden = False
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"TestCase - {self.problem.title}"
@@ -52,9 +62,13 @@ class Contest(models.Model):
     end_time = models.DateTimeField()
     created_at = models.DateTimeField(auto_now_add=True)
 
+    # 🔥 store celery task id
+    scheduled_task_id = models.CharField(max_length=255, null=True, blank=True)
+
     class Meta:
         ordering = ["-start_time"]
 
+    # ✅ validation
     def clean(self):
         if not self.start_time or not self.end_time:
             return
@@ -64,6 +78,7 @@ class Contest(models.Model):
                 "end_time": "End time must be after start time."
             })
 
+    # ✅ contest status
     @property
     def status(self):
         now = timezone.now()
@@ -73,6 +88,7 @@ class Contest(models.Model):
             return "Live"
         return "Ended"
 
+    # ✅ duration
     @property
     def duration_minutes(self):
         return int((self.end_time - self.start_time).total_seconds() // 60)
@@ -80,6 +96,40 @@ class Contest(models.Model):
     def __str__(self):
         return self.name
 
+    # 🔥 AUTO FINISH SCHEDULING (IMPORTANT)
+    def save(self, *args, **kwargs):
+        is_new = self.pk is None
+
+        # get old end_time (for update case)
+        old_end_time = None
+        if not is_new:
+            old = Contest.objects.filter(pk=self.pk).first()
+            if old:
+                old_end_time = old.end_time
+
+        super().save(*args, **kwargs)
+
+        # 🔥 schedule only if new OR end_time changed
+        if is_new or old_end_time != self.end_time:
+
+            # ❌ cancel old scheduled task (if exists)
+            if self.scheduled_task_id:
+                try:
+                    AsyncResult(self.scheduled_task_id).revoke()
+                except Exception:
+                    pass
+
+            # ✅ schedule new auto-finish task
+            from judge.tasks import auto_finish_contest
+            result = auto_finish_contest.apply_async(
+                args=[self.id],
+                eta=self.end_time
+            )
+
+            # ✅ save new task id (avoid recursion)
+            Contest.objects.filter(pk=self.pk).update(
+                scheduled_task_id=result.id
+            )
 
 class ContestProblem(models.Model):
     contest = models.ForeignKey(

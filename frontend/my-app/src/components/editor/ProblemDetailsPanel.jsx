@@ -8,6 +8,7 @@ import {
 
 export default function ProblemDetailsPanel({
   problem,
+  submittedProblemIds,
   leftTab,
   setLeftTab,
   showStatus = false,
@@ -29,10 +30,14 @@ export default function ProblemDetailsPanel({
         <span className={`editor-pill ${getDifficultyClass(problem?.difficulty)}`}>
           {problem?.difficulty || "Unknown"}
         </span>
-
         {showStatus && (
-          <span className={`editor-pill ${getStatusClass(problem?.status)}`}>
-            {problem?.status || "Unsolved"}
+          <span
+            className={`editor-pill ${submittedProblemIds?.[problem?.id]
+                ? "editor-status-solved"
+                : "editor-status-unsolved"
+              }`}
+          >
+            {submittedProblemIds?.[problem?.id] ? "Solved" : "Unsolved"}
           </span>
         )}
 
@@ -47,88 +52,73 @@ export default function ProblemDetailsPanel({
         ))}
       </div>
 
-      <div className="editor-left-tabs">
-        <button
-          type="button"
-          className={`editor-left-tab-btn ${leftTab === "description" ? "active" : ""}`}
-          onClick={() => setLeftTab("description")}
-        >
-          Description
-        </button>
 
-        <button
-          type="button"
-          className={`editor-left-tab-btn ${leftTab === "examples" ? "active" : ""}`}
-          onClick={() => setLeftTab("examples")}
-        >
-          Examples
-        </button>
-
-        <button
-          type="button"
-          className={`editor-left-tab-btn ${leftTab === "constraints" ? "active" : ""}`}
-          onClick={() => setLeftTab("constraints")}
-        >
-          Constraints
-        </button>
-      </div>
 
       <div className="editor-left-content">
-        {leftTab === "description" && (
-          <div className="editor-content-section">
-            {String(problem?.description || "No description available.")
-              .split("\n\n")
-              .map((para, index) => (
-                <p key={index} className="editor-text">
-                  {para}
-                </p>
-              ))}
-          </div>
-        )}
 
-        {leftTab === "examples" && (
-          <div className="editor-content-section">
-            {examples.length ? (
-              examples.map((example, index) => (
-                <div key={index} className="editor-example-card">
-                  <h6 className="editor-section-heading">Example {index + 1}</h6>
+        {/* DESCRIPTION */}
+        <section className="editor-section">
+          <h5 className="editor-section-title">📝 Description</h5>
 
+          {String(problem?.description || "No description available.")
+            .split("\n\n")
+            .map((para, index) => (
+              <p key={index} className="editor-text">
+                {para}
+              </p>
+            ))}
+        </section>
+
+        {/* EXAMPLES */}
+        <section className="editor-section">
+          <h5 className="editor-section-title">📌 Examples</h5>
+
+          {examples.length ? (
+            examples.map((example, index) => (
+              <div key={index} className="editor-example-card">
+
+                <div className="example-header">
+                  Example {index + 1}
+                </div>
+
+                <div className="editor-example-block">
+                  <span className="label">Input</span>
+                  <pre>{example.input}</pre>
+                </div>
+
+                <div className="editor-example-block">
+                  <span className="label">Output</span>
+                  <pre>{example.output}</pre>
+                </div>
+
+                {example.explanation && (
                   <div className="editor-example-block">
-                    <strong>Input:</strong>
-                    <pre>{example.input}</pre>
-                  </div>
-
-                  <div className="editor-example-block">
-                    <strong>Output:</strong>
-                    <pre>{example.output}</pre>
-                  </div>
-
-                  <div className="editor-example-block">
-                    <strong>Explanation:</strong>
+                    <span className="label">Explanation</span>
                     <pre>{example.explanation}</pre>
                   </div>
-                </div>
-              ))
-            ) : (
-              <p className="editor-text">No sample examples available.</p>
-            )}
-          </div>
-        )}
+                )}
+              </div>
+            ))
+          ) : (
+            <p className="editor-text">No sample examples available.</p>
+          )}
+        </section>
 
-        {leftTab === "constraints" && (
-          <div className="editor-content-section">
-            <h6 className="editor-section-heading">Constraints</h6>
-            {constraints.length ? (
-              <ul className="editor-constraints-list">
-                {constraints.map((item, index) => (
-                  <li key={index}>{item}</li>
-                ))}
-              </ul>
-            ) : (
-              <p className="editor-text">No constraints available.</p>
-            )}
-          </div>
-        )}
+        {/* CONSTRAINTS */}
+        <section className="editor-section">
+          <h5 className="editor-section-title">⚡ Constraints</h5>
+
+          {constraints.length ? (
+            <ul className="editor-constraints-list">
+              {constraints.map((item, index) => (
+                <li key={index}>{item}</li>
+              ))}
+            </ul>
+          ) : (
+            <p className="editor-text">No constraints available.</p>
+          )}
+        </section>
+
       </div>
     </div>
   );

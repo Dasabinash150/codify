@@ -75,6 +75,7 @@ export default function ContestEditorPage() {
         <ContestTopbar
           contestInfo={editor.contestInfo}
           contestTime={editor.contestTime}
+          contestEnded={editor.contestEnded}
           activeTime={editor.activeTime}
           runLoading={editor.runLoading}
           submitLoading={editor.submitLoading}
@@ -83,6 +84,7 @@ export default function ContestEditorPage() {
           onSubmit={editor.handleSubmit}
           onFinish={editor.handleFinishContest}
           problemList={editor.problemList}
+          
         />
       }
       leftHeader={
@@ -95,6 +97,7 @@ export default function ContestEditorPage() {
       leftContent={
         <ProblemDetailsPanel
           problem={editor.selectedProblem}
+          submittedProblemIds={editor.submittedProblemIds}
           leftTab={editor.leftTab}
           setLeftTab={editor.setLeftTab}
           showStatus={true}
@@ -107,6 +110,7 @@ export default function ContestEditorPage() {
           currentCode={editor.currentCode}
           onChange={editor.handleEditorChange}
           isDarkTheme={isDarkTheme}
+          contestEnded={editor.contestEnded} 
         />
       }
       rightBottom={

@@ -1,6 +1,7 @@
 import React from "react";
 import { Button } from "react-bootstrap";
 import ThemeToggle from "../ThemeToggle";
+import useFullscreen from "../../hooks/useFullscreen";
 
 export default function ProblemTopbar({
   problem,
@@ -10,6 +11,8 @@ export default function ProblemTopbar({
   onRun,
   onSubmit,
 }) {
+  const { isFullscreen, toggleFullscreen } = useFullscreen();
+
   return (
     <div className="editor-topbar editor-topbar-theme d-flex align-items-center justify-content-between px-3 border-bottom">
       <div className="d-flex align-items-center gap-3 flex-wrap">
@@ -27,6 +30,13 @@ export default function ProblemTopbar({
       </div>
 
       <div className="d-flex gap-2 flex-wrap">
+        <button
+          className="fullscreen-btn"
+          onClick={toggleFullscreen}
+          title="Toggle Fullscreen"
+        >
+          {isFullscreen ? "⤡" : "⛶"}
+        </button>
         <Button
           size="sm"
           variant="outline-secondary"
@@ -44,6 +54,7 @@ export default function ProblemTopbar({
         >
           {submitLoading ? "Submitting..." : "Submit"}
         </Button>
+
         <ThemeToggle />
       </div>
     </div>

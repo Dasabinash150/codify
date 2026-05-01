@@ -1,3 +1,5 @@
+# Judge Models
+
 from django.db import models
 from contest.models import Problem
 from django.conf import settings
