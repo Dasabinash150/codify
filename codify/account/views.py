@@ -219,9 +219,9 @@ def google_login(request):
     token = request.data.get("token")
     
   # ✅ ADD HERE
-    print("SETTINGS GOOGLE CLIENT ID:", settings.GOOGLE_CLIENT_ID)
-    print("TOKEN PRESENT:", bool(token))
-    print("RAW TOKEN:", token)
+    # print("SETTINGS GOOGLE CLIENT ID:", settings.GOOGLE_CLIENT_ID)
+    # print("TOKEN PRESENT:", bool(token))
+    # print("RAW TOKEN:", token)
 
     if not token:
         return Response({"error": "Token is required"}, status=status.HTTP_400_BAD_REQUEST)

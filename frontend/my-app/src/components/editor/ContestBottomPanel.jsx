@@ -96,17 +96,62 @@ export default function ContestBottomPanel({
 
                 {selectedRunResults.map((item, index) => (
                   <div key={index} className="mb-3">
-                    <div className={item.passed ? "text-success" : "text-danger"}>
-                      Test Case {item.testcase || index + 1}:{" "}
-                      {item.passed ? "Passed" : "Failed"}
+                    <div className="d-flex align-items-center gap-2">
+                      <span className={item.passed ? "text-success" : "text-danger"}>
+                        {item.testcase === "Custom Input"
+                          ? "Custom Input"
+                          : `Test Case ${item.testcase || index + 1}`}
+                      </span>
+
+                      <span>{item.passed ? "✅" : "❌"}</span>
+
+                      {item.testcase === "Custom Input" && (
+                        <span className="badge bg-info">Custom</span>
+                      )}
                     </div>
 
                     <pre className="editor-output-pre mb-2">
-                      {`Expected:
-${item.expected_output || "N/A"}
+                      {item.testcase === "Custom Input" ? (
+                        <>
+                          <div className="mb-2">
+                            <strong>Input:</strong>
+                            <pre className="mb-1">{item.input}</pre>
+                          </div>
 
-Actual:
-${item.actual_output || "No output"}`}
+                          <div>
+                            <strong>
+                              {item.judge_status === "ERROR" ? "Error:" : "Output:"}
+                            </strong>
+                            <pre
+                              className="mb-1"
+                              style={{
+                                color: item.judge_status === "ERROR" ? "#ff6b6b" : "inherit",
+                              }}
+                            >
+                              {item.actual_output || "(no output)"}
+                            </pre>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="mb-2">
+                            <strong>Expected:</strong>
+                            <pre className="mb-1">{item.expected_output}</pre>
+                          </div>
+
+                          <div>
+                            <strong>Actual:</strong>
+                            <pre
+                              className="mb-1"
+                              style={{
+                                color: item.passed ? "inherit" : "#ff6b6b",
+                              }}
+                            >
+                              {item.actual_output || "(no output)"}
+                            </pre>
+                          </div>
+                        </>
+                      )}
                     </pre>
                   </div>
                 ))}

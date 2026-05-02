@@ -88,9 +88,9 @@ class UserProfileSerializer(serializers.ModelSerializer):
             status="AC"
         ).order_by("-submitted_at")
 
-        print("========== STREAK DEBUG ==========")
-        print("USER:", obj.email)
-        print("TOTAL ACCEPTED SUBMISSIONS:", submissions.count())
+        # print("========== STREAK DEBUG ==========")
+        # print("USER:", obj.email)
+        # print("TOTAL ACCEPTED SUBMISSIONS:", submissions.count())
 
         if not submissions.exists():
             return 0
@@ -109,16 +109,16 @@ class UserProfileSerializer(serializers.ModelSerializer):
         else:
             return 0
 
-        print("START FROM:", current_day)
+        # print("START FROM:", current_day)
 
         for submission in submissions:
             submission_day = submission.submitted_at.date()
 
-            print(
-                "SUBMISSION ID:", submission.id,
-                "| STATUS:", submission.status,
-                "| DATE:", submission_day
-            )
+            # print(
+            #     "SUBMISSION ID:", submission.id,
+            #     "| STATUS:", submission.status,
+            #     "| DATE:", submission_day
+            # )
 
             if submission_day in checked_days:
                 continue
@@ -127,14 +127,14 @@ class UserProfileSerializer(serializers.ModelSerializer):
                 streak += 1
                 checked_days.add(submission_day)
                 current_day -= timedelta(days=1)
-                print("COUNTED → streak =", streak)
+                # print("COUNTED → streak =", streak)
 
             elif submission_day < current_day:
-                print("BREAK")
+                # print("BREAK")
                 break
 
-        print("FINAL STREAK:", streak)
-        print("=================================")
+        # print("FINAL STREAK:", streak)
+        # print("=================================")
 
         return streak
 

@@ -559,21 +559,85 @@ export default function useContestEditor(id, problemId) {
       [selectedProblem.id]: value,
     }));
   }, [selectedProblem]);
+//  ======================== Run Code  ========================
+  // const handleRun = useCallback(async () => {
+  //   if (!selectedProblem) return;
 
-  const handleRun = useCallback(async () => {
-    if (!selectedProblem) return;
+  //   try {
+  //     setRunLoading(true);
+  //     setBottomTab("testcase");
 
-    try {
-      setRunLoading(true);
-      setBottomTab("testcase");
+  //     const res = await API.post("/run-code/", {
+  //       problem_id: selectedProblem.id,
+  //       source_code: currentCode || "",
+  //       language_id: judge0LanguageMap[language],
+  //       stdin: customInputMap[selectedProblem.id] || "",
+  //     });
 
-      const res = await API.post("/run-code/", {
-        problem_id: selectedProblem.id,
-        source_code: currentCode || "",
-        language_id: judge0LanguageMap[language],
-        stdin: customInputMap[selectedProblem.id] || "",
-      });
+  //     setRunSummary((prev) => ({
+  //       ...prev,
+  //       [selectedProblem.id]: {
+  //         passed: res.data.passed || 0,
+  //         total: res.data.total || 0,
+  //       },
+  //     }));
 
+  //     setRunResults((prev) => ({
+  //       ...prev,
+  //       [selectedProblem.id]: res.data.results || [],
+  //     }));
+  //   } catch (err) {
+  //     console.error("RUN ERROR:", err.response?.data || err.message);
+  //     alert(getErrorMessage(err, "Run failed"));
+  //   } finally {
+  //     setRunLoading(false);
+  //   }
+  // }, [currentCode, customInputMap, language, selectedProblem]);
+
+const handleRun = useCallback(async () => {
+  if (!selectedProblem) return;
+
+  try {
+    setRunLoading(true);
+    setBottomTab("testcase");
+
+    const res = await API.post("/run-code/", {
+      problem_id: selectedProblem.id,
+      source_code: currentCode || "",
+      language_id: judge0LanguageMap[language],
+      stdin: customInputMap[selectedProblem.id] || "",
+    });
+
+    // 🟢 CASE 1: CUSTOM INPUT SUCCESS
+    if (res.data.mode === "custom") {
+      setRunSummary((prev) => ({
+        ...prev,
+        [selectedProblem.id]: {
+          passed: 1,
+          total: 1,
+        },
+      }));
+
+      setRunResults((prev) => ({
+        ...prev,
+        [selectedProblem.id]: [
+          {
+            testcase: "Custom Input",
+            input: res.data.input,
+            expected_output: null,
+            actual_output: res.data.output,
+            passed: true,
+            judge_status: "OK",
+            time: res.data.time,
+          },
+        ],
+      }));
+
+      return;
+    }
+
+    // 🔴 CASE 2: FALLBACK → SAMPLE TESTCASES
+    if (res.data.mode === "sample") {
       setRunSummary((prev) => ({
         ...prev,
         [selectedProblem.id]: {
@@ -586,14 +650,18 @@ export default function useContestEditor(id, problemId) {
         ...prev,
         [selectedProblem.id]: res.data.results || [],
       }));
-    } catch (err) {
-      console.error("RUN ERROR:", err.response?.data || err.message);
-      alert(getErrorMessage(err, "Run failed"));
-    } finally {
-      setRunLoading(false);
     }
-  }, [currentCode, customInputMap, language, selectedProblem]);
 
+  } catch (err) {
+    console.error("RUN ERROR:", err.response?.data || err.message);
+    alert(getErrorMessage(err, "Run failed"));
+  } finally {
+    setRunLoading(false);
+  }
+}, [currentCode, customInputMap, language, selectedProblem]);
+
+
+// =========================== Submit Logic =================================
   const handleSubmit = useCallback(async () => {
     if (!selectedProblem) return;
 

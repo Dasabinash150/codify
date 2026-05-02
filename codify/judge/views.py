@@ -34,55 +34,121 @@ def get_user_display_name(user):
         or str(user)
     )
 
+from .services import run_single_testcase
 
 @api_view(["POST"])
 def run_code(request):
     problem_id = request.data.get("problem_id")
     source_code = request.data.get("source_code")
     language_id = request.data.get("language_id")
+    stdin = request.data.get("stdin", "")
 
     if not problem_id or not source_code or not language_id:
-        return Response(
-            {"error": "problem_id, source_code and language_id are required"},
-            status=status.HTTP_400_BAD_REQUEST,
-        )
+        return Response({"error": "Missing fields"}, status=400)
 
     try:
         problem = Problem.objects.get(id=problem_id)
     except Problem.DoesNotExist:
-        return Response(
-            {"error": "Problem not found"},
-            status=status.HTTP_404_NOT_FOUND,
+        return Response({"error": "Problem not found"}, status=404)
+
+    try:
+        # 🟢 ALWAYS USE CUSTOM INPUT IF PROVIDED
+        if stdin.strip():
+            result = run_single_testcase(
+                source_code=source_code,
+                language_id=language_id,
+                stdin=stdin,
+            )
+            
+            stdout = result.get("stdout")
+            stderr = result.get("stderr")
+
+            actual_output = stdout if stdout else stderr
+            is_error = bool(stderr)
+
+            return Response({
+                "results": [
+                    {
+                        "testcase": "Custom Input",
+                        "input": stdin,
+                        "expected_output": None,
+                        "actual_output": actual_output,
+                        "passed": not is_error,   # ❗ FIX
+                        "judge_status": "ERROR" if is_error else "OK",  # ❗ FIX
+                        "time": result.get("time"),
+                    }
+                ],
+                "passed": 0 if is_error else 1,
+                "total": 1,
+            })
+
+        # 🔵 ONLY if NO INPUT → run sample
+        result = judge_problem_submission(
+            problem=problem,
+            source_code=source_code,
+            language_id=language_id,
+            use_sample=True,
         )
 
-    print("problem_id =", problem_id)
-    print("problem title =", problem.title)
-    print("all testcases =", problem.testcases.count())
-    print("sample testcases =", problem.testcases.filter(is_sample=True).count())
-
-    result = judge_problem_submission(
-        problem=problem,
-        source_code=source_code,
-        language_id=language_id,
-        use_sample=True,
-    )
-
-    if result["status"] == "ERROR":
-        return Response(
-            {"error": result.get("message", "Run failed")},
-            status=status.HTTP_400_BAD_REQUEST,
-        )
-
-    return Response(
-        {
+        return Response({
             "results": result.get("testcase_results", []),
             "passed": result.get("passed_count", 0),
             "total": result.get("total_count", 0),
-            "status": result.get("status"),
-            "runtime": result.get("runtime", 0),
-        },
-        status=status.HTTP_200_OK,
-    )
+        })
+
+    except Exception as e:
+        return Response({"error": str(e)}, status=400)
+
+        
+# @api_view(["POST"])
+# def run_code(request):
+#     problem_id = request.data.get("problem_id")
+#     source_code = request.data.get("source_code")
+#     language_id = request.data.get("language_id")
+#     stdin = request.data.get("stdin", "")
+
+#     if not problem_id or not source_code or not language_id:
+#         return Response(
+#             {"error": "problem_id, source_code and language_id are required"},
+#             status=status.HTTP_400_BAD_REQUEST,
+#         )
+
+#     try:
+#         problem = Problem.objects.get(id=problem_id)
+#     except Problem.DoesNotExist:
+#         return Response(
+#             {"error": "Problem not found"},
+#             status=status.HTTP_404_NOT_FOUND,
+#         )
+
+#     # print("problem_id =", problem_id)
+#     # print("problem title =", problem.title)
+#     # print("all testcases =", problem.testcases.count())
+#     # print("sample testcases =", problem.testcases.filter(is_sample=True).count())
+
+#     result = judge_problem_submission(
+#         problem=problem,
+#         source_code=source_code,
+#         language_id=language_id,
+#         use_sample=True,
+#     )
+
+#     if result["status"] == "ERROR":
+#         return Response(
+#             {"error": result.get("message", "Run failed")},
+#             status=status.HTTP_400_BAD_REQUEST,
+#         )
+
+#     return Response(
+#         {
+#             "results": result.get("testcase_results", []),
+#             "passed": result.get("passed_count", 0),
+#             "total": result.get("total_count", 0),
+#             "status": result.get("status"),
+#             "runtime": result.get("runtime", 0),
+#         },
+#         status=status.HTTP_200_OK,
+#     )
 
 
 from .tasks import evaluate_submission_task
